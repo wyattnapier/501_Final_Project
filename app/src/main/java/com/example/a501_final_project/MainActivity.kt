@@ -11,9 +11,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -50,6 +53,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Home : Screen("home", "Home", Icons.Default.Home)
     object Chores : Screen("chores", "Chores", Icons.Default.List)
     object Calendar : Screen("calendar", "Calendar", Icons.Default.DateRange)
+    object Profile : Screen("profile", "Profile", Icons.Default.Person)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     // TODO: Add more screens here as we make them
 }
@@ -62,7 +66,8 @@ val bottomBarScreens = listOf(
 )
 
 val allScreens = bottomBarScreens + listOf(
-    Screen.Settings
+    Screen.Profile,
+    Screen.Settings,
     // TODO: Add more screens here as we make them
 )
 
@@ -70,8 +75,8 @@ val allScreens = bottomBarScreens + listOf(
 fun MainScreen() {
     val navController = rememberNavController()
     Scaffold(
-        bottomBar = { BottomBar(navController = navController) },
-        topBar = { TopBar() },
+        bottomBar = { BottomBar(navController) },
+        topBar = { TopBar(navController) },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         AppNavGraph(Modifier.padding(innerPadding), navController)
@@ -80,14 +85,21 @@ fun MainScreen() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TopBar(){
+fun TopBar(navController: NavController){
     TopAppBar(
-        title = {Text("apt.", textAlign = TextAlign.Center)},
+        title = {Text("apt.", modifier=Modifier.fillMaxWidth(), textAlign = TextAlign.Center)},
+        actions = {
+            IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "User Profile"
+                )
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             titleContentColor = MaterialTheme.colorScheme.primary,
         ),
-        modifier = Modifier.fillMaxWidth()
     )
 }
 
