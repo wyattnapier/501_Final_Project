@@ -26,6 +26,13 @@ fun AppNavGraph(
                 // TODO: add onclick?
             )
         }
+        composable(Screen.Chores.route) {
+            GenericScreen(
+                title = Screen.Chores.title,
+                modifier = modifier
+            )
+            // TODO: add onclick?
+        }
         composable(Screen.Calendar.route) {
             GenericScreen(
                 title = Screen.Calendar.title,

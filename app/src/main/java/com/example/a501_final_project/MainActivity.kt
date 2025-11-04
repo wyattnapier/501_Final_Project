@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -47,6 +48,7 @@ class MainActivity : ComponentActivity() {
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
+    object Chores : Screen("chores", "Chores", Icons.Default.List)
     object Calendar : Screen("calendar", "Calendar", Icons.Default.DateRange)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     // TODO: Add more screens here as we make them
@@ -54,6 +56,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 
 val bottomBarScreens = listOf(
     Screen.Home,
+    Screen.Chores,
     Screen.Calendar,
     // TODO: Add more screens here as we make them
 )
