@@ -105,7 +105,10 @@ fun TopBar(navController: NavController){
 
 @Composable
 fun BottomBar(navController: NavHostController) {
-    NavigationBar {
+    NavigationBar (
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.primary
+    ) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = navBackStackEntry?.destination
 
