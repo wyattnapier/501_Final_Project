@@ -93,10 +93,21 @@ fun MainScreen() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(navController: NavController){
+    val profileOnClick: (Screen) -> Unit = { screen ->
+        navController.navigate(screen.route) {
+            // This logic is the same as your BottomBar, which is great for consistency!
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     TopAppBar(
         title = {Text("apt.", modifier=Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineLarge)},
         actions = {
-            IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
+            IconButton( onClick = { profileOnClick(Screen.Profile) }) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "User Profile"
