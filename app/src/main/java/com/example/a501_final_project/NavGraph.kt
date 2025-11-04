@@ -18,11 +18,7 @@ fun AppNavGraph(
     ) {
         // Home
         composable(Screen.Home.route) {
-            GenericScreen(
-                title = Screen.Home.title,
-                modifier = modifier
-                // TODO: add onclick?
-            )
+            HomeScreen(modifier, navController)
         }
         // Chores
         composable(Screen.Chores.route) {
@@ -60,6 +56,14 @@ fun AppNavGraph(
         composable(Screen.Settings.route) {
             GenericScreen(
                 title = Screen.Settings.title,
+                modifier = modifier
+            )
+            // TODO: add onclick?
+        }
+        // Error Handler
+        composable(Screen.Error.route) {
+            GenericScreen(
+                title = Screen.Error.title,
                 modifier = modifier
             )
             // TODO: add onclick?

@@ -60,6 +60,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Calendar : Screen("calendar", "Calendar", Icons.Default.DateRange)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
+    object Error : Screen("Error", "Error", Icons.Default.Settings)
 }
 
 // list of all screens used in the bottom bar
@@ -93,7 +94,7 @@ fun MainScreen() {
 @Composable
 fun TopBar(navController: NavController){
     TopAppBar(
-        title = {Text("apt.", modifier=Modifier.fillMaxWidth(), textAlign = TextAlign.Center)},
+        title = {Text("apt.", modifier=Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineLarge)},
         actions = {
             IconButton(onClick = { navController.navigate(Screen.Profile.route) }) {
                 Icon(
