@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
     object Chores : Screen("chores", "Chores", Icons.Default.List)
+    object Pay : Screen("pay", "Pay", Icons.Default.Send) // TODO: replace with better money icon
     object Calendar : Screen("calendar", "Calendar", Icons.Default.DateRange)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
@@ -61,13 +63,8 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 val bottomBarScreens = listOf(
     Screen.Home,
     Screen.Chores,
+    Screen.Pay,
     Screen.Calendar,
-    // TODO: Add more screens here as we make them
-)
-
-val allScreens = bottomBarScreens + listOf(
-    Screen.Profile,
-    Screen.Settings,
     // TODO: Add more screens here as we make them
 )
 
