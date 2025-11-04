@@ -5,12 +5,32 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,29 +39,91 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             _501_Final_ProjectTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                MainScreen()
             }
         }
     }
 }
 
+sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
+    object Home : Screen("home", "Home", Icons.Default.Home)
+    object Calendar : Screen("calendar", "Calendar", Icons.Default.DateRange)
+    object Settings : Screen("settings", "Settings", Icons.Default.Settings)
+    // TODO: Add more screens here as we make them
+}
+
+val bottomBarScreens = listOf(
+    Screen.Home,
+    Screen.Calendar,
+    // TODO: Add more screens here as we make them
+)
+
+val allScreens = bottomBarScreens + listOf(
+    Screen.Settings
+    // TODO: Add more screens here as we make them
+)
+
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
+fun MainScreen() {
+    val navController = rememberNavController()
+    Scaffold(
+        bottomBar = { BottomBar(navController = navController) },
+        topBar = { TopBar() },
+        modifier = Modifier.fillMaxSize()
+    ) { innerPadding ->
+        AppNavGraph(Modifier.padding(innerPadding), navController)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TopBar(){
+    TopAppBar(
+        title = {Text("apt.", textAlign = TextAlign.Center)},
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            titleContentColor = MaterialTheme.colorScheme.primary,
+        ),
+        modifier = Modifier.fillMaxWidth()
     )
 }
 
-@Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    _501_Final_ProjectTheme {
-        Greeting("Android")
+fun BottomBar(navController: NavHostController) {
+    NavigationBar {
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentDestination = navBackStackEntry?.destination
+
+        bottomBarScreens.forEach { screen ->
+            NavigationBarItem(
+                label = { Text(screen.title) },
+                icon = { Icon(screen.icon, contentDescription = screen.title) },
+                // We check if the current route is part of the destination's hierarchy.
+                selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                // Define the click action for the item.
+                onClick = {
+                    navController.navigate(screen.route) {
+                        // Pop up to the start destination of the graph to
+                        // avoid building up a large stack of destinations
+                        // on the back stack as users select items.
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true // Save the state of the screen you're leaving.
+                        }
+                        launchSingleTop = true // Avoid multiple copies of the same destination when re-selecting the same item.
+                        restoreState = true // Restore state when re-selecting a previously selected item.
+                    }
+                }
+            )
+        }
     }
+}
+
+@Composable
+fun GenericScreen(title: String, modifier: Modifier = Modifier) {
+    Text(
+        text = "Welcome to $title page!",
+        modifier = modifier,
+        textAlign = TextAlign.Center,
+        style = MaterialTheme.typography.headlineLarge
+    )
 }
