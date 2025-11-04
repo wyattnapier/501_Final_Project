@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.navigation.NavController
+import androidx.navigation.NavGraph.Companion.findStartDestination
 
 /**
  * composable for the home screen
@@ -27,6 +28,17 @@ import androidx.navigation.NavController
  */
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
+    val widgetOnClick: (Screen) -> Unit = { screen ->
+        navController.navigate(screen.route) {
+            // This logic is the same as your BottomBar, which is great for consistency!
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
+
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp)
     ) {
@@ -38,12 +50,12 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
             BoxItem(
                 "Calendar",
                 MaterialTheme.colorScheme.primaryContainer,
-                onClick = { navController.navigate(Screen.Calendar.route) }
+                onClick = { widgetOnClick(Screen.Calendar) }
             )
             BoxItem(
                 "Payment",
                 MaterialTheme.colorScheme.secondaryContainer,
-                onClick = { navController.navigate(Screen.Pay.route) }
+                onClick = { widgetOnClick(Screen.Pay) }
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -55,12 +67,12 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
             BoxItem(
                 "Chores",
                 MaterialTheme.colorScheme.tertiaryContainer,
-                onClick = { navController.navigate(Screen.Chores.route) }
+                onClick = { widgetOnClick(Screen.Chores) }
             )
             BoxItem(
                 "Locate/TBD",
                 MaterialTheme.colorScheme.errorContainer,
-                onClick = { navController.navigate(Screen.Error.route) }
+                onClick = { widgetOnClick(Screen.Error) }
             )
         }
     }
