@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -26,10 +27,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -50,6 +52,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// definitions of all screens used in the app
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Home", Icons.Default.Home)
     object Chores : Screen("chores", "Chores", Icons.Default.List)
@@ -57,17 +60,19 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Calendar : Screen("calendar", "Calendar", Icons.Default.DateRange)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
-    // TODO: Add more screens here as we make them
 }
 
+// list of all screens used in the bottom bar
 val bottomBarScreens = listOf(
     Screen.Home,
     Screen.Chores,
     Screen.Pay,
     Screen.Calendar,
-    // TODO: Add more screens here as we make them
 )
 
+/**
+ * Main screen that contains the scaffold and navigation
+ */
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
@@ -80,6 +85,10 @@ fun MainScreen() {
     }
 }
 
+/**
+ * Top bar with navigation to profile page
+ * @param navController: NavHostController, the navigation controller
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(navController: NavController){
@@ -100,6 +109,10 @@ fun TopBar(navController: NavController){
     )
 }
 
+/**
+ * Bottom bar with navigation to bottomBarScreens (home, chores, pay, calendar)
+ * @param navController: NavHostController, the navigation controller
+ */
 @Composable
 fun BottomBar(navController: NavHostController) {
     NavigationBar (
@@ -133,12 +146,22 @@ fun BottomBar(navController: NavHostController) {
     }
 }
 
+/**
+ * Generic screen that acts as a placeholder
+ * for screens that we haven't developed yet
+ * @param title: String, the title of the screen
+ */
 @Composable
 fun GenericScreen(title: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Welcome to $title page!",
-        modifier = modifier,
-        textAlign = TextAlign.Center,
-        style = MaterialTheme.typography.headlineLarge
-    )
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "Welcome to the $title page!",
+            style = MaterialTheme.typography.headlineLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
 }
