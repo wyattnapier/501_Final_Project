@@ -14,11 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.navigation.NavController
-import androidx.navigation.NavGraph.Companion.findStartDestination
 
 /**
  * composable for the home screen
@@ -28,17 +26,6 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
  */
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
-    val widgetOnClick: (Screen) -> Unit = { screen ->
-        navController.navigate(screen.route) {
-            // This logic is the same as your BottomBar, which is great for consistency!
-            popUpTo(navController.graph.findStartDestination().id) {
-                saveState = true
-            }
-            launchSingleTop = true
-            restoreState = true
-        }
-    }
-
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp)
     ) {
@@ -50,12 +37,12 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
             BoxItem(
                 "Calendar",
                 MaterialTheme.colorScheme.primaryContainer,
-                onClick = { widgetOnClick(Screen.Calendar) }
+                onClick = { navigateToScreen(navController, Screen.Calendar) }
             )
             BoxItem(
                 "Payment",
                 MaterialTheme.colorScheme.secondaryContainer,
-                onClick = { widgetOnClick(Screen.Pay) }
+                onClick = { navigateToScreen(navController, Screen.Pay) }
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -67,12 +54,12 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
             BoxItem(
                 "Chores",
                 MaterialTheme.colorScheme.tertiaryContainer,
-                onClick = { widgetOnClick(Screen.Chores) }
+                onClick = { navigateToScreen(navController, Screen.Chores) }
             )
             BoxItem(
                 "Locate/TBD",
                 MaterialTheme.colorScheme.errorContainer,
-                onClick = { widgetOnClick(Screen.Error) }
+                onClick = { navigateToScreen(navController, Screen.Error) }
             )
         }
     }
