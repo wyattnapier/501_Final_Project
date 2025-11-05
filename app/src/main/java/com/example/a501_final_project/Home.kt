@@ -16,12 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.navigation.NavController
 
 /**
  * composable for the home screen
  * creates the 4 boxes as previews of the main screens
- * TODO: decide to keep/delete locate and rearrange accordingly
  * TODO: fill in the the screens with real content (build composables for each widget)
  */
 @Composable
@@ -32,13 +32,20 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
         Row(
             modifier = Modifier
                 .weight(1f),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             BoxItem(
                 "Calendar",
                 MaterialTheme.colorScheme.primaryContainer,
                 onClick = { navigateToScreen(navController, Screen.Calendar) }
             )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier
+                .weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             BoxItem(
                 "Payment",
                 MaterialTheme.colorScheme.secondaryContainer,
@@ -49,17 +56,12 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
         Row(
             modifier = Modifier
                 .weight(1f),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp)
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             BoxItem(
                 "Chores",
                 MaterialTheme.colorScheme.tertiaryContainer,
                 onClick = { navigateToScreen(navController, Screen.Chores) }
-            )
-            BoxItem(
-                "Locate/TBD",
-                MaterialTheme.colorScheme.errorContainer,
-                onClick = { navigateToScreen(navController, Screen.Error) }
             )
         }
     }
