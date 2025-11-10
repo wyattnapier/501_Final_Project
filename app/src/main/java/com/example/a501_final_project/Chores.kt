@@ -104,7 +104,7 @@ class TempViewModel : ViewModel() {
 
 @Composable
 fun ChoresScreen(viewModel: TempViewModel = TempViewModel(), modifier: Modifier = Modifier){
-    Column(modifier = modifier.padding(5.dp).fillMaxHeight(),
+    Column(modifier = modifier.fillMaxHeight().padding(5.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)){
         if (viewModel.showPrevChores) {
             PrevChores(viewModel)
@@ -116,9 +116,9 @@ fun ChoresScreen(viewModel: TempViewModel = TempViewModel(), modifier: Modifier 
 }
 
 @Composable
-fun MyChoreWidget(viewModel: TempViewModel){
+fun MyChoreWidget(viewModel: TempViewModel, modifier: Modifier = Modifier){
     val chore = viewModel.choreList.find { it.userID == viewModel.userID && it.houseHoldID == viewModel.houseHoldID }
-    Row(modifier =  Modifier
+    Row(modifier =  modifier
         .clip(MaterialTheme.shapes.medium)
         .background(MaterialTheme.colorScheme.secondaryContainer)
         .padding(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically){
@@ -141,10 +141,11 @@ fun MyChoreWidget(viewModel: TempViewModel){
 
 
 @Composable
-fun RoommateChores(viewModel: TempViewModel){
+fun RoommateChores(viewModel: TempViewModel, modifier: Modifier = Modifier){
     val roommateChores = viewModel.choreList.filter { it.userID != viewModel.userID && it.houseHoldID == viewModel.houseHoldID }
 
-    Column(modifier =  Modifier
+    Column(modifier =  modifier
+        .fillMaxHeight()
         .clip(MaterialTheme.shapes.medium)
         .background(MaterialTheme.colorScheme.secondaryContainer)
         .padding(10.dp)){
@@ -178,6 +179,7 @@ fun RoommateChores(viewModel: TempViewModel){
 fun PrevChores(viewModel: TempViewModel) {
     // if due date < today, display on prev tasks
     Column(modifier =  Modifier
+        .fillMaxHeight()
         .clip(MaterialTheme.shapes.medium)
         .background(MaterialTheme.colorScheme.secondaryContainer)
         .padding(10.dp)){
