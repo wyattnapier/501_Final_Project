@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
@@ -14,6 +15,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,7 +51,7 @@ class TempViewModel : ViewModel() {
             houseHoldID = 1,
             userID = 1,
             dueDate = "November 15, 2025",
-            status = "DONE"
+            status = "Done"
         ),
         Chore(
             name = "Vacuum Living Room",
@@ -85,6 +90,7 @@ class TempViewModel : ViewModel() {
     )
     val userID = 2
     val houseHoldID = 1
+    var showPrevChores by mutableStateOf(false)
     
     fun markChoreComplete(chore: Chore) {
         val index = choreList.indexOf(chore)
@@ -97,10 +103,15 @@ class TempViewModel : ViewModel() {
 
 
 @Composable
-fun ChoresScreen(viewModel: TempViewModel = TempViewModel()){
-    Column(modifier = Modifier.padding(5.dp), verticalArrangement = Arrangement.spacedBy(5.dp)){
-        MyChoreWidget(viewModel)
-        RoommateChores(viewModel)
+fun ChoresScreen(viewModel: TempViewModel = TempViewModel(), modifier: Modifier = Modifier){
+    Column(modifier = modifier.padding(5.dp).fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(5.dp)){
+        if (viewModel.showPrevChores) {
+            PrevChores(viewModel)
+        }else {
+            MyChoreWidget(viewModel)
+            RoommateChores(viewModel)
+        }
     }
 }
 
@@ -109,7 +120,7 @@ fun MyChoreWidget(viewModel: TempViewModel){
     val chore = viewModel.choreList.find { it.userID == viewModel.userID && it.houseHoldID == viewModel.houseHoldID }
     Row(modifier =  Modifier
         .clip(MaterialTheme.shapes.medium)
-        .background(MaterialTheme.colorScheme.primaryContainer)
+        .background(MaterialTheme.colorScheme.secondaryContainer)
         .padding(10.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically){
         Column(modifier = Modifier.weight(2f, true)) {
             Text("My Chore", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
@@ -135,7 +146,7 @@ fun RoommateChores(viewModel: TempViewModel){
 
     Column(modifier =  Modifier
         .clip(MaterialTheme.shapes.medium)
-        .background(MaterialTheme.colorScheme.primaryContainer)
+        .background(MaterialTheme.colorScheme.secondaryContainer)
         .padding(10.dp)){
         Text("Roommate Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
         LazyColumn(){
@@ -154,13 +165,47 @@ fun RoommateChores(viewModel: TempViewModel){
                 Text("See Previous Chores",
                     fontSize = MaterialTheme.typography.bodyLarge.fontSize,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.align(Alignment.CenterHorizontally).clickable { /*TODO*/ }
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clickable(onClick = { viewModel.showPrevChores = true })
                 )
             }
         }
     }
 }
 
+@Composable
+fun PrevChores(viewModel: TempViewModel) {
+    // if due date < today, display on prev tasks
+    Column(modifier =  Modifier
+        .clip(MaterialTheme.shapes.medium)
+        .background(MaterialTheme.colorScheme.secondaryContainer)
+        .padding(10.dp)){
+        Text("Previous Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
+        LazyColumn(){
+            for(chore in viewModel.choreList) {
+                item {
+                    Text(chore.assignedTo + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                    Text("Status: ${chore.status}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    HorizontalDivider(
+                        color = Color.LightGray,
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+            }
+            item {
+                Text("Back to Current Chores",
+                    fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clickable(onClick = { viewModel.showPrevChores = false })
+                )
+            }
+        }
+    }
+}
 
 
 @Preview(showBackground = true)
