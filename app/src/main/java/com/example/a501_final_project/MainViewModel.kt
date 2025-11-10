@@ -175,4 +175,12 @@ class MainViewModel : ViewModel() {
         return paymentList.filter { it.payTo == person }
     }
 
+    /**
+     * function to get payments from a specific person
+     * this will be used for payments they need to make
+     */
+    fun getPaymentsFrom(person: String): List<Payment> {
+        return paymentList.filter { it.payFrom == person }
+    }
+
 }
