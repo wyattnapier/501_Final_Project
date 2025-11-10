@@ -30,10 +30,7 @@ fun AppNavGraph(
         }
         // Pay
         composable(Screen.Pay.route) {
-            GenericScreen(
-                title = Screen.Pay.title,
-                modifier = modifier
-            )
+            VenmoPaymentScreen()
             // TODO: add onclick?
         }
         // Calendar
