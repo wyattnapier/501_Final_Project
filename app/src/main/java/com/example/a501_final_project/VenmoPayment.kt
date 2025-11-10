@@ -33,7 +33,6 @@ fun VenmoPaymentScreen(
 
     Column(
         modifier = modifier,
-//        verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -43,32 +42,56 @@ fun VenmoPaymentScreen(
             modifier = Modifier.padding(vertical = 20.dp)
         )
         LazyColumn {
-            for (payment in payments) {
-                item {
-                    PaymentListItem(payment, modifier.fillMaxWidth()
-                        .padding(vertical = 4.dp))
-                }
+            items(payments.size) { index ->
+                val payment = payments[index]
+                PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
             }
         }
     }
 }
 
 @Composable
-fun PaymentListItem(payment: Payment, modifier: Modifier) {
-    val payTo = payment.payTo
-    val amount = payment.amount
-    val note = payment.memo
-
-    Row(
-        modifier = Modifier.padding(vertical=5.dp, horizontal = 10.dp).fillMaxWidth().clip(MaterialTheme.shapes.medium)
-            .background(MaterialTheme.colorScheme.secondaryContainer).padding(10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+fun PaymentListItem(
+    payment: Payment,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
     ) {
-        Column(verticalArrangement = Arrangement.SpaceBetween) {
-            Text(text = "Pay $amount to $payTo for $note")
-            Text(text = "Paid: ${payment.paid}") // TODO: add checkbox icon here
-            PayButton(payTo, amount, note)
+        Row(
+            modifier = Modifier
+                .background(MaterialTheme.colorScheme.secondaryContainer)
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "Pay $${"%.2f".format(payment.amount)} to ${payment.payTo}",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "For: ${payment.memo}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Paid: ${if (payment.paid) "Yes" else "No"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (payment.paid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                )
+            }
+            PayButton(
+                payTo = payment.payTo,
+                amount = payment.amount,
+                note = payment.memo,
+                modifier = Modifier.padding(start = 8.dp)
+            )
         }
     }
 }
@@ -107,5 +130,5 @@ fun PayButton(
 @Preview(showBackground = true)
 @Composable
 fun VenmoPaymentScreenPreview() {
-    VenmoPaymentScreen()
+    VenmoPaymentScreen(modifier = Modifier.fillMaxSize())
 }
