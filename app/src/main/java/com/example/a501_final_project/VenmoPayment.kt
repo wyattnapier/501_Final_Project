@@ -30,7 +30,6 @@ fun VenmoPaymentScreen(
     modifier: Modifier = Modifier,
     viewModel: MainViewModel = viewModel(),
 ) {
-    // TODO: add a date so it sorts by date in descending order
     val allPayments = listOf(
         Payment(0, "tiffany_username", "alice_username", 85.50, "Dinner", paid = false, recurring = false),
         Payment(1, "alice_username", "Wyatt", 15.50, "Dinner", paid = false, recurring = false),
@@ -41,7 +40,8 @@ fun VenmoPaymentScreen(
     )
 
     // TODO: get this from the viewmodel instead of dummy data
-    val currentPayments = allPayments.filter { !it.paid } // TODO: filter out payments not involving current user
+    val allPaymentsForCurrentUser = allPayments.filter { it.payFrom == "Wyatt" || it.payTo == "Wyatt"} // TODO: update to use current user and sort by date
+    val currentPayments = allPaymentsForCurrentUser.filter { !it.paid }
     var showPastPayments by remember { mutableStateOf(true) }
 
 
@@ -60,7 +60,7 @@ fun VenmoPaymentScreen(
                 color = MaterialTheme.colorScheme.primary
             )
 
-            FilledTonalButton( // TODO: find best button
+            FilledTonalButton(
                 onClick = { showPastPayments = !showPastPayments },
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = if (showPastPayments)
@@ -82,8 +82,8 @@ fun VenmoPaymentScreen(
         }
         if (showPastPayments) {
             LazyColumn {
-                items(allPayments.size) { index ->
-                    val payment = allPayments[index]
+                items(allPaymentsForCurrentUser.size) { index ->
+                    val payment = allPaymentsForCurrentUser[index]
                     PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
                 }
             }
@@ -206,7 +206,7 @@ fun PayButton(
 ) {
     val context = LocalContext.current // used to open venmo activity
 
-    val payToVenmoUsername = viewModel.getVenmoUsername(payTo) // TODO: convert username on our app to venmo username
+    val payToVenmoUsername = viewModel.getVenmoUsername(payTo)
     if (payToVenmoUsername == null) {
         Log.d("payment","Error: Venmo username not found for $payTo")
         val payToVenmoUsername = "Wyatt" // temp placeholder rather than throwing real error
