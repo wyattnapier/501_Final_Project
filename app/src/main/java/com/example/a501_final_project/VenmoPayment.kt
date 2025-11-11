@@ -11,10 +11,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -22,30 +27,72 @@ import androidx.core.net.toUri
 
 @Composable
 fun VenmoPaymentScreen(
+    modifier: Modifier = Modifier,
     viewModel: MainViewModel = viewModel(),
-    modifier: Modifier = Modifier
 ) {
-    // TODO: get this from the viewmodel instead of dummy data
-    val payments = listOf(
+    // TODO: add a date so it sorts by date in descending order
+    val allPayments = listOf(
+        Payment(0, "tiffany_username", "alice_username", 85.50, "Dinner", paid = false, recurring = false),
         Payment(1, "alice_username", "Wyatt", 15.50, "Dinner", paid = false, recurring = false),
         Payment(2, "tiffany_username", "Wyatt", 25.00, "Utilities", paid = false, recurring = true),
         Payment(3, "john_username", "Wyatt", 100.25, "Rent", paid = false, recurring = false),
+        Payment(4, "Wyatt", "john_username", 100.25, "Rent", paid = true, recurring = false),
+        Payment(5, "john_username", "Wyatt", 100.25, "Rent", paid = true, recurring = false),
     )
+
+    // TODO: get this from the viewmodel instead of dummy data
+    val currentPayments = allPayments.filter { !it.paid } // TODO: filter out payments not involving current user
+    var showPastPayments by remember { mutableStateOf(true) }
+
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Pay with Venmo",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(vertical = 20.dp)
-        )
-        LazyColumn {
-            items(payments.size) { index ->
-                val payment = payments[index]
-                PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical=8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Pay with Venmo",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            FilledTonalButton( // TODO: find best button
+                onClick = { showPastPayments = !showPastPayments },
+                colors = ButtonDefaults.filledTonalButtonColors(
+                    containerColor = if (showPastPayments)
+                        MaterialTheme.colorScheme.primaryContainer
+                    else
+                        MaterialTheme.colorScheme.surfaceVariant
+                ),
+                modifier = Modifier.height(36.dp)
+            ) {
+                Text(
+                    text = if (showPastPayments) "Showing Past" else "Show Past",
+                    color = if (showPastPayments)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
+        if (showPastPayments) {
+            LazyColumn {
+                items(allPayments.size) { index ->
+                    val payment = allPayments[index]
+                    PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                }
+            }
+        } else {
+            LazyColumn {
+                items(currentPayments.size) { index ->
+                    val payment = currentPayments[index]
+                    PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                }
             }
         }
     }
@@ -60,38 +107,90 @@ fun PaymentListItem(
         modifier = modifier,
         shape = MaterialTheme.shapes.medium,
     ) {
-        Row(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.secondaryContainer)
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        if (payment.paid) {
+            PaidPaymentListItem(payment)
+        } else {
+            UnpaidPaymentListItem(payment)
+        }
+    }
+}
+
+@Composable
+fun UnpaidPaymentListItem(
+    payment: Payment,
+) {
+    Row(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(
+            modifier = Modifier.weight(6f)
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "Pay $${"%.2f".format(payment.amount)} to ${payment.payTo}",
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "For: ${payment.memo}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Paid: ${if (payment.paid) "Yes" else "No"}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (payment.paid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                )
-            }
+            Text(
+                text = "${payment.payFrom} must pay $${"%.2f".format(payment.amount)} to ${payment.payTo}",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "For: ${payment.memo}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Paid: ${if (payment.paid) "Yes" else "No"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (payment.paid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+            )
+        }
+        if (payment.payTo == "Wyatt") { // TODO: change to current user
+            PaymentReminderButton(
+                payment = payment,
+                modifier = Modifier.weight(5f).padding(start = 8.dp)
+            )
+        } else {
             PayButton(
                 payTo = payment.payTo,
                 amount = payment.amount,
                 note = payment.memo,
-                modifier = Modifier.padding(start = 8.dp)
+                modifier = Modifier.weight(5f).padding(start = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun PaidPaymentListItem(
+    payment: Payment,
+) {
+    Row(
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = "${payment.payFrom} paid $${"%.2f".format(payment.amount)} to ${payment.payTo}",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "For: ${payment.memo}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.75f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Paid: ${if (payment.paid) "Yes" else "No"}",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (payment.paid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
         }
     }
@@ -129,6 +228,20 @@ fun PayButton(
         modifier = modifier
     ) {
         Text(text = "Pay $payTo")
+    }
+}
+
+@Composable
+fun PaymentReminderButton(
+    payment: Payment,
+    modifier: Modifier = Modifier,
+    viewModel: MainViewModel = viewModel()
+) {
+    Button(
+        onClick = {Log.d("Payment", "Reminder button clicked") },
+        modifier = modifier
+    ) {
+        Text(text = "Remind ${payment.payFrom}")
     }
 }
 
