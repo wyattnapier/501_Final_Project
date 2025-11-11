@@ -27,10 +27,7 @@ fun AppNavGraph(
         }
         // Pay
         composable(Screen.Pay.route) {
-            GenericScreen(
-                title = Screen.Pay.title,
-                modifier = modifier
-            )
+            VenmoPaymentScreen(modifier = modifier) // do I need to pass the viewmodel into it?
             // TODO: add onclick?
         }
         // Calendar
