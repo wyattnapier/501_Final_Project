@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,29 +29,25 @@ import androidx.core.net.toUri
 @Composable
 fun VenmoPaymentScreen(
     modifier: Modifier = Modifier,
-    viewModel: MainViewModel = viewModel(),
+    viewModel: MainViewModel
 ) {
-    val allPayments = listOf(
-        Payment(0, "tiffany_username", "alice_username", 85.50, "Dinner", paid = false, recurring = false),
-        Payment(1, "alice_username", "Wyatt", 15.50, "Dinner", paid = false, recurring = false),
-        Payment(2, "tiffany_username", "Wyatt", 25.00, "Utilities", paid = false, recurring = true),
-        Payment(3, "john_username", "Wyatt", 100.25, "Rent", paid = false, recurring = false),
-        Payment(4, "Wyatt", "john_username", 100.25, "Rent", paid = true, recurring = false),
-        Payment(5, "john_username", "Wyatt", 100.25, "Rent", paid = true, recurring = false),
-    )
+    // using stateflow
+    val showPastPayments by viewModel.showPastPayments.collectAsState()
+    val allPayments by viewModel.paymentsList.collectAsState()
+    val pastPayments by viewModel.pastPayments.collectAsState()
 
-    // TODO: get this from the viewmodel instead of dummy data
-    val allPaymentsForCurrentUser = allPayments.filter { it.payFrom == "Wyatt" || it.payTo == "Wyatt"} // TODO: update to use current user and sort by date
-    val currentPayments = allPaymentsForCurrentUser.filter { !it.paid }
-    var showPastPayments by remember { mutableStateOf(true) }
-
+    // get other lists
+    val currentPaymentsForUser = (viewModel.getPaymentsFor(viewModel.currentUser) + viewModel.getPaymentsFrom(viewModel.currentUser)).filter { !it.paid }
+    val pastPaymentsForUser = pastPayments.filter { it.payFrom == viewModel.currentUser || it.payTo == viewModel.currentUser }
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical=8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -61,7 +58,7 @@ fun VenmoPaymentScreen(
             )
 
             FilledTonalButton(
-                onClick = { showPastPayments = !showPastPayments },
+                onClick = { viewModel.toggleShowPastPayments() },
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = if (showPastPayments)
                         MaterialTheme.colorScheme.primaryContainer
@@ -80,19 +77,15 @@ fun VenmoPaymentScreen(
                 )
             }
         }
-        if (showPastPayments) {
-            LazyColumn {
-                items(allPaymentsForCurrentUser.size) { index ->
-                    val payment = allPaymentsForCurrentUser[index]
-                    PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                }
+        LazyColumn {
+            val listToShow = if (showPastPayments) {
+                currentPaymentsForUser + pastPaymentsForUser
+            } else {
+                currentPaymentsForUser
             }
-        } else {
-            LazyColumn {
-                items(currentPayments.size) { index ->
-                    val payment = currentPayments[index]
-                    PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
-                }
+            items(listToShow.size) { index ->
+                val payment = listToShow[index]
+                PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
             }
         }
     }
@@ -149,14 +142,18 @@ fun UnpaidPaymentListItem(
         if (payment.payTo == "Wyatt") { // TODO: change to current user
             PaymentReminderButton(
                 payment = payment,
-                modifier = Modifier.weight(5f).padding(start = 8.dp)
+                modifier = Modifier
+                    .weight(5f)
+                    .padding(start = 8.dp)
             )
         } else {
             PayButton(
                 payTo = payment.payTo,
                 amount = payment.amount,
                 note = payment.memo,
-                modifier = Modifier.weight(5f).padding(start = 8.dp)
+                modifier = Modifier
+                    .weight(5f)
+                    .padding(start = 8.dp)
             )
         }
     }
@@ -244,9 +241,9 @@ fun PaymentReminderButton(
         Text(text = "Remind ${payment.payFrom}")
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-fun VenmoPaymentScreenPreview() {
-    VenmoPaymentScreen(modifier = Modifier.fillMaxSize())
-}
+//
+//@Preview(showBackground = true)
+//@Composable
+//fun VenmoPaymentScreenPreview() {
+//    VenmoPaymentScreen(modifier = Modifier.fillMaxSize())
+//}

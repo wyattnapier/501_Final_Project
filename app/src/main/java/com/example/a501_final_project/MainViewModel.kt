@@ -3,9 +3,11 @@ package com.example.a501_final_project
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
+import com.example.a501_final_project.Chore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,6 +16,7 @@ import java.time.LocalDate
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.collections.List
 
 
 // custom data object created here for now
@@ -144,6 +147,7 @@ class MainViewModel : ViewModel() {
 
     // temporary values to keep track of who is current user and current household
     val userID = 2
+    val currentUser = "Wyatt"
     val householdID = 1
 
     // functions to help us maintain chores
@@ -209,8 +213,26 @@ class MainViewModel : ViewModel() {
     /***********************************************************************************************************************************************************************/
 
     // pay viewmodel portion
-    val paymentList : SnapshotStateList<Payment> = mutableStateListOf()
-    val pastPaymentList : SnapshotStateList<Payment> = mutableStateListOf()
+    private val _paymentsList = MutableStateFlow<List<Payment>>(listOf(
+        Payment(0, "tiffany_username", "alice_username", 85.50, "Dinner", paid = false, recurring = false),
+        Payment(1, "alice_username", "Wyatt", 15.50, "Dinner", paid = false, recurring = false),
+        Payment(2, "tiffany_username", "Wyatt", 25.00, "Utilities", paid = false, recurring = true),
+        Payment(3, "john_username", "Wyatt", 100.25, "Rent", paid = false, recurring = false),
+        Payment(4, "Wyatt", "john_username", 100.25, "Rent", paid = true, recurring = false),
+        Payment(5, "john_username", "Wyatt", 100.25, "Rent", paid = true, recurring = false),)
+    )
+
+    // TODO: get this from the viewmodel instead of dummy data
+    var paymentsList: StateFlow<List<Payment>> = _paymentsList.asStateFlow()
+
+    // forcing a past payment, otherwise empty
+    private val _pastPayments = MutableStateFlow<List<Payment>>(listOf(
+        Payment(0, "Wyatt", "alice_username", 85.50, "Dinner", paid = true, recurring = false),
+    ))
+    val pastPayments: StateFlow<List<Payment>> = _pastPayments
+    private val _showPastPayments = MutableStateFlow(false)
+    val showPastPayments: StateFlow<Boolean> = _showPastPayments.asStateFlow()
+
 
     // functions to help us maintain payments
 
@@ -231,7 +253,7 @@ class MainViewModel : ViewModel() {
         val amountPerPerson = amount / payFrom.size
         for (name in payFrom) {
             val newPayment = Payment(
-                id = paymentList.size + 1,
+                id = paymentsList.value.size + 1,
                 payTo = payTo,
                 payFrom = name,
                 amount = amountPerPerson,
@@ -239,7 +261,7 @@ class MainViewModel : ViewModel() {
                 paid = false,
                 recurring = recurring
             )
-            paymentList.add(newPayment)
+            _paymentsList.value = _paymentsList.value + newPayment
         }
     }
 
@@ -247,7 +269,7 @@ class MainViewModel : ViewModel() {
      * function to remove payment, either to get rid of it or upon completion
      */
     fun removePayment(payment: Payment) {
-        paymentList.remove(payment)
+        _paymentsList.value = _paymentsList.value.filter { it != payment }
     }
 
 
@@ -256,16 +278,20 @@ class MainViewModel : ViewModel() {
      */
     fun completePayment(payment: Payment) {
         // payment should already be in list so we can access
-        payment.paid = true
-        pastPaymentList.add(payment)
-        paymentList.remove(payment)
+        val updatedPayment = payment.copy(paid = true)
+
+        // Add to pastPayments
+        _pastPayments.value = _pastPayments.value + updatedPayment
+
+        // Remove from active paymentList
+        _paymentsList.value = _paymentsList.value.filter { it != payment }
     }
 
     /**
      * function to get payments assigned to specified person
      */
     fun getPaymentsFor(person: String): List<Payment> {
-        return paymentList.filter { it.payTo == person }
+        return paymentsList.value.filter { it.payTo == person }
     }
 
     /**
@@ -273,7 +299,7 @@ class MainViewModel : ViewModel() {
      * this will be used for payments they need to make
      */
     fun getPaymentsFrom(person: String): List<Payment> {
-        return paymentList.filter { it.payFrom == person }
+        return paymentsList.value.filter { it.payFrom == person }
     }
 
     /**
@@ -282,6 +308,13 @@ class MainViewModel : ViewModel() {
     fun getVenmoUsername(person: String): String? {
         val user: User? = users.find { it.username == person }
         return user?.venmoUsername // TODO: should return an error message if null
+    }
+
+    /**
+     * function to toggle if past payments are shown
+     */
+    fun toggleShowPastPayments() {
+        _showPastPayments.value = !_showPastPayments.value
     }
 
 }
