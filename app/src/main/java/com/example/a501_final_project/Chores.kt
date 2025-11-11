@@ -31,7 +31,7 @@ import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 import com.google.android.libraries.places.api.model.LocalDate
 import java.util.*
 
-data class Chore(
+data class ChoreTemp(
     val name: String,
     val description: String,
     val assignedTo: String,
@@ -44,7 +44,7 @@ data class Chore(
 //TODO: remove this once viewModel is actually implemented
 class TempViewModel : ViewModel() {
     val choreList = mutableListOf(
-        Chore(
+        ChoreTemp(
             name = "Wash Dishes",
             description = "Clean all dishes, utensils, and pots used during dinner.",
             assignedTo = "Alice",
@@ -53,7 +53,7 @@ class TempViewModel : ViewModel() {
             dueDate = "November 15, 2025",
             status = "Done"
         ),
-        Chore(
+        ChoreTemp(
             name = "Vacuum Living Room",
             description = "Vacuum the carpet and under the furniture in the living room.",
             assignedTo = "Bob",
@@ -62,7 +62,7 @@ class TempViewModel : ViewModel() {
             dueDate = "November 15, 2025",
             status = "Done"
         ),
-        Chore(
+        ChoreTemp(
             name = "Laundry",
             description = "Wash, dry, and fold all the clothes from the laundry basket.",
             assignedTo = "Charlie",
@@ -71,7 +71,7 @@ class TempViewModel : ViewModel() {
             dueDate = "November 15, 2025",
             status = "Done"
         ),
-        Chore(
+        ChoreTemp(
             name = "Take Out Trash",
             description = "Empty all trash bins and take the garbage out to the curb.",
             assignedTo = "Dana",
@@ -79,7 +79,7 @@ class TempViewModel : ViewModel() {
             userID = 4,
             dueDate = "November 15, 2025"
         ),
-        Chore(
+        ChoreTemp(
             name = "Clean Bathroom",
             description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
             assignedTo = "Eve",
@@ -92,7 +92,7 @@ class TempViewModel : ViewModel() {
     val houseHoldID = 1
     var showPrevChores by mutableStateOf(false)
     
-    fun markChoreComplete(chore: Chore) {
+    fun markChoreComplete(chore: ChoreTemp) {
         val index = choreList.indexOf(chore)
         if (index != -1) {
             val updatedChore = chore.copy(status = "Done")
@@ -105,7 +105,7 @@ class TempViewModel : ViewModel() {
 @Composable
 fun ChoresScreen(viewModel: TempViewModel = TempViewModel(), modifier: Modifier = Modifier){
     Column(modifier = modifier.fillMaxHeight().padding(5.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp)){
+        verticalArrangement = Arrangement.spacedBy(10.dp)){
         if (viewModel.showPrevChores) {
             PrevChores(viewModel)
         }else {
@@ -163,13 +163,11 @@ fun RoommateChores(viewModel: TempViewModel, modifier: Modifier = Modifier){
                 }
             }
             item {
-                Text("See Previous Chores",
-                    fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .clickable(onClick = { viewModel.showPrevChores = true })
-                )
+                Row( modifier = Modifier.fillParentMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    Button(onClick = { viewModel.showPrevChores = true }) {
+                        Text("See Previous Chores")
+                    }
+                }
             }
         }
     }
@@ -197,13 +195,12 @@ fun PrevChores(viewModel: TempViewModel) {
                 }
             }
             item {
-                Text("Back to Current Chores",
-                    fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .clickable(onClick = { viewModel.showPrevChores = false })
-                )
+                Row( modifier = Modifier.fillParentMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    Button(onClick = { viewModel.showPrevChores = false }) {
+                        Text("Back to Current Chores")
+                    }
+                }
+
             }
         }
     }

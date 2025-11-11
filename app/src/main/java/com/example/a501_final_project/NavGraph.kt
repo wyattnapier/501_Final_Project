@@ -22,10 +22,6 @@ fun AppNavGraph(
         }
         // Chores
         composable(Screen.Chores.route) {
-//            GenericScreen(
-//                title = Screen.Chores.title,
-//                modifier = modifier
-//            )
             // TODO: add onclick?
             ChoresScreen(modifier = modifier)
         }
