@@ -9,6 +9,12 @@ import java.util.Date
 
 
 // custom data object created here for now
+data class User(
+    val username: String,
+    val email: String,
+    val venmoUsername: String,
+)
+
 
 /**
  * chore should include an id for easy maintainence
@@ -56,6 +62,11 @@ class MainViewModel : ViewModel() {
 
     // dummy household members....
     val roommates = listOf("Alice", "Wyatt", "Tiffany")
+    val users = listOf(
+        User("alice_username", "william.henry.harrison@example-pet-store.com", "alice_venmo"),
+        User("tiffany_username", "william.henry.harrison@example-pet-store.com", "tiffany_venmo"),
+        User("john_username", "william.henry.moody@my-own-personal-domain.com", "john_venmo")
+    )
 
     // chores viewmodel portion
     val choresList : SnapshotStateList<Chore> = mutableStateListOf()
@@ -181,6 +192,14 @@ class MainViewModel : ViewModel() {
      */
     fun getPaymentsFrom(person: String): List<Payment> {
         return paymentList.filter { it.payFrom == person }
+    }
+
+    /**
+     * function to get venmo user name of a user
+     */
+    fun getVenmoUsername(person: String): String? {
+        val user: User? = users.find { it.username == person }
+        return user?.venmoUsername // TODO: should return an error message if null
     }
 
 }

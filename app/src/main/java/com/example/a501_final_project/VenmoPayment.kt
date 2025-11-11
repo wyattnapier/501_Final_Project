@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -102,11 +103,15 @@ fun PayButton(
     amount: Double,
     note: String,
     modifier: Modifier = Modifier,
+    viewModel: MainViewModel = viewModel()
 ) {
     val context = LocalContext.current // used to open venmo activity
 
-//    val payToVenmoUsername = viewModel.getVenmoUsername(payTo) // TODO: convert username on our app to venmo username
-    val payToVenmoUsername = payTo // temp placeholder
+    val payToVenmoUsername = viewModel.getVenmoUsername(payTo) // TODO: convert username on our app to venmo username
+    if (payToVenmoUsername == null) {
+        Log.d("payment","Error: Venmo username not found for $payTo")
+        val payToVenmoUsername = "Wyatt" // temp placeholder rather than throwing real error
+    }
 
     Button(onClick = {
         val uri =
