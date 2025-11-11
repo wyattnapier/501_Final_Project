@@ -18,6 +18,7 @@ Clone repo, start emulator, build and run app
 - Chores page with widgets showing own chore, roommate chores, and option to pull up all past chores
 - Payment page with connection to Venmo API and preliminary logic to calculate payments
 - ViewModel with mock data and preliminary logic for pages, will continue to build out as we add functionality to the app
-- NavGraph that properly navigates through all pages in the main activity of the app 
+- NavGraph that properly navigates through all pages in the main activity of the app
+- Persistent DataStore to keep track of user preferences 
 ### Updates to project: 
 - From considerations of real-world usage, we are no longer building out the locate page as part of our MVP.
