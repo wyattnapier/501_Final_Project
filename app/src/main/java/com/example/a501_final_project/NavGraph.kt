@@ -40,11 +40,12 @@ fun AppNavGraph(
         }
         // Profile
         composable(Screen.Profile.route) {
-            GenericScreen(
-                title = Screen.Profile.title,
-                modifier = modifier
-            )
+//            GenericScreen(
+//                title = Screen.Profile.title,
+//                modifier = modifier
+//            )
             // TODO: add onclick?
+            UserPrefScreen(modifier = modifier)
         }
         // Settings
         composable(Screen.Settings.route) {

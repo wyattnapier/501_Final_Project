@@ -17,6 +17,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
 
 /**
@@ -26,43 +30,56 @@ import androidx.navigation.NavController
  */
 @Composable
 fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
+    val context = LocalContext.current
+    val prefs = remember { UserPreferences(context) }
+
+    val showPayments by prefs.showPayments.collectAsState(initial = true)
+    val showChores by prefs.showChores.collectAsState(initial = true)
+    val showEvents by prefs.showEvents.collectAsState(initial = true)
+
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            BoxItem(
-                "Calendar",
-                MaterialTheme.colorScheme.primaryContainer,
-                onClick = { navigateToScreen(navController, Screen.Calendar) }
-            )
+        if (showEvents) {
+            Row(
+                modifier = Modifier
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                BoxItem(
+                    "Calendar",
+                    MaterialTheme.colorScheme.primaryContainer,
+                    onClick = { navigateToScreen(navController, Screen.Calendar) }
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier
-                .weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            BoxItem(
-                "Payment",
-                MaterialTheme.colorScheme.secondaryContainer,
-                onClick = { navigateToScreen(navController, Screen.Pay) }
-            )
+        if (showPayments) {
+            Row(
+                modifier = Modifier
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                BoxItem(
+                    "Payment",
+                    MaterialTheme.colorScheme.secondaryContainer,
+                    onClick = { navigateToScreen(navController, Screen.Pay) }
+                )
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Row(
-            modifier = Modifier
-                .weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            BoxItem(
-                "Chores",
-                MaterialTheme.colorScheme.tertiaryContainer,
-                onClick = { navigateToScreen(navController, Screen.Chores) }
-            )
+        if (showChores) {
+            Row(
+                modifier = Modifier
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                BoxItem(
+                    "Chores",
+                    MaterialTheme.colorScheme.tertiaryContainer,
+                    onClick = { navigateToScreen(navController, Screen.Chores) }
+                )
+            }
         }
     }
 }
