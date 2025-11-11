@@ -2,6 +2,7 @@ package com.example.a501_final_project
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -12,6 +13,9 @@ fun AppNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
+
+    // creating a shred viewModel for all screens
+    val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
     NavHost(
         navController = navController,
         startDestination = Screen.Home.route
@@ -23,7 +27,7 @@ fun AppNavGraph(
         // Chores
         composable(Screen.Chores.route) {
             // TODO: add onclick?
-            ChoresScreen(modifier = modifier)
+            ChoresScreen(mainViewModel, modifier = modifier)
         }
         // Pay
         composable(Screen.Pay.route) {

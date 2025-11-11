@@ -1,11 +1,19 @@
 package com.example.a501_final_project
 
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.util.Calendar
 import java.util.Date
+import java.util.Locale
 
 
 // custom data object created here for now
@@ -24,11 +32,14 @@ data class User(
  * completed to indicate if chore is completed
  */
 data class Chore(
-    val id: Int,
-    val title: String,
+    val choreID: Int,
+    val userID: Number,
+    val householdID: Number,
+    val name: String,
     val description: String,
-    var dueDate: Date, // trying this, can change later
-    var assignee: String,
+//    var dueDate: Date, // trying this, can change later
+    var dueDate: String,
+    var assignedTo: String,
     var completed: Boolean,
     var priority: Boolean,
 )
@@ -69,14 +80,78 @@ class MainViewModel : ViewModel() {
     )
 
     // chores viewmodel portion
-    val choresList : SnapshotStateList<Chore> = mutableStateListOf()
+    private val _choresList = MutableStateFlow<List<Chore>>(listOf(
+        Chore(
+            choreID = 1,
+            name = "Wash Dishes",
+            description = "Clean all dishes, utensils, and pots used during dinner.",
+            assignedTo = "Alice",
+            householdID = 1,
+            userID = 1,
+            dueDate = "November 15, 2025",
+            completed = true,
+            priority = true
+        ),
+        Chore(
+            choreID = 2,
+            name = "Vacuum Living Room",
+            description = "Vacuum the carpet and under the furniture in the living room.",
+            assignedTo = "Bob",
+            householdID = 1,
+            userID = 2,
+            dueDate = "November 15, 2025",
+            completed = true,
+            priority = true
+        ),
+        Chore(
+            choreID = 3,
+            name = "Laundry",
+            description = "Wash, dry, and fold all the clothes from the laundry basket.",
+            assignedTo = "Charlie",
+            householdID = 1,
+            userID = 3,
+            dueDate = "November 15, 2025",
+            completed = true,
+            priority = true,
+        ),
+        Chore(
+            choreID = 4,
+            name = "Take Out Trash",
+            description = "Empty all trash bins and take the garbage out to the curb.",
+            assignedTo = "Dana",
+            householdID = 1,
+            userID = 4,
+            dueDate = "November 15, 2025",
+            completed = false,
+            priority = true,
+        ),
+        Chore(
+            choreID = 5,
+            name = "Clean Bathroom",
+            description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
+            assignedTo = "Eve",
+            householdID = 1,
+            userID = 5,
+            dueDate = "November 15, 2025",
+            completed = false,
+            priority = true,
+        ))
+    )
+
+    var choresList: StateFlow<List<Chore>> = _choresList.asStateFlow()
+    private val _showPrevChores = MutableStateFlow(false)
+    val showPrevChores: StateFlow<Boolean> = _showPrevChores.asStateFlow()
+
+    // temporary values to keep track of who is current user and current household
+    val userID = 2
+    val householdID = 1
 
     // functions to help us maintain chores
     /**
      * function to be used when first initializing/creating the list of chores for the household
      */
     fun addChores(newChore : Chore) {
-        choresList.add(newChore)
+        _choresList.value = _choresList.value + newChore
     }
 
     /**
@@ -84,9 +159,8 @@ class MainViewModel : ViewModel() {
      * eventually we should do this based on time?
      */
     fun assignChores() {
-        // depending on how we want chores ot work/be assigned, btu currently round robin
-        choresList.forEachIndexed { index, chore ->
-            chore.assignee = roommates[index % roommates.size]
+        _choresList.value = _choresList.value.mapIndexed { index, chore ->
+            chore.copy(assignedTo = roommates[index % roommates.size])
         }
     }
 
@@ -96,15 +170,16 @@ class MainViewModel : ViewModel() {
      * this function is called and gets passed the chore
      * this function might not be needed, but it could help with safe access/storing logic in one place
      */
-    fun completeChore(completedChore : Chore) {
-        completedChore.completed = true // hypothetically if they pass the chore object in then we can jut do this...? since itll already be an object in the list
+    fun completeChore(completedChore: Chore) {
+        _choresList.value = _choresList.value.map { chore ->
+            if (chore.choreID == completedChore.choreID) chore.copy(completed = true) else chore
+        }
     }
-
     /**
      * function to get the chore(s) assigned to the specified person
      */
     fun getChoresFor(person: String): List<Chore> {
-        return choresList.filter { it.assignee == person }
+        return _choresList.value.filter { it.assignedTo == person }
     }
 
     /**
@@ -113,14 +188,21 @@ class MainViewModel : ViewModel() {
      * Should call this function when we load in chores/onResume()?
      */
     fun changePriority(chore : Chore) {
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH) // e.g. "November 15, 2024"
         val today = Calendar.getInstance()
         val due = Calendar.getInstance()
-        due.time = chore.dueDate  // chore.dueDate should be a Date
-
+        val dueDate: Date = dateFormat.parse(chore.dueDate) ?: return
+        due.time = dueDate
         val diffMillis = due.timeInMillis - today.timeInMillis
-        val daysUntilDue = diffMillis / (1000 * 60 * 60 * 24)
-
+        val daysUntilDue = (diffMillis / (1000 * 60 * 60 * 24)).toInt()
         chore.priority = daysUntilDue in 0..5
+    }
+
+    /**
+     * function to toggle if we are showing previous chores or not
+     */
+    fun toggleShowPrevChores() {
+        _showPrevChores.value = !_showPrevChores.value
     }
 
 
