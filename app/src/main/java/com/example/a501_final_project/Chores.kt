@@ -15,6 +15,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,82 +43,84 @@ data class ChoreTemp(
 )
 
 //TODO: remove this once viewModel is actually implemented
-class TempViewModel : ViewModel() {
-    val choreList = mutableListOf(
-        ChoreTemp(
-            name = "Wash Dishes",
-            description = "Clean all dishes, utensils, and pots used during dinner.",
-            assignedTo = "Alice",
-            houseHoldID = 1,
-            userID = 1,
-            dueDate = "November 15, 2025",
-            status = "Done"
-        ),
-        ChoreTemp(
-            name = "Vacuum Living Room",
-            description = "Vacuum the carpet and under the furniture in the living room.",
-            assignedTo = "Bob",
-            houseHoldID = 1,
-            userID = 2,
-            dueDate = "November 15, 2025",
-            status = "Done"
-        ),
-        ChoreTemp(
-            name = "Laundry",
-            description = "Wash, dry, and fold all the clothes from the laundry basket.",
-            assignedTo = "Charlie",
-            houseHoldID = 1,
-            userID = 3,
-            dueDate = "November 15, 2025",
-            status = "Done"
-        ),
-        ChoreTemp(
-            name = "Take Out Trash",
-            description = "Empty all trash bins and take the garbage out to the curb.",
-            assignedTo = "Dana",
-            houseHoldID = 1,
-            userID = 4,
-            dueDate = "November 15, 2025"
-        ),
-        ChoreTemp(
-            name = "Clean Bathroom",
-            description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
-            assignedTo = "Eve",
-            houseHoldID = 1,
-            userID = 5,
-            dueDate = "November 15, 2025"
-        )
-    )
-    val userID = 2
-    val houseHoldID = 1
-    var showPrevChores by mutableStateOf(false)
-    
-    fun markChoreComplete(chore: ChoreTemp) {
-        val index = choreList.indexOf(chore)
-        if (index != -1) {
-            val updatedChore = chore.copy(status = "Done")
-            choreList[index] = updatedChore
-        }
-    }
-}
+//class TempViewModel : ViewModel() {
+//    val choreList = mutableListOf(
+//        ChoreTemp(
+//            name = "Wash Dishes",
+//            description = "Clean all dishes, utensils, and pots used during dinner.",
+//            assignedTo = "Alice",
+//            houseHoldID = 1,
+//            userID = 1,
+//            dueDate = "November 15, 2025",
+//            status = "Done"
+//        ),
+//        ChoreTemp(
+//            name = "Vacuum Living Room",
+//            description = "Vacuum the carpet and under the furniture in the living room.",
+//            assignedTo = "Bob",
+//            houseHoldID = 1,
+//            userID = 2,
+//            dueDate = "November 15, 2025",
+//            status = "Done"
+//        ),
+//        ChoreTemp(
+//            name = "Laundry",
+//            description = "Wash, dry, and fold all the clothes from the laundry basket.",
+//            assignedTo = "Charlie",
+//            houseHoldID = 1,
+//            userID = 3,
+//            dueDate = "November 15, 2025",
+//            status = "Done"
+//        ),
+//        ChoreTemp(
+//            name = "Take Out Trash",
+//            description = "Empty all trash bins and take the garbage out to the curb.",
+//            assignedTo = "Dana",
+//            houseHoldID = 1,
+//            userID = 4,
+//            dueDate = "November 15, 2025"
+//        ),
+//        ChoreTemp(
+//            name = "Clean Bathroom",
+//            description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
+//            assignedTo = "Eve",
+//            houseHoldID = 1,
+//            userID = 5,
+//            dueDate = "November 15, 2025"
+//        )
+//    )
+//    val userID = 2
+//    val houseHoldID = 1
+//    var showPrevChores by mutableStateOf(false)
+//
+//    fun markChoreComplete(chore: ChoreTemp) {
+//        val index = choreList.indexOf(chore)
+//        if (index != -1) {
+//            val updatedChore = chore.copy(status = "Done")
+//            choreList[index] = updatedChore
+//        }
+//    }
+//}
 
 
 @Composable
-fun ChoresScreen(viewModel: TempViewModel = TempViewModel(), modifier: Modifier = Modifier){
+fun ChoresScreen(viewModel: MainViewModel, modifier: Modifier = Modifier){
+    val chores by viewModel.choresList.collectAsState()
+    val showPrevChores by viewModel.showPrevChores.collectAsState()
     Column(modifier = modifier.fillMaxHeight().padding(5.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)){
-        if (viewModel.showPrevChores) {
-            PrevChores(viewModel)
+        if (showPrevChores) {
+            PrevChores(chores, viewModel)
         }else {
-            MyChoreWidget(viewModel)
-            RoommateChores(viewModel)
+            MyChoreWidget(chores, viewModel)
+            RoommateChores(chores, viewModel)
         }
     }
 }
 
 @Composable
-fun MyChoreWidget(viewModel: TempViewModel, modifier: Modifier = Modifier){
-    val chore = viewModel.choreList.find { it.userID == viewModel.userID && it.houseHoldID == viewModel.houseHoldID }
+fun MyChoreWidget(chores: List<Chore>, viewModel: MainViewModel, modifier: Modifier = Modifier){
+    val chore = chores.find { it.userID == viewModel.userID && it.householdID == viewModel.householdID }
     Row(modifier =  modifier
         .clip(MaterialTheme.shapes.medium)
         .background(MaterialTheme.colorScheme.secondaryContainer)
@@ -128,11 +131,11 @@ fun MyChoreWidget(viewModel: TempViewModel, modifier: Modifier = Modifier){
             Text(
                 "Due Date: ${chore?.dueDate}",
                 fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                color = if (chore?.status == "Pending") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (chore!!.completed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
         Column(modifier = Modifier.weight(1f, true)) {
-            Button(onClick = { viewModel.markChoreComplete(chore!!) }) {
+            Button(onClick = { viewModel.completeChore(chore!!) }) {
                 Text("Mark as Complete")
             }
         }
@@ -141,8 +144,8 @@ fun MyChoreWidget(viewModel: TempViewModel, modifier: Modifier = Modifier){
 
 
 @Composable
-fun RoommateChores(viewModel: TempViewModel, modifier: Modifier = Modifier){
-    val roommateChores = viewModel.choreList.filter { it.userID != viewModel.userID && it.houseHoldID == viewModel.houseHoldID }
+fun RoommateChores(chores: List<Chore>, viewModel: MainViewModel, modifier: Modifier = Modifier){
+    val roommateChores = chores.filter { it.userID != viewModel.userID && it.householdID == viewModel.householdID }
 
     Column(modifier =  modifier
         .fillMaxHeight()
@@ -154,7 +157,7 @@ fun RoommateChores(viewModel: TempViewModel, modifier: Modifier = Modifier){
             for(chore in roommateChores) {
                 item {
                     Text(chore.assignedTo + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
-                    Text("Status: ${chore.status}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                     HorizontalDivider(
                         color = Color.LightGray,
                         thickness = 1.dp,
@@ -164,7 +167,7 @@ fun RoommateChores(viewModel: TempViewModel, modifier: Modifier = Modifier){
             }
             item {
                 Row( modifier = Modifier.fillParentMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    Button(onClick = { viewModel.showPrevChores = true }) {
+                    Button(onClick = { viewModel.toggleShowPrevChores() }) {
                         Text("See Previous Chores")
                     }
                 }
@@ -174,7 +177,7 @@ fun RoommateChores(viewModel: TempViewModel, modifier: Modifier = Modifier){
 }
 
 @Composable
-fun PrevChores(viewModel: TempViewModel) {
+fun PrevChores(chores: List<Chore>, viewModel: MainViewModel) {
     // if due date < today, display on prev tasks
     Column(modifier =  Modifier
         .fillMaxHeight()
@@ -183,10 +186,10 @@ fun PrevChores(viewModel: TempViewModel) {
         .padding(10.dp)){
         Text("Previous Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
         LazyColumn(){
-            for(chore in viewModel.choreList) {
+            for(chore in chores) {
                 item {
                     Text(chore.assignedTo + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
-                    Text("Status: ${chore.status}", fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                     HorizontalDivider(
                         color = Color.LightGray,
                         thickness = 1.dp,
@@ -196,7 +199,7 @@ fun PrevChores(viewModel: TempViewModel) {
             }
             item {
                 Row( modifier = Modifier.fillParentMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    Button(onClick = { viewModel.showPrevChores = false }) {
+                    Button(onClick = { viewModel.toggleShowPrevChores() }) {
                         Text("Back to Current Chores")
                     }
                 }
@@ -207,10 +210,11 @@ fun PrevChores(viewModel: TempViewModel) {
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun ChoresPreview() {
-    _501_Final_ProjectTheme{
-        ChoresScreen()
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun ChoresPreview() {
+//    val previewVM = MainViewModel()
+//    _501_Final_ProjectTheme {
+//        ChoresScreen(previewVM)
+//    }
+//}
