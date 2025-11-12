@@ -57,7 +57,7 @@ dependencies {
     // For Google Sign-In, which handles authentication on Android
     implementation(libs.google.play.services.auth)
 
-    //Google Sign in for android
+    // Google Sign in for android
     implementation("androidx.credentials:credentials:1.6.0-beta03")
     implementation("androidx.credentials:credentials-play-services-auth:1.6.0-beta03")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
