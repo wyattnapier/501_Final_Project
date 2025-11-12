@@ -1,6 +1,5 @@
 package com.example.a501_final_project
 
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +21,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    viewModel: LoginViewModel = viewModel() // Get the ViewModel instance
+    viewModel: LoginViewModel = viewModel()
 ) {
     // Observe the UI state from the ViewModel.
     // The UI will automatically recompose whenever the state changes.

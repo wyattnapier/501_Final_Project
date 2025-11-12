@@ -2,7 +2,6 @@ package com.example.a501_final_project
 
 import android.accounts.Account
 import android.content.Context
-import android.content.Intent
 import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.lifecycle.ViewModel
@@ -25,7 +24,6 @@ class LoginViewModel : ViewModel() {
     val uiState = _uiState.asStateFlow()
 
     // --- LOGIC ---
-
     fun getGoogleSignInClient(context: Context): GoogleSignInClient {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
@@ -74,11 +72,6 @@ class LoginViewModel : ViewModel() {
             _uiState.value = LoginUiState()
             Log.d("LoginViewModel", "Logged out successfully.")
         }
-    }
-
-    // helper function to reset error state for toast
-    fun errorShown() {
-        _uiState.value = _uiState.value.copy(error = null)
     }
 }
 
