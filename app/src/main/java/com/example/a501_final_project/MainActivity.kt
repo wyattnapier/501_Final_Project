@@ -60,6 +60,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Pay : Screen("pay", "Pay", Icons.Default.Send) // TODO: replace with better money icon
     object Calendar : Screen("calendar", "Calendar", Icons.Default.DateRange)
     object Profile : Screen("profile", "Profile", Icons.Default.Person)
+    object Login : Screen("login", "Login", Icons.Default.Person) // TODO: replace with unique icon
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     object Error : Screen("Error", "Error", Icons.Default.Settings)
 }

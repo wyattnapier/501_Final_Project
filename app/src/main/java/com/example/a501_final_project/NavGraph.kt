@@ -18,7 +18,7 @@ fun AppNavGraph(
     val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = Screen.Login.route
     ) {
         // Home
         composable(Screen.Home.route) {
@@ -44,12 +44,11 @@ fun AppNavGraph(
         }
         // Profile
         composable(Screen.Profile.route) {
-//            GenericScreen(
-//                title = Screen.Profile.title,
-//                modifier = modifier
-//            )
-            // TODO: add onclick?
             UserPrefScreen(modifier = modifier)
+        }
+        // Login
+        composable(Screen.Login.route) {
+            LoginScreen(modifier = modifier)
         }
         // Settings
         composable(Screen.Settings.route) {
