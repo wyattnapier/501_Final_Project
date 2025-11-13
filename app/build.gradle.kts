@@ -58,8 +58,6 @@ dependencies {
     implementation(libs.google.play.services.auth)
 
     // Google Sign in for android
-//    implementation("androidx.credentials:credentials:1.6.0-beta03")
-//    implementation("androidx.credentials:credentials-play-services-auth:1.6.0-beta03")
 //    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1") // may need in future
 
     // network transport and parsing
@@ -74,6 +72,9 @@ dependencies {
     implementation(libs.google.api.services.calendar) {
         exclude(group = "org.apache.httpcomponents")
     }
+
+    // coil for image loading
+    implementation("io.coil-kt:coil-compose:2.6.0")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
