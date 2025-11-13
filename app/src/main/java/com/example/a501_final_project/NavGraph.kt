@@ -2,6 +2,7 @@ package com.example.a501_final_project
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -14,11 +15,13 @@ fun AppNavGraph(
     navController: NavHostController = rememberNavController(),
 ) {
 
-    // creating a shred viewModel for all screens
+    // creating shared viewModels for all screens
     val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
+    val loginViewModel: LoginViewModel = viewModel()
+
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route
+        startDestination = Screen.Login.route
     ) {
         // Home
         composable(Screen.Home.route) {
@@ -36,28 +39,19 @@ fun AppNavGraph(
         }
         // Calendar
         composable(Screen.Calendar.route) {
-            GenericScreen(
-                title = Screen.Calendar.title,
-                modifier = modifier
-            )
-            // TODO: add onclick?
+            EventsScreen(modifier = modifier, mainViewModel)
         }
         // Profile
         composable(Screen.Profile.route) {
-//            GenericScreen(
-//                title = Screen.Profile.title,
-//                modifier = modifier
-//            )
-            // TODO: add onclick?
-            UserPrefScreen(modifier = modifier)
+            ProfileScreen(modifier = modifier, navController = navController, loginViewModel = loginViewModel)
+        }
+        // Login
+        composable(Screen.Login.route) {
+            LoginScreen(modifier = modifier, viewModel = loginViewModel)
         }
         // Settings
         composable(Screen.Settings.route) {
-            GenericScreen(
-                title = Screen.Settings.title,
-                modifier = modifier
-            )
-            // TODO: add onclick?
+            UserPrefScreen(modifier)
         }
         // Error Handler
         composable(Screen.Error.route) {
