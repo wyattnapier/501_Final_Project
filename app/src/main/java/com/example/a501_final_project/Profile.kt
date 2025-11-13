@@ -1,6 +1,5 @@
 package com.example.a501_final_project
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -26,14 +25,15 @@ import coil.compose.AsyncImage
 fun ProfileScreen(modifier: Modifier, loginViewModel: LoginViewModel = viewModel(), navController: NavController) {
     val uiState by loginViewModel.uiState.collectAsState()
     val context = LocalContext.current
-    Log.d("ProfileScreen", "ProfileScreen recomposing with uiState: $uiState")
+
     Column(
         modifier = modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         if (uiState.isLoggedIn) {
-            val verticalSpacingBetweenInformation = 8.dp
+            val verticalSpacingBetweenInformation = 8.dp // TODO: is there a better way to do this?
+            // Profile picture
             AsyncImage(
                 model = uiState.profilePictureUrl,
                 contentDescription = "User Profile Picture",
@@ -43,15 +43,27 @@ fun ProfileScreen(modifier: Modifier, loginViewModel: LoginViewModel = viewModel
                 placeholder = painterResource(id = R.drawable.baseline_person_24),
                 error = painterResource(id = R.drawable.baseline_person_24) // handles if profile picture url is null
             )
+            // null safe displaying/handling of uiState (user) data
             uiState.userName?.let { Text(it, modifier = Modifier.padding(top = verticalSpacingBetweenInformation)) }
             uiState.userEmail?.let { Text(it, modifier = Modifier.padding(top = verticalSpacingBetweenInformation)) }
-            Button(onClick = { navigateToScreen(navController, Screen.Settings)}, modifier = Modifier.padding(top = verticalSpacingBetweenInformation)) {
+            // settings
+            Button(
+                onClick = { navigateToScreen(navController, Screen.Settings)},
+                modifier = Modifier.padding(top = verticalSpacingBetweenInformation)
+            ) {
                 Text("User Settings")
             }
-            Button(onClick = { loginViewModel.signOut(context) }, modifier = Modifier.padding(top = verticalSpacingBetweenInformation)) {
+            // TODO: add button to go to household settings here
+            // sign out
+            Button(
+                onClick = { loginViewModel.signOut(context) },
+                modifier = Modifier.padding(top = verticalSpacingBetweenInformation)
+            ) {
                 Text("Sign Out")
             }
         } else {
+            // doesn't navigate to login screen
+            // stays in profile screen so after logging back in your see your details
             LoginScreen(modifier, loginViewModel)
         }
     }
