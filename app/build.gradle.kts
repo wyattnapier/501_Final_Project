@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-//    id("com.android.application")
     id("com.google.gms.google-services")
 }
 
@@ -53,14 +52,15 @@ dependencies {
     // firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-auth")
 
     // For Google Sign-In, which handles authentication on Android
     implementation(libs.google.play.services.auth)
 
     // Google Sign in for android
-    implementation("androidx.credentials:credentials:1.6.0-beta03")
-    implementation("androidx.credentials:credentials-play-services-auth:1.6.0-beta03")
-    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
+//    implementation("androidx.credentials:credentials:1.6.0-beta03")
+//    implementation("androidx.credentials:credentials-play-services-auth:1.6.0-beta03")
+//    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1") // may need in future
 
     // network transport and parsing
     implementation("com.google.http-client:google-http-client-gson:1.44.2")

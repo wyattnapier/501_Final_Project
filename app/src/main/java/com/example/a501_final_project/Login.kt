@@ -40,9 +40,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         modifier = modifier.fillMaxSize()
     ) {
-        if (uiState.isLoginInProgress) {
-            CircularProgressIndicator()
-        } else if (uiState.userEmail != null) {
+        if (uiState.isLoggedIn) {
             // --- SIGNED-IN VIEW ---
             Text(
                 text = "Logged in as ${uiState.userEmail}",
@@ -51,6 +49,8 @@ fun LoginScreen(
             Button(onClick = { viewModel.signOut(context) }) {
                 Text(text = "Logout")
             }
+        } else if (uiState.isLoginInProgress) {
+            CircularProgressIndicator()
         } else {
             // --- SIGNED-OUT VIEW ---
             Button(
