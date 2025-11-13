@@ -33,9 +33,9 @@ fun ProfileScreen(modifier: Modifier, loginViewModel: LoginViewModel = viewModel
         verticalArrangement = Arrangement.Center
     ) {
         if (uiState.isLoggedIn) {
-            val verticalSpacingBetweenInformation = 12.dp
+            val verticalSpacingBetweenInformation = 8.dp
             Icon(Icons.Default.Person, "User Profile", Modifier.size(50.dp)) // TODO: add actual profile picture
-            // TODO: add user's name
+            uiState.userName?.let { Text(it, modifier = Modifier.padding(top = verticalSpacingBetweenInformation)) }
             uiState.userEmail?.let { Text(it, modifier = Modifier.padding(top = verticalSpacingBetweenInformation)) }
             Button(onClick = { navigateToScreen(navController, Screen.Settings)}, modifier = Modifier.padding(top = verticalSpacingBetweenInformation)) {
                 Text("User Settings")
@@ -44,13 +44,7 @@ fun ProfileScreen(modifier: Modifier, loginViewModel: LoginViewModel = viewModel
                 Text("Sign Out")
             }
         } else {
-            LoginScreen(modifier, loginViewModel) // TODO: make this a login button rather than an entire screen
+            LoginScreen(modifier, loginViewModel)
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun ProfileScreenPreview() {
-    ProfileScreen(Modifier.fillMaxSize(), navController = NavController(LocalContext.current))
 }

@@ -38,6 +38,8 @@ class LoginViewModel : ViewModel() {
                 // User is signed in to Firebase
                 _uiState.value = _uiState.value.copy(
                     userEmail = firebaseUser.email,
+                    userName = firebaseUser.displayName,
+                    profilePictureUrl = firebaseUser.photoUrl?.toString(),
                     isLoginInProgress = false,
                     isLoggedIn = true,
                     userAccount = firebaseUser.email?.let { Account(it, "com.google") }
@@ -49,6 +51,8 @@ class LoginViewModel : ViewModel() {
                     isLoggedIn = false,
                     isLoginInProgress = false,
                     userEmail = null,
+                    userName = null,
+                    profilePictureUrl = null,
                     userAccount = null
                 )
                 Log.d("LoginViewModel", "Firebase user signed out.")
@@ -130,6 +134,8 @@ class LoginViewModel : ViewModel() {
 data class LoginUiState(
     val userEmail: String? = null,
     val userAccount: Account? = null,
+    val userName: String? = null,
+    val profilePictureUrl: String? = null,
     val isLoginInProgress: Boolean = false,
     val error: String? = null,
     val isLoggedIn: Boolean = false // flag for firebase state
