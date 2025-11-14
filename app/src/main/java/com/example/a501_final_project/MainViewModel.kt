@@ -354,11 +354,9 @@ class MainViewModel : ViewModel() {
                 // 1. Create a credential using the signed-in account
                 val credential = GoogleAccountCredential.usingOAuth2(
                     context,
-                    listOf(
-                        CalendarScopes.CALENDAR_EVENTS_READONLY,
-                        CalendarScopes.CALENDAR_EVENTS,
-                        CalendarScopes.CALENDAR,
-                        CalendarScopes.CALENDAR_READONLY,
+                    listOf( // must match up with scopes in LoginViewModel
+                        CalendarScopes.CALENDAR,            // keep if we're going to write to calendar
+                        CalendarScopes.CALENDAR_READONLY,   // keep if we're just going to read calendars
                     )
                 ).apply {
                     selectedAccount = googleAccount.account

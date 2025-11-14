@@ -69,13 +69,10 @@ class LoginViewModel : ViewModel() {
             .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
             .requestServerAuthCode(context.getString(R.string.default_web_client_id))
-            .requestScopes(
-                Scope("https://www.googleapis.com/auth/calendar.events.readonly"), // View events on all your calendars
-                Scope("https://www.googleapis.com/auth/calendar.events"), // View and edit events on all your calendars
+            .requestScopes( // must match with scopes in MainViewModel (except calendarlist)
                 Scope("https://www.googleapis.com/auth/calendar"), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
                 Scope("https://www.googleapis.com/auth/calendar.readonly"), // See and download any calendar you can access using your Google Calendar
                 Scope("https://www.googleapis.com/auth/calendar.calendarlist"), // See, add, and remove Google calendars you’re subscribed to
-
             )
             .build()
         return GoogleSignIn.getClient(context, gso)
