@@ -55,7 +55,7 @@ fun EventsScreen(
     Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         when {
             !loginState.isLoggedIn -> Text("Please sign in to see events.")
-            isLoading -> CircularProgressIndicator()
+            isLoading && eventsByCalendar.isEmpty() -> CircularProgressIndicator() // conditional limits to only show if loading when no data --> TODO: be careful when interacting with data
             error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error)
             eventsByCalendar.isEmpty() -> Text("No upcoming events found in any calendars.")
             else -> {
