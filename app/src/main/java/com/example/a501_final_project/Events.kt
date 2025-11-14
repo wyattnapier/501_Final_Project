@@ -1,5 +1,6 @@
 package com.example.a501_final_project
 
+import android.util.Log
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,7 +48,7 @@ fun EventsScreen(
         when {
             !loginState.isLoggedIn -> Text("Please sign in to see events.")
             isLoading -> CircularProgressIndicator()
-            error != null -> Text("Error: $error")
+            error != null -> Log.d("EventsScreen", "Error: $error")
             events.isEmpty() -> Text("No upcoming events found.")
             else -> {
                 LazyColumn(modifier = Modifier.padding(16.dp)) {

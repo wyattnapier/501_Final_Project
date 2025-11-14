@@ -348,13 +348,18 @@ class MainViewModel : ViewModel() {
     val isLoadingCalendar = _isLoadingCalendar.asStateFlow()
 
     fun fetchCalendarEvents(googleAccount: GoogleSignInAccount, context: Context) {
-        viewModelScope.launch(Dispatchers.IO) { // MUST use Dispatchers.IO for network calls
+        viewModelScope.launch(Dispatchers.IO) {
             _isLoadingCalendar.value = true
             try {
                 // 1. Create a credential using the signed-in account
                 val credential = GoogleAccountCredential.usingOAuth2(
                     context,
-                    listOf(CalendarScopes.CALENDAR_EVENTS_READONLY)
+                    listOf(
+                        CalendarScopes.CALENDAR_EVENTS_READONLY,
+                        CalendarScopes.CALENDAR_EVENTS,
+                        CalendarScopes.CALENDAR,
+                        CalendarScopes.CALENDAR_READONLY,
+                    )
                 ).apply {
                     selectedAccount = googleAccount.account
                 }
@@ -368,21 +373,32 @@ class MainViewModel : ViewModel() {
                     .setApplicationName("501_Final_Project")
                     .build()
 
-                // 3. Fetch events
+                // 3. Get the list of all calendars
+                val calendarList = calendarService.calendarList().list().execute()
+                val allEvents = mutableListOf<CalendarEventInfo>()
                 val now = DateTime(System.currentTimeMillis())
-                val eventsResult = calendarService.events().list("primary")
-                    .setMaxResults(10)
-                    .setTimeMin(now)
-                    .setOrderBy("startTime")
-                    .setSingleEvents(true)
-                    .execute()
 
-                val items = eventsResult.items.map { event ->
-                    val start = event.start.dateTime?.toString() ?: event.start.date.toString()
-                    val end = event.end.dateTime?.toString() ?: event.end.date.toString()
-                    CalendarEventInfo(event.id, event.summary, start, end)
+                // 4. Iterate over each calendar to fetch its events
+                for (calendarListEntry in calendarList.items) {
+                    Log.d("MainViewModel", "Fetching events for calendar: ${calendarListEntry.summary}")
+
+                    val eventsResult = calendarService.events().list(calendarListEntry.id)
+                        .setMaxResults(10) // Fetch up to 10 upcoming events per calendar
+                        .setTimeMin(now)
+                        .setOrderBy("startTime")
+                        .setSingleEvents(true)
+                        .execute()
+
+                    val items = eventsResult.items.map { event ->
+                        val start = event.start.dateTime?.toString() ?: event.start.date.toString()
+                        val end = event.end.dateTime?.toString() ?: event.end.date.toString()
+                        CalendarEventInfo(event.id, event.summary, start, end)
+                    }
+                    allEvents.addAll(items)
                 }
-                _events.value = items
+
+                // 5. Sort all collected events by start time and update the UI state
+                _events.value = allEvents.sortedBy { it.start }
 
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Calendar API error", e)
