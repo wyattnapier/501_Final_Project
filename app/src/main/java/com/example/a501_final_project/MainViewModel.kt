@@ -338,8 +338,13 @@ class MainViewModel : ViewModel() {
 
     /***********************************************************************************************************************************************************************/
     // --- CALENDAR SECTION ---
-    private val _events = MutableStateFlow<List<CalendarEventInfo>>(emptyList())
-    val events = _events.asStateFlow()
+    // Store events as a map from Calendar Name -> List of Events
+    private val _eventsByCalendar = MutableStateFlow<Map<String, List<CalendarEventInfo>>>(emptyMap())
+    val eventsByCalendar = _eventsByCalendar.asStateFlow()
+
+    // Store the set of expanded calendar names
+    private val _expandedCalendarNames = MutableStateFlow<Set<String>>(emptySet())
+    val expandedCalendarNames = _expandedCalendarNames.asStateFlow()
 
     private val _calendarError = MutableStateFlow<String?>(null)
     val calendarError = _calendarError.asStateFlow()
@@ -347,23 +352,33 @@ class MainViewModel : ViewModel() {
     private val _isLoadingCalendar = MutableStateFlow(false)
     val isLoadingCalendar = _isLoadingCalendar.asStateFlow()
 
+    fun toggleCalendarSection(calendarName: String) {
+        val current = _expandedCalendarNames.value
+        _expandedCalendarNames.value = if (calendarName in current) {
+            current - calendarName
+        } else {
+            current + calendarName
+        }
+    }
+
     fun fetchCalendarEvents(googleAccount: GoogleSignInAccount, context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingCalendar.value = true
+            _calendarError.value = null
             try {
                 // 1. Create a credential using the signed-in account
                 val credential = GoogleAccountCredential.usingOAuth2(
                     context,
-                    listOf( // must match up with scopes in LoginViewModel
-                        CalendarScopes.CALENDAR,            // keep if we're going to write to calendar
-                        CalendarScopes.CALENDAR_READONLY,   // keep if we're just going to read calendars
+                    listOf(
+                        CalendarScopes.CALENDAR_READONLY,
+                        CalendarScopes.CALENDAR_EVENTS_READONLY
                     )
                 ).apply {
                     selectedAccount = googleAccount.account
                 }
 
                 // 2. Build the Calendar service
-                val calendarService = com.google.api.services.calendar.Calendar.Builder( // Use fully qualified name
+                val calendarService = com.google.api.services.calendar.Calendar.Builder(
                     NetHttpTransport(),
                     GsonFactory.getDefaultInstance(),
                     credential
@@ -373,12 +388,13 @@ class MainViewModel : ViewModel() {
 
                 // 3. Get the list of all calendars
                 val calendarList = calendarService.calendarList().list().execute()
-                val allEvents = mutableListOf<CalendarEventInfo>()
+                val eventsMap = mutableMapOf<String, List<CalendarEventInfo>>()
                 val now = DateTime(System.currentTimeMillis())
 
                 // 4. Iterate over each calendar to fetch its events
                 for (calendarListEntry in calendarList.items) {
-                    Log.d("MainViewModel", "Fetching events for calendar: ${calendarListEntry.summary}")
+                    val calendarName = calendarListEntry.summary ?: "Unknown Calendar"
+                    Log.d("MainViewModel", "Fetching events for calendar: $calendarName")
 
                     val eventsResult = calendarService.events().list(calendarListEntry.id)
                         .setMaxResults(10) // Fetch up to 10 upcoming events per calendar
@@ -392,11 +408,15 @@ class MainViewModel : ViewModel() {
                         val end = event.end.dateTime?.toString() ?: event.end.date.toString()
                         CalendarEventInfo(event.id, event.summary, start, end)
                     }
-                    allEvents.addAll(items)
+
+                    // Only add the calendar to the map if it has upcoming events
+                    if (items.isNotEmpty()) {
+                        eventsMap[calendarName] = items
+                    }
                 }
 
-                // 5. Sort all collected events by start time and update the UI state
-                _events.value = allEvents.sortedBy { it.start }
+                // 5. Update the UI state with the map of events
+                _eventsByCalendar.value = eventsMap
 
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Calendar API error", e)

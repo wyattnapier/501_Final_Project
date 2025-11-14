@@ -21,9 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
+import com.google.api.services.calendar.CalendarScopes
 
 class LoginViewModel : ViewModel() {
 
@@ -70,9 +68,9 @@ class LoginViewModel : ViewModel() {
             .requestEmail()
             .requestServerAuthCode(context.getString(R.string.default_web_client_id))
             .requestScopes( // must match with scopes in MainViewModel (except calendarlist)
-                Scope("https://www.googleapis.com/auth/calendar"), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
-                Scope("https://www.googleapis.com/auth/calendar.readonly"), // See and download any calendar you can access using your Google Calendar
-                Scope("https://www.googleapis.com/auth/calendar.calendarlist"), // See, add, and remove Google calendars you’re subscribed to
+                Scope(CalendarScopes.CALENDAR_READONLY), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
+                Scope(CalendarScopes.CALENDAR_READONLY), // See and download any calendar you can access using your Google Calendar
+//                Scope("https://www.googleapis.com/auth/calendar.calendarlist"), // See, add, and remove Google calendars you’re subscribed to
             )
             .build()
         return GoogleSignIn.getClient(context, gso)
