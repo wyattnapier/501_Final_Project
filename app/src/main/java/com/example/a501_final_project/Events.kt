@@ -59,8 +59,7 @@ fun EventsScreen(
             error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error)
             eventsByCalendar.isEmpty() -> Text("No upcoming events found in any calendars.")
             else -> {
-                // V-- REPLACE the old LazyColumn with this new implementation --V
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 4.dp)) {
                     // Iterate over the map of calendars and their events
                     eventsByCalendar.forEach { (calendarName, events) ->
                         // Sticky header for the calendar name
