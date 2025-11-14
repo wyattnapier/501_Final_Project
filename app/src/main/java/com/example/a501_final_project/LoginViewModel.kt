@@ -56,7 +56,6 @@ class LoginViewModel : ViewModel() {
                     userEmail = null,
                     userName = null,
                     profilePictureUrl = null,
-                    googleAccessToken = null,
                     userAccount = null
                 )
                 Log.d("LoginViewModel", "Firebase user signed out.")
@@ -83,14 +82,6 @@ class LoginViewModel : ViewModel() {
                 val googleAccount = task.getResult(ApiException::class.java)
 
                 if (googleAccount?.idToken != null) {
-                    val authCode = googleAccount.serverAuthCode
-                    if (authCode != null) {
-                        // get gcal api token and store
-                        val accessToken = exchangeAuthCodeForToken(authCode)
-                        _uiState.value = _uiState.value.copy(
-                            googleAccessToken = accessToken
-                        )
-                    }
                     firebaseAuthWithGoogle(googleAccount.idToken!!)
                 } else {
                     _uiState.value = _uiState.value.copy(
@@ -122,27 +113,6 @@ class LoginViewModel : ViewModel() {
         }
     }
 
-    // exchange auth token for gcal api token
-    suspend fun exchangeAuthCodeForToken(authCode: String): String? {
-        Log.d("LoginViewModel", "Exchanging auth code for token: $authCode")
-        val url = URL("https://oauth2.googleapis.com/token")
-        val data = "code=$authCode" +
-                "&client_id=YOUR_WEB_CLIENT_ID" +
-                "&client_secret=YOUR_WEB_CLIENT_SECRET" +
-                "&redirect_uri=" +
-                "&grant_type=authorization_code"
-
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.doOutput = true
-        conn.outputStream.write(data.toByteArray())
-
-        val response = conn.inputStream.bufferedReader().readText()
-
-        val json = JSONObject(response)
-        return json.getString("access_token")
-    }
-
     fun signOut(context: Context) {
         viewModelScope.launch {
             try {
@@ -171,7 +141,6 @@ data class LoginUiState(
     val userName: String? = null,
     val profilePictureUrl: String? = null,
     val isLoginInProgress: Boolean = false,
-    val googleAccessToken: String? = null,
     val error: String? = null,
     val isLoggedIn: Boolean = false // flag for firebase state
 )

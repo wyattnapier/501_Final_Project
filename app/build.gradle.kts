@@ -67,6 +67,11 @@ dependencies {
     implementation(libs.google.api.client) {
         exclude(group = "org.apache.httpcomponents")
     }
+    // provides GoogleAccountCredential for authentication for Google Calendar API
+    implementation("com.google.api-client:google-api-client-android:2.6.0") {
+        exclude(group = "org.apache.httpcomponents")
+    }
+
 
     // The Google Calendar API library
     implementation(libs.google.api.services.calendar) {

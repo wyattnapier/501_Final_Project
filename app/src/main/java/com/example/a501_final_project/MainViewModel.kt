@@ -1,23 +1,23 @@
 package com.example.a501_final_project
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
+import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
-import com.example.a501_final_project.Chore
+import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
+import com.google.api.client.util.DateTime
+import com.google.api.services.calendar.CalendarScopes
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.time.LocalDate
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.collections.List
-
 
 // custom data object created here for now
 data class User(
@@ -64,6 +64,16 @@ data class Payment(
     val memo: String,
     var paid: Boolean,
     val recurring: Boolean
+)
+
+/**
+ * data class for Calendar events
+ */
+data class CalendarEventInfo(
+    val id: String,
+    val summary: String?,
+    val start: String?,
+    val end: String?
 )
 
 /** our ViewModel to hold our business logic and data.
@@ -193,8 +203,8 @@ class MainViewModel : ViewModel() {
      */
     fun changePriority(chore : Chore) {
         val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH) // e.g. "November 15, 2024"
-        val today = Calendar.getInstance()
-        val due = Calendar.getInstance()
+        val today = java.util.Calendar.getInstance() // Use fully qualified name
+        val due = java.util.Calendar.getInstance() // Use fully qualified name
         val dueDate: Date = dateFormat.parse(chore.dueDate) ?: return
         due.time = dueDate
         val diffMillis = due.timeInMillis - today.timeInMillis
@@ -214,12 +224,21 @@ class MainViewModel : ViewModel() {
 
     // pay viewmodel portion
     private val _paymentsList = MutableStateFlow<List<Payment>>(listOf(
-        Payment(0, "tiffany_username", "alice_username", 85.50, "Dinner", paid = false, recurring = false),
+        Payment(
+            0,
+            "tiffany_username",
+            "alice_username",
+            85.50,
+            "Dinner",
+            paid = false,
+            recurring = false
+        ),
         Payment(1, "alice_username", "Wyatt", 15.50, "Dinner", paid = false, recurring = false),
         Payment(2, "tiffany_username", "Wyatt", 25.00, "Utilities", paid = false, recurring = true),
         Payment(3, "john_username", "Wyatt", 100.25, "Rent", paid = false, recurring = false),
         Payment(4, "Wyatt", "john_username", 100.25, "Rent", paid = true, recurring = false),
-        Payment(5, "john_username", "Wyatt", 100.25, "Rent", paid = true, recurring = false),)
+        Payment(5, "john_username", "Wyatt", 100.25, "Rent", paid = true, recurring = false),
+    )
     )
 
     // TODO: get this from the viewmodel instead of dummy data
@@ -317,4 +336,60 @@ class MainViewModel : ViewModel() {
         _showPastPayments.value = !_showPastPayments.value
     }
 
+    /***********************************************************************************************************************************************************************/
+    // --- CALENDAR SECTION ---
+    private val _events = MutableStateFlow<List<CalendarEventInfo>>(emptyList())
+    val events = _events.asStateFlow()
+
+    private val _calendarError = MutableStateFlow<String?>(null)
+    val calendarError = _calendarError.asStateFlow()
+
+    private val _isLoadingCalendar = MutableStateFlow(false)
+    val isLoadingCalendar = _isLoadingCalendar.asStateFlow()
+
+    fun fetchCalendarEvents(googleAccount: GoogleSignInAccount, context: Context) {
+        viewModelScope.launch(Dispatchers.IO) { // MUST use Dispatchers.IO for network calls
+            _isLoadingCalendar.value = true
+            try {
+                // 1. Create a credential using the signed-in account
+                val credential = GoogleAccountCredential.usingOAuth2(
+                    context,
+                    listOf(CalendarScopes.CALENDAR_EVENTS_READONLY)
+                ).apply {
+                    selectedAccount = googleAccount.account
+                }
+
+                // 2. Build the Calendar service
+                val calendarService = com.google.api.services.calendar.Calendar.Builder( // Use fully qualified name
+                    NetHttpTransport(),
+                    GsonFactory.getDefaultInstance(),
+                    credential
+                )
+                    .setApplicationName("501_Final_Project")
+                    .build()
+
+                // 3. Fetch events
+                val now = DateTime(System.currentTimeMillis())
+                val eventsResult = calendarService.events().list("primary")
+                    .setMaxResults(10)
+                    .setTimeMin(now)
+                    .setOrderBy("startTime")
+                    .setSingleEvents(true)
+                    .execute()
+
+                val items = eventsResult.items.map { event ->
+                    val start = event.start.dateTime?.toString() ?: event.start.date.toString()
+                    val end = event.end.dateTime?.toString() ?: event.end.date.toString()
+                    CalendarEventInfo(event.id, event.summary, start, end)
+                }
+                _events.value = items
+
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Calendar API error", e)
+                _calendarError.value = "Failed to fetch events: ${e.message}"
+            } finally {
+                _isLoadingCalendar.value = false
+            }
+        }
+    }
 }

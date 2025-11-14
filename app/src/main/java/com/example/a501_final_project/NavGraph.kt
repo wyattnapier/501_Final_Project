@@ -18,7 +18,6 @@ fun AppNavGraph(
     // creating shared viewModels for all screens
     val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
     val loginViewModel: LoginViewModel = viewModel()
-    val eventsViewModel: EventsViewModel = viewModel()
 
     NavHost(
         navController = navController,
@@ -40,7 +39,7 @@ fun AppNavGraph(
         }
         // Calendar
         composable(Screen.Calendar.route) {
-            EventsScreen(modifier = modifier, loginViewModel = loginViewModel, eventsViewModel = eventsViewModel)
+            EventsScreen(modifier = modifier, loginViewModel = loginViewModel, mainViewModel = mainViewModel)
         }
         // Profile
         composable(Screen.Profile.route) {
