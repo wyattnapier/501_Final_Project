@@ -1,52 +1,47 @@
 package com.example.a501_final_project
 
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.ParentDataModifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import java.util.Locale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import kotlin.text.format
+import java.util.*
+import kotlin.math.roundToInt
+
+// Data class to hold layout information for an event
+private class EventData(
+    val position: Int,
+    val total: Int
+) : ParentDataModifier {
+    override fun Density.modifyParentData(parentData: Any?) = this@EventData
+}
 
 @Composable
 fun EventsScreen(
@@ -56,13 +51,11 @@ fun EventsScreen(
 ) {
     val loginState by loginViewModel.uiState.collectAsState()
     val eventsByCalendar by mainViewModel.eventsByCalendar.collectAsState()
-    val expandedCalendarNames by mainViewModel.expandedCalendarNames.collectAsState()
     val isLoading by mainViewModel.isLoadingCalendar.collectAsState()
     val error by mainViewModel.calendarError.collectAsState()
     val context = LocalContext.current
     val viewType by mainViewModel.calendarViewType.collectAsState()
 
-    // Fetch events when the user is logged in
     LaunchedEffect(loginState.isLoggedIn) {
         val account = GoogleSignIn.getLastSignedInAccount(context)
         if (loginState.isLoggedIn && account != null) {
@@ -71,7 +64,6 @@ fun EventsScreen(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        // NEW: View Switcher
         CalendarViewSwitcher(
             selectedView = viewType,
             onViewSelected = { mainViewModel.setCalendarView(it) }
@@ -82,12 +74,11 @@ fun EventsScreen(
                 !loginState.isLoggedIn -> Text("Please sign in to see events.")
                 isLoading && eventsByCalendar.isEmpty() -> CircularProgressIndicator()
                 error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error)
-                eventsByCalendar.isEmpty() -> Text("No upcoming events found.")
+                eventsByCalendar.isEmpty() && !isLoading -> Text("No upcoming events found.")
                 else -> {
-                    // NEW: Switch between different calendar layouts
                     val allEvents = eventsByCalendar.values.flatten().sortedBy { it.startDateTime?.value }
                     when (viewType) {
-                        CalendarViewType.AGENDA -> AgendaView(mainViewModel) // Your original collapsible list
+                        CalendarViewType.AGENDA -> AgendaView(mainViewModel)
                         CalendarViewType.THREE_DAY -> ThreeDayView(events = allEvents)
                         CalendarViewType.FOURTEEN_DAY -> FourteenDayAgendaView(events = allEvents)
                     }
@@ -146,11 +137,12 @@ fun AgendaView(mainViewModel: MainViewModel) {
             }
             if (calendarName in expandedCalendarNames) {
                 items(events) { event ->
-                    // Make sure to format the DateTime object for display
-                    val startStr = event.startDateTime?.let { SimpleDateFormat("MMM d, h:mm a",
-                        Locale.getDefault()).format(java.util.Date(it.value)) } ?: "N/A"
-                    val endStr = event.endDateTime?.let { SimpleDateFormat("MMM d, h:mm a",
-                        Locale.getDefault()).format(java.util.Date(it.value)) } ?: "N/A"
+                    val startStr = event.startDateTime?.let {
+                        SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(it.value))
+                    } ?: "N/A"
+                    val endStr = event.endDateTime?.let {
+                        SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(it.value))
+                    } ?: "N/A"
                     EventItem(event.summary ?: "(No Title)", startStr, endStr)
                 }
             }
@@ -185,25 +177,36 @@ fun CalendarHeader(
     }
 }
 
+// Simplified EventItem for the Agenda view
 @Composable
 fun EventItem(summary: String, start: String, end: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier
-        .fillMaxWidth()
-        .padding(horizontal = 24.dp, vertical = 8.dp)) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 8.dp)
+    ) {
         Text(text = summary, style = MaterialTheme.typography.titleMedium)
-        Text(text = "Start: $start", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = "End: $end", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = "Start: $start",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "End: $end",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
     }
 }
 
+// NEW: View for 14-Day grouped list
 @Composable
 fun FourteenDayAgendaView(events: List<CalendarEventInfo>) {
     val groupedEvents = events.groupBy {
-        // Group by day
         val cal = Calendar.getInstance()
         cal.timeInMillis = it.startDateTime?.value ?: 0
-        cal.get(Calendar.DAY_OF_YEAR)
+        cal[Calendar.DAY_OF_YEAR]
     }
 
     LazyColumn(modifier = Modifier
@@ -214,16 +217,18 @@ fun FourteenDayAgendaView(events: List<CalendarEventInfo>) {
             if (day != null) {
                 item {
                     Text(
-                        text = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(java.util.Date(day)),
+                        text = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault()).format(Date(day)),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
                     )
                 }
                 items(dayEvents) { event ->
-                    val startStr = event.startDateTime?.let { SimpleDateFormat("h:mm a", Locale.getDefault()).format(
-                        java.util.Date(it.value)) } ?: ""
-                    val endStr = event.endDateTime?.let { SimpleDateFormat("h:mm a", Locale.getDefault()).format(
-                        java.util.Date(it.value)) } ?: ""
+                    val startStr = event.startDateTime?.let {
+                        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(it.value))
+                    } ?: ""
+                    val endStr = event.endDateTime?.let {
+                        SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(it.value))
+                    } ?: ""
                     Text(
                         text = "${event.summary ?: "(No title)"} ($startStr - $endStr)",
                         modifier = Modifier.padding(start = 16.dp, bottom = 8.dp)
@@ -234,19 +239,228 @@ fun FourteenDayAgendaView(events: List<CalendarEventInfo>) {
     }
 }
 
-// Placeholder for the 3-Day View (the most complex part)
+
+private val hourHeight = 60.dp
+private val dayWidth = 250.dp
+private val am_pm_time_formatter = SimpleDateFormat("h a", Locale.getDefault())
+
 @Composable
-fun ThreeDayView(events: List<CalendarEventInfo>) {
-    // This is a very complex component. A full implementation is beyond a simple
-    // response, but here is a simplified placeholder structure.
-    Text(
-        "3-Day View (Visual Layout) is a complex component and would require a custom Layout composable to draw events on a timeline. This is a placeholder.",
-        modifier = Modifier.padding(16.dp)
-    )
-    // A real implementation would involve:
-    // 1. A custom Layout() composable.
-    // 2. Drawing horizontal lines for each hour.
-    // 3. Calculating the y-position and height of each event based on its start/end time.
-    // 4. Placing each event as a measured item in the layout.
-    // 5. Handling overlapping events.
+fun ThreeDayView(events: List<CalendarEventInfo>, modifier: Modifier = Modifier) {
+    val numDays = 3
+    val today = Calendar.getInstance()
+
+    val days = (0 until numDays).map { dayIndex ->
+        (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, dayIndex) }
+    }
+
+    val eventsByDay = days.associateWith { day ->
+        events.filter { event ->
+            event.startDateTime != null &&
+                    Calendar.getInstance().apply { timeInMillis = event.startDateTime.value }.get(Calendar.DAY_OF_YEAR) == day.get(Calendar.DAY_OF_YEAR)
+        }
+    }
+
+    val scrollState = rememberScrollState()
+
+    Column(modifier = modifier) {
+        DayHeaders(days)
+        Row(modifier = Modifier.verticalScroll(scrollState)) {
+            HourSidebar(modifier = Modifier.height(hourHeight * 24))
+            BasicCalendar(
+                modifier = Modifier.weight(1f),
+                days = days,
+                eventsByDay = eventsByDay
+            )
+        }
+    }
+}
+
+@Composable
+fun DayHeaders(days: List<Calendar>) {
+    Row(modifier = Modifier.padding(start = 52.dp)) { // Pad for the hour sidebar
+        days.forEach { day ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.width(dayWidth)
+            ) {
+                Text(text = SimpleDateFormat("EEE", Locale.getDefault()).format(day.time), style = MaterialTheme.typography.labelSmall)
+                Text(text = SimpleDateFormat("d", Locale.getDefault()).format(day.time), style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    }
+}
+
+@Composable
+fun HourSidebar(modifier: Modifier = Modifier) {
+    val hourColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+    Column(modifier) {
+        (0..23).forEach { hour ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(hourHeight)
+            ) {
+                Text(
+                    text = am_pm_time_formatter.format(Calendar.getInstance().apply { set(Calendar.HOUR_OF_DAY, hour) }.time),
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(horizontal = 4.dp),
+                    style = MaterialTheme.typography.labelSmall.copy(color = hourColor)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun BasicCalendar(
+    modifier: Modifier = Modifier,
+    days: List<Calendar>,
+    eventsByDay: Map<Calendar, List<CalendarEventInfo>>
+) {
+    val hourColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+    val density = LocalDensity.current
+
+    Layout(
+        modifier = modifier.drawBehind {
+            // Draw horizontal hour lines
+            for (i in 0..23) {
+                val y = with(density) { (hourHeight * i).toPx() }
+                drawLine(
+                    color = hourColor,
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 1f
+                )
+            }
+        },
+        content = {
+            days.forEach { day ->
+                val events = eventsByDay[day] ?: emptyList()
+                Day(events = events)
+            }
+        }
+    ) { measurables, constraints ->
+        val dayWidthPx = with(density) { dayWidth.toPx() }.roundToInt()
+        val placeables = measurables.map { it.measure(constraints.copy(minWidth = dayWidthPx, maxWidth = dayWidthPx)) }
+        val totalWidth = placeables.sumOf { it.width }
+        val totalHeight = with(density) { (hourHeight * 24).toPx() }.roundToInt()
+
+        layout(totalWidth, totalHeight) {
+            var xPosition = 0
+            placeables.forEach { placeable ->
+                placeable.placeRelative(x = xPosition, y = 0)
+                xPosition += placeable.width
+            }
+        }
+    }
+}
+
+@Composable
+fun Day(events: List<CalendarEventInfo>, modifier: Modifier = Modifier) {
+    // 1. Define eventGroups *before* the Layout so it's accessible in both lambdas.
+    val eventGroups = remember(events) {
+        mutableListOf<MutableList<CalendarEventInfo>>().also { groups ->
+            events.sortedBy { it.startDateTime?.value }.forEach { event ->
+                val group = groups.find { g -> g.none { it.overlaps(event) } }
+                if (group != null) {
+                    group.add(event)
+                } else {
+                    groups.add(mutableListOf(event))
+                }
+            }
+        }
+    }
+
+    val density = LocalDensity.current
+
+    Layout(
+        modifier = modifier,
+        content = {
+            // 2. The content block now just creates the UI elements.
+            eventGroups.forEach { group ->
+                group.forEach { event ->
+                    Box(modifier = EventData(position = group.indexOf(event), total = group.size)) {
+                        Event(event = event)
+                    }
+                }
+            }
+        }
+    ) { measurables, constraints ->
+        val totalHeight = with(density) { (hourHeight * 24).toPx() }.roundToInt()
+
+        val placeables = measurables.map {
+            val eventData = it.parentData as EventData
+            val event = eventGroups.flatMap { g -> g }[measurables.indexOf(it)]
+            val eventHeightPx = with(density) { (event.durationInMinutes() / 60f * hourHeight.toPx()).roundToInt() }
+
+            it.measure(constraints.copy(
+                minWidth = constraints.maxWidth / eventData.total,
+                maxWidth = constraints.maxWidth / eventData.total,
+                minHeight = eventHeightPx,
+                maxHeight = eventHeightPx
+            ))
+        }
+
+        layout(constraints.maxWidth, totalHeight) {
+            placeables.forEachIndexed { index, placeable ->
+                val eventData = placeable.parentData as EventData
+                // 3. Find the event using the index, which is much simpler and more reliable.
+                val event = eventGroups.flatMap { it }[index]
+
+                val yPosition = event.startDateTime?.let { getEventY(it, density) } ?: 0
+                val xPosition = eventData.position * (constraints.maxWidth / eventData.total)
+
+                placeable.placeRelative(x = xPosition, y = yPosition)
+            }
+        }
+    }
+}
+
+private fun getEventY(start: com.google.api.client.util.DateTime, density: Density): Int {
+    val cal = Calendar.getInstance().apply { timeInMillis = start.value }
+    val hour = cal.get(Calendar.HOUR_OF_DAY)
+    val minute = cal.get(Calendar.MINUTE)
+    return with(density) { (hour * hourHeight.toPx() + minute / 60f * hourHeight.toPx()).roundToInt() }
+}
+
+private fun CalendarEventInfo.durationInMinutes(): Long {
+    val start = this.startDateTime?.value ?: 0
+    val end = this.endDateTime?.value ?: 0
+    return ((end - start) / (1000 * 60)).coerceAtLeast(15) // Show at least a 15-min block
+}
+
+private fun CalendarEventInfo.overlaps(other: CalendarEventInfo): Boolean {
+    return (this.startDateTime?.value ?: 0) < (other.endDateTime?.value ?: 0) &&
+            (this.endDateTime?.value ?: 0) > (other.startDateTime?.value ?: 0)
+}
+
+@Composable
+fun Event(event: CalendarEventInfo, modifier: Modifier = Modifier) {
+    val eventHeight = with(LocalDensity.current) { (event.durationInMinutes() / 60f * hourHeight.toPx()).toDp() }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(eventHeight)
+            .padding(2.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .padding(4.dp)
+    ) {
+        Text(
+            text = event.summary ?: "(No title)",
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        val startStr = event.startDateTime?.let { SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(it.value)) } ?: ""
+        Text(
+            text = startStr,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
 }
