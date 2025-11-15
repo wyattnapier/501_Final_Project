@@ -140,23 +140,59 @@ fun AgendaView(mainViewModel: MainViewModel) {
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
-        eventsByCalendar.forEach { (calendarName, events) ->
+        if (eventsByCalendar.size == 1) {
+            // always render list open
+            val singleCalendarName = eventsByCalendar.keys.first()
             item {
                 CalendarHeader(
-                    calendarName = calendarName,
-                    isExpanded = calendarName in expandedCalendarNames,
-                    onToggle = { mainViewModel.toggleCalendarSection(calendarName) }
+                    calendarName = singleCalendarName,
+                    isExpanded = true,
+                    onToggle = {},
+                    showToggle = false
                 )
             }
-            if (calendarName in expandedCalendarNames) {
-                items(events) { event ->
-                    val startStr = event.startDateTime?.let {
-                        SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(it.value))
-                    } ?: "N/A"
-                    val endStr = event.endDateTime?.let {
-                        SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(it.value))
-                    } ?: "N/A"
-                    EventItem(event.summary ?: "(No Title)", startStr, endStr)
+            val events = eventsByCalendar[singleCalendarName] ?: emptyList()
+            items(events) { event ->
+                val startStr = event.startDateTime?.let {
+                    SimpleDateFormat(
+                        "MMM d, h:mm a",
+                        Locale.getDefault()
+                    ).format(Date(it.value))
+                } ?: "N/A"
+                val endStr = event.endDateTime?.let {
+                    SimpleDateFormat(
+                        "MMM d, h:mm a",
+                        Locale.getDefault()
+                    ).format(Date(it.value))
+                } ?: "N/A"
+                EventItem(event.summary ?: "(No Title)", startStr, endStr)
+            }
+        } else {
+            eventsByCalendar.forEach { (calendarName, events) ->
+                item {
+                    CalendarHeader(
+                        calendarName = calendarName,
+                        isExpanded = calendarName in expandedCalendarNames,
+                        onToggle = { mainViewModel.toggleCalendarSection(calendarName) },
+                        showToggle = true,
+                    )
+                }
+                if (calendarName in expandedCalendarNames) {
+                    items(events) { event ->
+                        val startStr = event.startDateTime?.let {
+                            SimpleDateFormat(
+                                "MMM d, h:mm a",
+                                Locale.getDefault()
+                            ).format(Date(it.value))
+                        } ?: "N/A"
+                        val endStr = event.endDateTime?.let {
+                            SimpleDateFormat(
+                                "MMM d, h:mm a",
+                                Locale.getDefault()
+                            ).format(Date(it.value))
+                        } ?: "N/A"
+                        EventItem(event.summary ?: "(No Title)", startStr, endStr)
+                    }
                 }
             }
         }
@@ -168,7 +204,8 @@ fun CalendarHeader(
     calendarName: String,
     isExpanded: Boolean,
     onToggle: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showToggle: Boolean = true,
 ) {
     Row(
         modifier = modifier
@@ -183,10 +220,12 @@ fun CalendarHeader(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f)
         )
-        Icon(
-            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-            contentDescription = if (isExpanded) "Collapse" else "Expand"
-        )
+        if (showToggle) {
+            Icon(
+                imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (isExpanded) "Collapse" else "Expand"
+            )
+        }
     }
 }
 
@@ -545,7 +584,7 @@ fun EventDetailDialog(event: CalendarEventInfo, onDismiss: () -> Unit) {
                 }
                 event.summary?.let {
                     Text(
-                        text = "Summary: $it",
+                        text = "Summary: $it", // TODO: make summary different than title
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
