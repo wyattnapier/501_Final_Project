@@ -318,13 +318,14 @@ fun ThreeDayView(
         }
     }
 
-    val scrollState = rememberScrollState()
+    val scrollState = rememberScrollState(1090)
 
     Column(
         modifier = modifier.fillMaxSize()
     ) {
         DayHeaders(days)
         Row(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+            Log.d("ThreeDayView", "Vertical scroll scroll state: $scrollState")
             HourSidebar(modifier = Modifier.width(sidebarWidth).height(hourHeight * 24))
             BasicCalendar(
                 modifier = Modifier.weight(1f),
@@ -392,7 +393,7 @@ fun BasicCalendar(
                     color = hourColor,
                     start = Offset(0f, y),
                     end = Offset(size.width, y),
-                    strokeWidth = 1f
+                    strokeWidth = 2f
                 )
             }
             // draw vertical lines
@@ -403,7 +404,7 @@ fun BasicCalendar(
                     color = hourColor,
                     start = Offset(x, 0f),
                     end = Offset(x, size.height),
-                    strokeWidth = 1f
+                    strokeWidth = 2f
                 )
             }
         },
