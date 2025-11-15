@@ -348,6 +348,17 @@ fun BasicCalendar(
                     strokeWidth = 1f
                 )
             }
+            // draw vertical lines
+            val dayWidthPx = size.width / days.size
+            for (i in 1 until days.size) {
+                val x = dayWidthPx * i
+                drawLine(
+                    color = hourColor,
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = 1f
+                )
+            }
         },
         content = {
             days.forEach { day ->
