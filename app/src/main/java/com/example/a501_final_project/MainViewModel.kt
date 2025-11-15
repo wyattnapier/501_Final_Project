@@ -385,7 +385,8 @@ class MainViewModel : ViewModel() {
     fun fetchCalendarEvents(
         googleAccount: GoogleSignInAccount,
         context: Context,
-        days: Int = 14 // default to fetching 14 days of events
+        days: Int = 14, // default to fetching 14 days of events
+        calendarFilterName: String?  = null // filter to only get one calendar if not null
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingCalendar.value = true
@@ -426,6 +427,12 @@ class MainViewModel : ViewModel() {
                 for (calendarListEntry in calendarList.items) {
                     val calendarName = calendarListEntry.summary ?: "Unknown Calendar"
                     Log.d("MainViewModel", "Fetching events for calendar: $calendarName")
+
+                    // if we're filtering by name then only fetch that calendar
+                    // otherwise fetch all calendars
+                    if (calendarFilterName != null && calendarName != calendarFilterName) {
+                        continue
+                    }
 
                     val eventsResult = calendarService.events().list(calendarListEntry.id)
                         .setTimeMin(now)

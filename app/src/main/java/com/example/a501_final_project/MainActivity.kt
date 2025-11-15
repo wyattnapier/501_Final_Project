@@ -109,11 +109,14 @@ fun MainScreen() {
     // fetch user google calendar data on app start or login change
     LaunchedEffect(Unit, loginState) {
         val account = GoogleSignIn.getLastSignedInAccount(context)
-        Log.d("MainScreen", "Last signed in account: ${account?.email}")
-        Log.d("MainScreen", "Login state: $loginState")
         if (loginState.isLoggedIn && account != null) {
             Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
-            mainViewModel.fetchCalendarEvents(account, context, days = 14)
+            mainViewModel.fetchCalendarEvents(
+                account,
+                context,
+                days = 14,
+                calendarFilterName = "Other Events" // TODO: update calendar filter name to household calendar name
+            )
         }
     }
 
