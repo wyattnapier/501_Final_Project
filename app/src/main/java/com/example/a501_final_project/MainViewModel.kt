@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.concurrent.TimeUnit
 import java.util.Locale
 
 // custom data object created here for now
@@ -72,9 +73,18 @@ data class Payment(
 data class CalendarEventInfo(
     val id: String,
     val summary: String?,
-    val start: String?,
-    val end: String?
+    val startDateTime: DateTime?,
+    val endDateTime: DateTime?
 )
+
+/**
+ * define different UI view types for Calendar
+ */
+enum class CalendarViewType {
+    AGENDA, // The collapsible list you already have
+    THREE_DAY,
+    FOURTEEN_DAY
+}
 
 /** our ViewModel to hold our business logic and data.
  * For now this will be one ViewModel that all of the screens can access.
@@ -346,11 +356,21 @@ class MainViewModel : ViewModel() {
     private val _expandedCalendarNames = MutableStateFlow<Set<String>>(emptySet())
     val expandedCalendarNames = _expandedCalendarNames.asStateFlow()
 
+    // State to manage the current calendar view
+    private val _calendarViewType = MutableStateFlow(CalendarViewType.AGENDA)
+    val calendarViewType = _calendarViewType.asStateFlow()
+
     private val _calendarError = MutableStateFlow<String?>(null)
     val calendarError = _calendarError.asStateFlow()
 
     private val _isLoadingCalendar = MutableStateFlow(false)
     val isLoadingCalendar = _isLoadingCalendar.asStateFlow()
+
+    // change the view type
+    fun setCalendarView(viewType: CalendarViewType) {
+        _calendarViewType.value = viewType
+        // TODO: re-fetch events if the date range changes significantly
+    }
 
     fun toggleCalendarSection(calendarName: String) {
         val current = _expandedCalendarNames.value
@@ -361,7 +381,12 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun fetchCalendarEvents(googleAccount: GoogleSignInAccount, context: Context) {
+    // TODO: add a date picker to input start date and end date of date range
+    fun fetchCalendarEvents(
+        googleAccount: GoogleSignInAccount,
+        context: Context,
+        days: Int = 14 // default to fetching 14 days of events
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoadingCalendar.value = true
             _calendarError.value = null
@@ -389,7 +414,14 @@ class MainViewModel : ViewModel() {
                 // 3. Get the list of all calendars
                 val calendarList = calendarService.calendarList().list().execute()
                 val eventsMap = mutableMapOf<String, List<CalendarEventInfo>>()
+
+                // set time range for fetching events
                 val now = DateTime(System.currentTimeMillis())
+                val timeMax = java.util.Calendar.getInstance().apply {
+                    add(java.util.Calendar.DAY_OF_YEAR, days)
+                }.timeInMillis
+                val maxDateTime = DateTime(timeMax)
+
 
                 // 4. Iterate over each calendar to fetch its events
                 for (calendarListEntry in calendarList.items) {
@@ -397,19 +429,25 @@ class MainViewModel : ViewModel() {
                     Log.d("MainViewModel", "Fetching events for calendar: $calendarName")
 
                     val eventsResult = calendarService.events().list(calendarListEntry.id)
-                        .setMaxResults(10) // Fetch up to 10 upcoming events per calendar
                         .setTimeMin(now)
+                        .setTimeMax(maxDateTime)
                         .setOrderBy("startTime")
                         .setSingleEvents(true)
                         .execute()
 
-                    val items = eventsResult.items.map { event ->
-                        val start = event.start.dateTime?.toString() ?: event.start.date.toString()
-                        val end = event.end.dateTime?.toString() ?: event.end.date.toString()
-                        CalendarEventInfo(event.id, event.summary, start, end)
+                    val items = eventsResult.items.mapNotNull { event ->
+                        if (event.start?.dateTime == null) {
+                            null // TODO: this skips all day events, but need to add better handling for them
+                        } else {
+                            CalendarEventInfo(
+                                id = event.id,
+                                summary = event.summary,
+                                startDateTime = event.start.dateTime,
+                                endDateTime = event.end.dateTime
+                            )
+                        }
                     }
 
-                    // Only add the calendar to the map if it has upcoming events
                     if (items.isNotEmpty()) {
                         eventsMap[calendarName] = items
                     }
