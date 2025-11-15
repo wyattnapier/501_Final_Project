@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.api.services.calendar.CalendarScopes
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel() : ViewModel() {
 
     private val auth: FirebaseAuth = Firebase.auth
 
@@ -68,9 +68,8 @@ class LoginViewModel : ViewModel() {
             .requestEmail()
             .requestServerAuthCode(context.getString(R.string.default_web_client_id))
             .requestScopes( // must match with scopes in MainViewModel (except calendarlist)
-                Scope(CalendarScopes.CALENDAR_READONLY), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
+//                Scope(CalendarScopes.CALENDAR), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
                 Scope(CalendarScopes.CALENDAR_READONLY), // See and download any calendar you can access using your Google Calendar
-//                Scope("https://www.googleapis.com/auth/calendar.calendarlist"), // See, add, and remove Google calendars you’re subscribed to
             )
             .build()
         return GoogleSignIn.getClient(context, gso)
@@ -85,6 +84,7 @@ class LoginViewModel : ViewModel() {
 
                 if (googleAccount?.idToken != null) {
                     firebaseAuthWithGoogle(googleAccount.idToken!!)
+                    // TODO: add call to fetch gcal data here
                 } else {
                     _uiState.value = _uiState.value.copy(
                         error = "Google Sign-In failed: No ID token.",

@@ -1,5 +1,6 @@
 package com.example.a501_final_project
 
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -61,6 +62,7 @@ fun EventsScreen(
         if (loginState.isLoggedIn && account != null) {
             mainViewModel.fetchCalendarEvents(account, context, days = 14)
         }
+        Log.d("EventsScreen", "calendar events: $eventsByCalendar")
     }
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -241,8 +243,8 @@ fun FourteenDayAgendaView(events: List<CalendarEventInfo>) {
 
 
 private val hourHeight = 60.dp
-private val dayWidth = 250.dp
-private val am_pm_time_formatter = SimpleDateFormat("h a", Locale.getDefault())
+private val sidebarWidth = 60.dp
+private val am_pm_time_formatter = SimpleDateFormat("h a", Locale.getDefault()) // TODO: make this dynamic
 
 @Composable
 fun ThreeDayView(events: List<CalendarEventInfo>, modifier: Modifier = Modifier) {
@@ -255,17 +257,21 @@ fun ThreeDayView(events: List<CalendarEventInfo>, modifier: Modifier = Modifier)
 
     val eventsByDay = days.associateWith { day ->
         events.filter { event ->
-            event.startDateTime != null &&
-                    Calendar.getInstance().apply { timeInMillis = event.startDateTime.value }.get(Calendar.DAY_OF_YEAR) == day.get(Calendar.DAY_OF_YEAR)
+            if (event.startDateTime == null) return@filter false
+            val eventCal = Calendar.getInstance().apply { timeInMillis = event.startDateTime.value }
+            eventCal.get(Calendar.YEAR) == day.get(Calendar.YEAR) &&
+                    eventCal.get(Calendar.DAY_OF_YEAR) == day.get(Calendar.DAY_OF_YEAR)
         }
     }
 
     val scrollState = rememberScrollState()
 
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
         DayHeaders(days)
-        Row(modifier = Modifier.verticalScroll(scrollState)) {
-            HourSidebar(modifier = Modifier.height(hourHeight * 24))
+        Row(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
+            HourSidebar(modifier = Modifier.width(sidebarWidth).height(hourHeight * 24))
             BasicCalendar(
                 modifier = Modifier.weight(1f),
                 days = days,
@@ -277,11 +283,11 @@ fun ThreeDayView(events: List<CalendarEventInfo>, modifier: Modifier = Modifier)
 
 @Composable
 fun DayHeaders(days: List<Calendar>) {
-    Row(modifier = Modifier.padding(start = 52.dp)) { // Pad for the hour sidebar
+    Row(modifier = Modifier.fillMaxWidth().padding(start = sidebarWidth)) { // Pad for the hour sidebar
         days.forEach { day ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.width(dayWidth)
+                modifier = Modifier.weight(1f)
             ) {
                 Text(text = SimpleDateFormat("EEE", Locale.getDefault()).format(day.time), style = MaterialTheme.typography.labelSmall)
                 Text(text = SimpleDateFormat("d", Locale.getDefault()).format(day.time), style = MaterialTheme.typography.titleMedium)
@@ -341,7 +347,7 @@ fun BasicCalendar(
             }
         }
     ) { measurables, constraints ->
-        val dayWidthPx = with(density) { dayWidth.toPx() }.roundToInt()
+        val dayWidthPx = constraints.maxWidth / days.size
         val placeables = measurables.map { it.measure(constraints.copy(minWidth = dayWidthPx, maxWidth = dayWidthPx)) }
         val totalWidth = placeables.sumOf { it.width }
         val totalHeight = with(density) { (hourHeight * 24).toPx() }.roundToInt()

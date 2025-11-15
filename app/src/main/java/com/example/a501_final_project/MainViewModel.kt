@@ -396,7 +396,6 @@ class MainViewModel : ViewModel() {
                     context,
                     listOf(
                         CalendarScopes.CALENDAR_READONLY,
-                        CalendarScopes.CALENDAR_EVENTS_READONLY
                     )
                 ).apply {
                     selectedAccount = googleAccount.account
