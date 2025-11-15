@@ -56,6 +56,7 @@ fun EventsScreen(
     val error by mainViewModel.calendarError.collectAsState()
     val context = LocalContext.current
     val viewType by mainViewModel.calendarViewType.collectAsState()
+    var selectedEvent by remember { mutableStateOf<CalendarEventInfo?>(null) }
 
     LaunchedEffect(loginState.isLoggedIn) {
         val account = GoogleSignIn.getLastSignedInAccount(context)
@@ -81,11 +82,22 @@ fun EventsScreen(
                     val allEvents = eventsByCalendar.values.flatten().sortedBy { it.startDateTime?.value }
                     when (viewType) {
                         CalendarViewType.AGENDA -> AgendaView(mainViewModel)
-                        CalendarViewType.THREE_DAY -> ThreeDayView(events = allEvents)
+                        CalendarViewType.THREE_DAY -> ThreeDayView(
+                            events = allEvents,
+                            onEventClick = { selectedEvent = it }
+                        )
                         CalendarViewType.FOURTEEN_DAY -> FourteenDayAgendaView(events = allEvents)
                     }
                 }
             }
+        }
+
+        // open the calendar event details
+        selectedEvent?.let { event ->
+            EventDetailDialog(
+                event = event,
+                onDismiss = { selectedEvent = null }
+            )
         }
     }
 }
@@ -247,7 +259,11 @@ private val sidebarWidth = 60.dp
 private val am_pm_time_formatter = SimpleDateFormat("h a", Locale.getDefault()) // TODO: make this dynamic
 
 @Composable
-fun ThreeDayView(events: List<CalendarEventInfo>, modifier: Modifier = Modifier) {
+fun ThreeDayView(
+    events: List<CalendarEventInfo>,
+    onEventClick: (CalendarEventInfo) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     val numDays = 3
     val today = Calendar.getInstance()
 
@@ -275,7 +291,8 @@ fun ThreeDayView(events: List<CalendarEventInfo>, modifier: Modifier = Modifier)
             BasicCalendar(
                 modifier = Modifier.weight(1f),
                 days = days,
-                eventsByDay = eventsByDay
+                eventsByDay = eventsByDay,
+                onEventClick = onEventClick
             )
         }
     }
@@ -322,7 +339,8 @@ fun HourSidebar(modifier: Modifier = Modifier) {
 fun BasicCalendar(
     modifier: Modifier = Modifier,
     days: List<Calendar>,
-    eventsByDay: Map<Calendar, List<CalendarEventInfo>>
+    eventsByDay: Map<Calendar, List<CalendarEventInfo>>,
+    onEventClick: (CalendarEventInfo) -> Unit = {}
 ) {
     val hourColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
     val density = LocalDensity.current
@@ -343,7 +361,7 @@ fun BasicCalendar(
         content = {
             days.forEach { day ->
                 val events = eventsByDay[day] ?: emptyList()
-                Day(events = events)
+                Day(events = events, onEventClick = onEventClick)
             }
         }
     ) { measurables, constraints ->
@@ -363,7 +381,11 @@ fun BasicCalendar(
 }
 
 @Composable
-fun Day(events: List<CalendarEventInfo>, modifier: Modifier = Modifier) {
+fun Day(
+    events: List<CalendarEventInfo>,
+    onEventClick: (CalendarEventInfo) -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     // 1. Define eventGroups *before* the Layout so it's accessible in both lambdas.
     val eventGroups = remember(events) {
         mutableListOf<MutableList<CalendarEventInfo>>().also { groups ->
@@ -380,6 +402,20 @@ fun Day(events: List<CalendarEventInfo>, modifier: Modifier = Modifier) {
 
     val density = LocalDensity.current
 
+    // Calculate optimal width for each event based on group size
+    // Events get wider when there are fewer overlaps
+    val eventWidthFractions = remember(eventGroups) {
+        eventGroups.flatMap { group ->
+            group.mapIndexed { index, event ->
+                event to when (group.size) {
+                    1 -> 1.0f // Full width if no overlaps
+                    2 -> 0.6f // 60% width if 2 overlaps
+                    else -> 1f / group.size // Equal split for 3+
+                }
+            }
+        }.toMap()
+    }
+
     Layout(
         modifier = modifier,
         content = {
@@ -387,7 +423,7 @@ fun Day(events: List<CalendarEventInfo>, modifier: Modifier = Modifier) {
             eventGroups.forEach { group ->
                 group.forEach { event ->
                     Box(modifier = EventData(position = group.indexOf(event), total = group.size)) {
-                        Event(event = event)
+                        Event(event = event, onClick = { onEventClick(event) })
                     }
                 }
             }
@@ -399,10 +435,12 @@ fun Day(events: List<CalendarEventInfo>, modifier: Modifier = Modifier) {
             val eventData = it.parentData as EventData
             val event = eventGroups.flatMap { g -> g }[measurables.indexOf(it)]
             val eventHeightPx = with(density) { (event.durationInMinutes() / 60f * hourHeight.toPx()).roundToInt() }
+            val widthFraction = eventWidthFractions[event] ?: (1f / eventData.total)
+            val eventWidth = (constraints.maxWidth * widthFraction).toInt()
 
             it.measure(constraints.copy(
-                minWidth = constraints.maxWidth / eventData.total,
-                maxWidth = constraints.maxWidth / eventData.total,
+                minWidth = eventWidth,
+                maxWidth = eventWidth,
                 minHeight = eventHeightPx,
                 maxHeight = eventHeightPx
             ))
@@ -442,7 +480,7 @@ private fun CalendarEventInfo.overlaps(other: CalendarEventInfo): Boolean {
 }
 
 @Composable
-fun Event(event: CalendarEventInfo, modifier: Modifier = Modifier) {
+fun Event(event: CalendarEventInfo, onClick: () -> Unit = {}, modifier: Modifier = Modifier) {
     val eventHeight = with(LocalDensity.current) { (event.durationInMinutes() / 60f * hourHeight.toPx()).toDp() }
 
     Column(
@@ -452,13 +490,14 @@ fun Event(event: CalendarEventInfo, modifier: Modifier = Modifier) {
             .padding(2.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable(onClick = onClick)
             .padding(4.dp)
     ) {
         Text(
             text = event.summary ?: "(No title)",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
         val startStr = event.startDateTime?.let { SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(it.value)) } ?: ""
@@ -469,4 +508,45 @@ fun Event(event: CalendarEventInfo, modifier: Modifier = Modifier) {
             overflow = TextOverflow.Ellipsis
         )
     }
+}
+
+@Composable
+fun EventDetailDialog(event: CalendarEventInfo, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = event.summary ?: "(No title)", fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column {
+                event.startDateTime?.let {
+                    Text(
+                        text = "Start: ${SimpleDateFormat("EEEE, MMM d, yyyy 'at' h:mm a", Locale.getDefault()).format(Date(it.value))}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                event.endDateTime?.let {
+                    Text(
+                        text = "End: ${SimpleDateFormat("EEEE, MMM d, yyyy 'at' h:mm a", Locale.getDefault()).format(Date(it.value))}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                event.summary?.let {
+                    Text(
+                        text = "Summary: $it",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                // TODO: add more information here such as location
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
 }
