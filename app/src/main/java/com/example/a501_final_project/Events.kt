@@ -131,6 +131,14 @@ fun AgendaView(mainViewModel: MainViewModel) {
     val eventsByCalendar by mainViewModel.eventsByCalendar.collectAsState()
     val expandedCalendarNames by mainViewModel.expandedCalendarNames.collectAsState()
 
+    LaunchedEffect(eventsByCalendar) {
+        // If there's exactly one calendar, expand it by default.
+        if (eventsByCalendar.size == 1) {
+            val singleCalendarName = eventsByCalendar.keys.first()
+            mainViewModel.toggleCalendarSection(singleCalendarName)
+        }
+    }
+
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         eventsByCalendar.forEach { (calendarName, events) ->
             item {
