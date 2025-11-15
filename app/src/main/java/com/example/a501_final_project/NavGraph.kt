@@ -2,23 +2,17 @@ package com.example.a501_final_project
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavHostController
 
 @Composable
 fun AppNavGraph(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController(),
+    navController: NavHostController,
+    mainViewModel: MainViewModel,
+    loginViewModel: LoginViewModel
 ) {
-
-    // creating shared viewModels for all screens
-    val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
-    val loginViewModel: LoginViewModel = viewModel()
-
     NavHost(
         navController = navController,
         startDestination = Screen.Login.route

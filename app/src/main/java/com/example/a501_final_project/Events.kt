@@ -31,7 +31,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.android.gms.auth.api.signin.GoogleSignIn
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
@@ -57,14 +56,6 @@ fun EventsScreen(
     val context = LocalContext.current
     val viewType by mainViewModel.calendarViewType.collectAsState()
     var selectedEvent by remember { mutableStateOf<CalendarEventInfo?>(null) }
-
-    LaunchedEffect(loginState.isLoggedIn) {
-        val account = GoogleSignIn.getLastSignedInAccount(context)
-        if (loginState.isLoggedIn && account != null) {
-            mainViewModel.fetchCalendarEvents(account, context, days = 14)
-        }
-        Log.d("EventsScreen", "calendar events: $eventsByCalendar")
-    }
 
     Column(modifier = modifier.fillMaxSize()) {
         CalendarViewSwitcher(
