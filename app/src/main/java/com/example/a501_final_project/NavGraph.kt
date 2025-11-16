@@ -47,7 +47,7 @@ fun AppNavGraph(
         }
         // Login
         composable(Screen.Login.route) {
-            LoginScreen(modifier = modifier, viewModel = loginViewModel)
+            LoginScreen(modifier = modifier, viewModel = loginViewModel, navController = navController)
         }
         // Settings
         composable(Screen.Settings.route) {
@@ -60,6 +60,12 @@ fun AppNavGraph(
                 modifier = modifier
             )
             // TODO: add onclick?
+        }
+
+        // User sign up page
+        // TODO: adjust this navigation later on, currently jsut to be able to navigate to sign up page
+        composable(Screen.UserSignUp.route) {
+            SignUpScreen(loginViewModel = loginViewModel)
         }
     }
 }

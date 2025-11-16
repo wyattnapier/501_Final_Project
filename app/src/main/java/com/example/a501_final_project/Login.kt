@@ -17,11 +17,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    viewModel: LoginViewModel = viewModel()
+    viewModel: LoginViewModel = viewModel(),
+    navController: NavController,
 ) {
     // Observe the UI state from the ViewModel.
     // The UI will automatically recompose whenever the state changes.
@@ -60,6 +62,13 @@ fun LoginScreen(
                 }
             ) {
                 Text(text = "Login")
+            }
+
+            // OR SIGN UP (temp location)?
+            Button(onClick={
+                navController.navigate("UserSignUp")
+            }) {
+                Text(text="sign up")
             }
         }
 
