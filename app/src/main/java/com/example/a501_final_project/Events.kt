@@ -436,80 +436,105 @@ fun Day(
     onEventClick: (CalendarEventInfo) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // 1. Define eventGroups *before* the Layout so it's accessible in both lambdas.
-    val eventGroups = remember(events) {
-        mutableListOf<MutableList<CalendarEventInfo>>().also { groups ->
-            events.sortedBy { it.startDateTime?.value }.forEach { event ->
-                val group = groups.find { g -> g.none { it.overlaps(event) } }
-                if (group != null) {
-                    group.add(event)
-                } else {
-                    groups.add(mutableListOf(event))
-                }
-            }
-        }
-    }
-
     val density = LocalDensity.current
 
-    // Calculate optimal width for each event based on group size
-    // Events get wider when there are fewer overlaps
-    val eventWidthFractions = remember(eventGroups) {
-        eventGroups.flatMap { group ->
-            group.mapIndexed { index, event ->
-                event to when (group.size) {
-                    1 -> 1.0f // Full width if no overlaps
-                    2 -> 0.6f // 60% width if 2 overlaps
-                    else -> 1f / group.size // Equal split for 3+
+    data class EventLayout(
+        val event: CalendarEventInfo,
+        val maxConcurrentEvents: Int, // The TRUE max overlaps for this event's collision group
+        val position: Int             // The horizontal "lane" for this event
+    )
+
+    val eventLayouts = remember(events) {
+        val sortedEvents = events.sortedBy { it.startDateTime?.value }
+        val layouts = mutableListOf<EventLayout>()
+
+        for (event in sortedEvents) {
+            val collidingEvents = sortedEvents.filter { other ->
+                event.overlaps(other)
+            }
+
+            // --- COLLISION SWEEP-LINE ALGORITHM ---
+            // 1. Create a list of start (+1) and end (-1) points for the collision group.
+            val points = collidingEvents.flatMap {
+                listOf(
+                    (it.startDateTime?.value ?: 0) to 1,
+                    (it.endDateTime?.value ?: 0) to -1
+                )
+            }.sortedBy { it.first }
+
+            // 2. Sweep through the points to find the peak number of overlaps.
+            var maxConcurrentEvents = 0
+            var currentOverlaps = 0
+            for (point in points) {
+                currentOverlaps += point.second
+                if (currentOverlaps > maxConcurrentEvents) {
+                    maxConcurrentEvents = currentOverlaps
                 }
             }
-        }.toMap()
+
+            // Find a horizontal position ("lane") for the current event.
+            // This re-uses the stable lane-finding logic.
+            val positionsTaken = layouts
+                .filter { layout -> layout.event.overlaps(event) }
+                .map { it.position }
+                .toSet()
+
+            var position = 0
+            while (positionsTaken.contains(position)) {
+                position++
+            }
+
+            layouts.add(EventLayout(event, maxConcurrentEvents.coerceAtLeast(1), position))
+        }
+        layouts
     }
 
     Layout(
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(),
         content = {
-            // 2. The content block now just creates the UI elements.
-            eventGroups.forEach { group ->
-                group.forEach { event ->
-                    Box(modifier = EventData(position = group.indexOf(event), total = group.size)) {
-                        Event(event = event, onClick = { onEventClick(event) })
-                    }
+            eventLayouts.forEach { layout ->
+                Box(modifier = Modifier.padding(1.dp)) {
+                    Event(event = layout.event, onClick = { onEventClick(layout.event) })
                 }
             }
         }
     ) { measurables, constraints ->
         val totalHeight = with(density) { (hourHeight * 24).toPx() }.roundToInt()
 
-        val placeables = measurables.map {
-            val eventData = it.parentData as EventData
-            val event = eventGroups.flatMap { g -> g }[measurables.indexOf(it)]
-            val eventHeightPx = with(density) { (event.durationInMinutes() / 60f * hourHeight.toPx()).roundToInt() }
-            val widthFraction = eventWidthFractions[event] ?: (1f / eventData.total)
-            val eventWidth = (constraints.maxWidth * widthFraction).toInt()
+        val placeables = measurables.mapIndexed { index, measurable ->
+            val layout = eventLayouts[index]
+            // The denominator is now the correct peak overlap count.
+            val colWidth = constraints.maxWidth / layout.maxConcurrentEvents
 
-            it.measure(constraints.copy(
-                minWidth = eventWidth,
-                maxWidth = eventWidth,
-                minHeight = eventHeightPx,
-                maxHeight = eventHeightPx
-            ))
+            val eventHeightPx = with(density) {
+                (layout.event.durationInMinutes() / 60f * hourHeight.toPx()).roundToInt()
+            }
+
+            val eventWidthPx = colWidth - 2.dp.roundToPx() // Account for padding
+
+            val placeable = measurable.measure(
+                constraints.copy(
+                    minWidth = eventWidthPx.coerceAtLeast(0),
+                    maxWidth = eventWidthPx.coerceAtLeast(0),
+                    minHeight = eventHeightPx,
+                    maxHeight = eventHeightPx
+                )
+            )
+
+            val xPos = layout.position * colWidth
+            val yPos = layout.event.startDateTime?.let { getEventY(it, density) } ?: 0
+
+            Triple(placeable, xPos, yPos)
         }
 
         layout(constraints.maxWidth, totalHeight) {
-            placeables.forEachIndexed { index, placeable ->
-                val eventData = placeable.parentData as EventData
-                // 3. Find the event using the index, which is much simpler and more reliable.
-                val event = eventGroups.flatMap { it }[index]
-
-                val yPosition = event.startDateTime?.let { getEventY(it, density) } ?: 0
-                val xPosition = eventData.position * (constraints.maxWidth / eventData.total)
-
-                placeable.placeRelative(x = xPosition, y = yPosition)
+            placeables.forEach { (placeable, x, y) ->
+                placeable.placeRelative(x = x, y = y)
             }
         }
     }
 }
+
 
 private fun getEventY(start: com.google.api.client.util.DateTime, density: Density): Int {
     val cal = Calendar.getInstance().apply { timeInMillis = start.value }
@@ -535,7 +560,6 @@ fun Event(event: CalendarEventInfo, onClick: () -> Unit = {}, modifier: Modifier
 
     Column(
         modifier = modifier
-            .fillMaxWidth()
             .height(eventHeight)
             .padding(2.dp)
             .clip(RoundedCornerShape(8.dp))
