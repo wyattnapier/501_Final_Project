@@ -74,7 +74,8 @@ data class CalendarEventInfo(
     val id: String,
     val summary: String?,
     val startDateTime: DateTime?,
-    val endDateTime: DateTime?
+    val endDateTime: DateTime?,
+    val isAllDay: Boolean = false
 )
 
 /**
@@ -442,17 +443,58 @@ class MainViewModel : ViewModel() {
                         .execute()
 
                     val items = eventsResult.items.mapNotNull { event ->
-                        if (event.start?.dateTime == null) {
-                            null // TODO: this skips all day events, but need to add better handling for them
+                        val isAllDay = event.start?.dateTime == null && event.start?.date != null
+
+                        if (isAllDay) {
+                            val dateString = event.start.date.toString()
+
+                            // 2. Parse this date string in the local timezone.
+                            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                            val date = dateFormat.parse(dateString)
+
+                            if (date != null) {
+                                val localStartCal = java.util.Calendar.getInstance().apply {
+                                    time = date
+                                }
+                                val startDateTime = DateTime(localStartCal.time)
+
+                                // end time to the last millisecond of the same, correct day.
+                                val localEndCal = (localStartCal.clone() as java.util.Calendar).apply {
+                                    set(java.util.Calendar.HOUR_OF_DAY, 23)
+                                    set(java.util.Calendar.MINUTE, 59)
+                                    set(java.util.Calendar.SECOND, 59)
+                                    set(java.util.Calendar.MILLISECOND, 999)
+                                }
+                                val endDateTime = DateTime(localEndCal.time)
+
+                                CalendarEventInfo(
+                                    id = event.id,
+                                    summary = event.summary,
+                                    startDateTime = startDateTime,
+                                    endDateTime = endDateTime,
+                                    isAllDay = true
+                                )
+                            } else {
+                                null // Skip if date is invalid
+                            }
                         } else {
-                            CalendarEventInfo(
-                                id = event.id,
-                                summary = event.summary,
-                                startDateTime = event.start.dateTime,
-                                endDateTime = event.end.dateTime
-                            )
+                            // Timed events logic remains the same
+                            val startDateTime = event.start?.dateTime
+                            val endDateTime = event.end?.dateTime
+                            if (startDateTime != null && endDateTime != null) {
+                                CalendarEventInfo(
+                                    id = event.id,
+                                    summary = event.summary,
+                                    startDateTime = startDateTime,
+                                    endDateTime = endDateTime,
+                                    isAllDay = false
+                                )
+                            } else {
+                                null // Skip timed events with invalid dates
+                            }
                         }
                     }
+
 
                     if (items.isNotEmpty()) {
                         eventsMap[calendarName] = items

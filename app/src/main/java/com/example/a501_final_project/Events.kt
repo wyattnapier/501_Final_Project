@@ -1,10 +1,11 @@
 package com.example.a501_final_project
 
 import android.util.Log
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -20,17 +21,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ParentDataModifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.google.api.client.util.DateTime
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.roundToInt
@@ -309,12 +308,22 @@ fun ThreeDayView(
         (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, dayIndex) }
     }
 
-    val eventsByDay = days.associateWith { day ->
-        events.filter { event ->
-            if (event.startDateTime == null) return@filter false
-            val eventCal = Calendar.getInstance().apply { timeInMillis = event.startDateTime.value }
-            eventCal.get(Calendar.YEAR) == day.get(Calendar.YEAR) &&
-                    eventCal.get(Calendar.DAY_OF_YEAR) == day.get(Calendar.DAY_OF_YEAR)
+    val allDayEventsByDay = remember(events, days) {
+        days.associateWith { day ->
+            events.filter { event ->
+                // Use the new, robust isSameDayAs check
+                event.isAllDay && event.startDateTime != null &&
+                        event.startDateTime.toCalendar().isSameDayAs(day)
+            }
+        }
+    }
+
+    val timedEventsByDay = remember(events, days) {
+        days.associateWith { day ->
+            events.filter { event ->
+                !event.isAllDay && event.startDateTime != null &&
+                        event.startDateTime.toCalendar().isSameDayAs(day)
+            }
         }
     }
 
@@ -324,13 +333,23 @@ fun ThreeDayView(
         modifier = modifier.fillMaxSize()
     ) {
         DayHeaders(days)
-        Row(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
-            Log.d("ThreeDayView", "Vertical scroll scroll state: $scrollState")
-            HourSidebar(modifier = Modifier.width(sidebarWidth).height(hourHeight * 24))
+        AllDayEventsHeader( // not included in scrollable section
+            days = days,
+            allDayEventsByDay = allDayEventsByDay,
+            onEventClick = onEventClick
+        )
+        HorizontalDivider()
+        Row(modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)) {
+            HourSidebar(modifier = Modifier
+                .width(sidebarWidth)
+                .height(hourHeight * 24))
             BasicCalendar(
                 modifier = Modifier.weight(1f),
                 days = days,
-                eventsByDay = eventsByDay,
+                // Pass the timed events to the grid
+                eventsByDay = timedEventsByDay,
                 onEventClick = onEventClick
             )
         }
@@ -339,7 +358,9 @@ fun ThreeDayView(
 
 @Composable
 fun DayHeaders(days: List<Calendar>) {
-    Row(modifier = Modifier.fillMaxWidth().padding(start = sidebarWidth)) { // Pad for the hour sidebar
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(start = sidebarWidth)) { // Pad for the hour sidebar
         days.forEach { day ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -371,6 +392,61 @@ fun HourSidebar(modifier: Modifier = Modifier) {
                 )
             }
         }
+    }
+}
+
+@Composable
+fun AllDayEventsHeader(
+    days: List<Calendar>,
+    allDayEventsByDay: Map<Calendar, List<CalendarEventInfo>>,
+    onEventClick: (CalendarEventInfo) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = sidebarWidth) // Align with the calendar grid
+    ) {
+        days.forEach { day ->
+            val eventsForDay = allDayEventsByDay[day] ?: emptyList()
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 2.dp, vertical = 4.dp)
+            ) {
+                // Limit to showing 2-3 all-day events to prevent the header from getting too tall
+                eventsForDay.take(2).forEach { event ->
+                    AllDayEventItem(event = event, onClick = { onEventClick(event) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AllDayEventItem(
+    event: CalendarEventInfo,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 1.dp)
+            .height(24.dp)
+            .clip(RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Text(
+            text = event.summary ?: "(No Title)",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -552,6 +628,36 @@ private fun CalendarEventInfo.durationInMinutes(): Long {
 private fun CalendarEventInfo.overlaps(other: CalendarEventInfo): Boolean {
     return (this.startDateTime?.value ?: 0) < (other.endDateTime?.value ?: 0) &&
             (this.endDateTime?.value ?: 0) > (other.startDateTime?.value ?: 0)
+}
+
+/**
+ * Converts a Google DateTime to a Java Calendar, correcting for time zone issues
+ * with all-day events.
+ * @param isAllDay True if the event is an all-day event.
+ */
+fun DateTime.valueAsCalendar(isAllDay: Boolean): Calendar {
+    return Calendar.getInstance().apply {
+        timeInMillis = value
+        if (isAllDay) {
+            // For all-day events, Google API returns a date at UTC midnight.
+            // We need to adjust it to the local time zone to prevent it from
+            // appearing on the previous day in some time zones.
+            val zoneOffset = timeZone.getOffset(timeInMillis)
+            add(Calendar.MILLISECOND, zoneOffset)
+        }
+    }
+}
+
+fun DateTime.toCalendar(): Calendar {
+    return Calendar.getInstance().apply { timeInMillis = value }
+}
+
+/**
+ * Checks if two Calendar objects represent the same year and day-of-year.
+ */
+fun Calendar.isSameDayAs(other: Calendar): Boolean {
+    return this.get(Calendar.YEAR) == other.get(Calendar.YEAR) &&
+            this.get(Calendar.DAY_OF_YEAR) == other.get(Calendar.DAY_OF_YEAR)
 }
 
 @Composable
