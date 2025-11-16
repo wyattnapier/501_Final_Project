@@ -445,28 +445,44 @@ class MainViewModel : ViewModel() {
                     val items = eventsResult.items.mapNotNull { event ->
                         val isAllDay = event.start?.dateTime == null && event.start?.date != null
 
+                        // In MainViewModel.kt, inside fetchCalendarEvents...
                         if (isAllDay) {
-                            val dateString = event.start.date.toString()
+                            val startString = event.start.date.toString()
+                            // --- START OF FIX ---
+                            // The end date from the API is exclusive, so we need to get it too.
+                            val endString = event.end?.date?.toString()
 
-                            // 2. Parse this date string in the local timezone.
                             val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                            val date = dateFormat.parse(dateString)
+                            val startDate = dateFormat.parse(startString)
 
-                            if (date != null) {
+                            if (startDate != null) {
                                 val localStartCal = java.util.Calendar.getInstance().apply {
-                                    time = date
+                                    time = startDate
                                 }
                                 val startDateTime = DateTime(localStartCal.time)
 
-                                // end time to the last millisecond of the same, correct day.
-                                val localEndCal = (localStartCal.clone() as java.util.Calendar).apply {
-                                    set(java.util.Calendar.HOUR_OF_DAY, 23)
-                                    set(java.util.Calendar.MINUTE, 59)
-                                    set(java.util.Calendar.SECOND, 59)
-                                    set(java.util.Calendar.MILLISECOND, 999)
+                                // Now, handle the end date.
+                                val localEndCal: java.util.Calendar
+                                if (endString != null) {
+                                    val endDate = dateFormat.parse(endString)
+                                    localEndCal = java.util.Calendar.getInstance().apply {
+                                        time = endDate
+                                        // The API end date is exclusive, so subtract 1 day to get the inclusive end day.
+                                        add(java.util.Calendar.DAY_OF_YEAR, -1)
+                                    }
+                                } else {
+                                    // Fallback for safety, though API should always provide an end date.
+                                    localEndCal = localStartCal.clone() as java.util.Calendar
                                 }
+
+                                // Set the time to the very end of the final day.
+                                localEndCal.set(java.util.Calendar.HOUR_OF_DAY, 23)
+                                localEndCal.set(java.util.Calendar.MINUTE, 59)
+                                localEndCal.set(java.util.Calendar.SECOND, 59)
+
                                 val endDateTime = DateTime(localEndCal.time)
 
+                                Log.d("MainViewModel", "Summary: ${event.summary}, Start date time: $startDateTime, End date time: $endDateTime")
                                 CalendarEventInfo(
                                     id = event.id,
                                     summary = event.summary,
@@ -474,26 +490,27 @@ class MainViewModel : ViewModel() {
                                     endDateTime = endDateTime,
                                     isAllDay = true
                                 )
+                                // --- END OF FIX ---
                             } else {
                                 null // Skip if date is invalid
                             }
                         } else {
-                            // Timed events logic remains the same
-                            val startDateTime = event.start?.dateTime
-                            val endDateTime = event.end?.dateTime
-                            if (startDateTime != null && endDateTime != null) {
-                                CalendarEventInfo(
-                                    id = event.id,
-                                    summary = event.summary,
-                                    startDateTime = startDateTime,
-                                    endDateTime = endDateTime,
-                                    isAllDay = false
-                                )
-                            } else {
-                                null // Skip timed events with invalid dates
+                                // Timed events logic remains the same
+                                val startDateTime = event.start?.dateTime
+                                val endDateTime = event.end?.dateTime
+                                if (startDateTime != null && endDateTime != null) {
+                                    CalendarEventInfo(
+                                        id = event.id,
+                                        summary = event.summary,
+                                        startDateTime = startDateTime,
+                                        endDateTime = endDateTime,
+                                        isAllDay = false
+                                    )
+                                } else {
+                                    null // Skip timed events with invalid dates
+                                }
                             }
                         }
-                    }
 
 
                     if (items.isNotEmpty()) {

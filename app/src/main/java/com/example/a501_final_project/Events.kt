@@ -310,10 +310,32 @@ fun ThreeDayView(
 
     val allDayEventsByDay = remember(events, days) {
         days.associateWith { day ->
+            // Normalize the current day to midnight for accurate range checking.
+            val dayAtMidnight = (day.clone() as java.util.Calendar).apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+
             events.filter { event ->
-                // Use the new, robust isSameDayAs check
-                event.isAllDay && event.startDateTime != null &&
-                        event.startDateTime.toCalendar().isSameDayAs(day)
+                if (!event.isAllDay || event.startDateTime == null || event.endDateTime == null) {
+                    false
+                } else {
+                    val eventStartCal = event.startDateTime.toCalendar().apply {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    val eventEndCal = event.endDateTime.toCalendar().apply {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    !dayAtMidnight.before(eventStartCal) && !dayAtMidnight.after(eventEndCal)
+                }
             }
         }
     }
@@ -631,23 +653,8 @@ private fun CalendarEventInfo.overlaps(other: CalendarEventInfo): Boolean {
 }
 
 /**
- * Converts a Google DateTime to a Java Calendar, correcting for time zone issues
- * with all-day events.
- * @param isAllDay True if the event is an all-day event.
+ * converts a DateTime object to a Calendar object
  */
-fun DateTime.valueAsCalendar(isAllDay: Boolean): Calendar {
-    return Calendar.getInstance().apply {
-        timeInMillis = value
-        if (isAllDay) {
-            // For all-day events, Google API returns a date at UTC midnight.
-            // We need to adjust it to the local time zone to prevent it from
-            // appearing on the previous day in some time zones.
-            val zoneOffset = timeZone.getOffset(timeInMillis)
-            add(Calendar.MILLISECOND, zoneOffset)
-        }
-    }
-}
-
 fun DateTime.toCalendar(): Calendar {
     return Calendar.getInstance().apply { timeInMillis = value }
 }
