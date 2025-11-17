@@ -1,7 +1,7 @@
 package com.example.a501_final_project
 
-import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,18 +27,23 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
 class MainActivity : ComponentActivity() {
@@ -95,12 +100,37 @@ fun navigateToScreen(navController: NavController, screen: Screen) {
 @Composable
 fun MainScreen() {
     val navController = rememberNavController()
+    val loginViewModel: LoginViewModel = viewModel()
+    val mainViewModel: MainViewModel = viewModel()
+
+    val loginState by loginViewModel.uiState.collectAsState()
+    val context = LocalContext.current
+
+    // fetch user google calendar data on app start or login change
+    LaunchedEffect(Unit, loginState) {
+        val account = GoogleSignIn.getLastSignedInAccount(context)
+        if (loginState.isLoggedIn && account != null) {
+            Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
+            mainViewModel.fetchCalendarEvents(
+                account,
+                context,
+                days = 14,
+                calendarFilterName = "Other Events" // TODO: update calendar filter name to household calendar name
+            )
+        }
+    }
+
     Scaffold(
         bottomBar = { BottomBar(navController) },
         topBar = { TopBar(navController) },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        AppNavGraph(Modifier.padding(innerPadding), navController)
+        AppNavGraph(
+            modifier = Modifier.padding(innerPadding),
+            navController = navController,
+            loginViewModel = loginViewModel,
+            mainViewModel = mainViewModel
+        )
     }
 }
 

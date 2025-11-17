@@ -56,26 +56,22 @@ dependencies {
 
     // For Google Sign-In, which handles authentication on Android
     implementation(libs.google.play.services.auth)
-
-    // Google Sign in for android
-//    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1") // may need in future
-
     // network transport and parsing
     implementation("com.google.http-client:google-http-client-gson:1.44.2")
-
     // core google api client
     implementation(libs.google.api.client) {
         exclude(group = "org.apache.httpcomponents")
     }
-
+    // provides GoogleAccountCredential for authentication for Google Calendar API
+    implementation("com.google.api-client:google-api-client-android:2.6.0") {
+        exclude(group = "org.apache.httpcomponents")
+    }
     // The Google Calendar API library
     implementation(libs.google.api.services.calendar) {
         exclude(group = "org.apache.httpcomponents")
     }
 
-    // coil for image loading
-    implementation("io.coil-kt:coil-compose:2.6.0")
-
+    implementation("io.coil-kt:coil-compose:2.6.0") // coil for image loading
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
