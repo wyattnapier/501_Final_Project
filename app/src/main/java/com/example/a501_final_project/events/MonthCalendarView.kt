@@ -118,8 +118,8 @@ fun DayCell_Month(
             .background(
                 when {
                     isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                    !isIn14DayRange -> Color.Gray.copy(alpha = 0.2f)
-                    else -> Color.Transparent
+                    !isIn14DayRange -> Color.Transparent
+                    else -> Color.Gray.copy(alpha = 0.2f)
                 }
             )
             .padding(4.dp),
