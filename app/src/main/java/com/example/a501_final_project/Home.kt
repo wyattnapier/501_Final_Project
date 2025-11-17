@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.example.a501_final_project.events.UpcomingEventsWidget
 
 /**
  * composable for the home screen
@@ -29,13 +30,19 @@ import androidx.navigation.NavController
  * TODO: fill in the the screens with real content (build composables for each widget)
  */
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
+fun HomeScreen(
+    navController: NavController,
+    mainViewModel: MainViewModel,
+    modifier: Modifier = Modifier,
+) {
     val context = LocalContext.current
     val prefs = remember { UserPreferences(context) }
 
     val showPayments by prefs.showPayments.collectAsState(initial = true)
     val showChores by prefs.showChores.collectAsState(initial = true)
     val showEvents by prefs.showEvents.collectAsState(initial = true)
+
+    val eventsByCalendar by mainViewModel.eventsByCalendar.collectAsState()
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp)
@@ -46,10 +53,10 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
                     .weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                BoxItem(
-                    "Calendar",
-                    MaterialTheme.colorScheme.primaryContainer,
-                    onClick = { navigateToScreen(navController, Screen.Calendar) }
+                UpcomingEventsWidget(
+                    events = eventsByCalendar.values.flatten().sortedBy { it.startDateTime?.value },
+                    onEventClick = { navigateToScreen(navController, Screen.Calendar) },
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
