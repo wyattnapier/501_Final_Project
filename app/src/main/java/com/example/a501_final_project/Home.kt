@@ -55,7 +55,8 @@ fun HomeScreen(
             ) {
                 UpcomingEventsWidget(
                     events = eventsByCalendar.values.flatten().sortedBy { it.startDateTime?.value },
-                    onEventClick = { eventsWidgetOnClick(navController, mainViewModel) },
+                    onCardClick = { eventsWidgetCardOnClick(navController, mainViewModel) },
+                    onEventClick = { eventsWidgetEventOnClick(navController, mainViewModel) },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -114,7 +115,15 @@ fun RowScope.BoxItem(text: String, color: Color, onClick: () -> Unit) {
     }
 }
 
-fun eventsWidgetOnClick(
+fun eventsWidgetCardOnClick(
+    navController: NavController,
+    mainViewModel: MainViewModel
+) {
+    mainViewModel.setCalendarView(CalendarViewType.AGENDA)
+    navigateToScreen(navController, Screen.Calendar)
+}
+
+fun eventsWidgetEventOnClick(
     navController: NavController,
     mainViewModel: MainViewModel
 ) {

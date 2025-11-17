@@ -30,6 +30,7 @@ import java.util.Locale
 fun UpcomingEventsWidget(
     events: List<CalendarEventInfo>,
     modifier: Modifier = Modifier,
+    onCardClick: () -> Unit = {},
     onEventClick: (CalendarEventInfo) -> Unit = {},
 ) {
     val now = remember { Calendar.getInstance().timeInMillis }
@@ -42,7 +43,8 @@ fun UpcomingEventsWidget(
 
     Card(
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable(onClick = { onCardClick() }),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
