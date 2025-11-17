@@ -187,6 +187,7 @@ fun AllDayEventsHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 8.dp, max = 50.dp) // max - cut off end of second event so it is clear that its scrollable
             .padding(start = sidebarWidth) // Align with the calendar grid
     ) {
         days.forEach { day ->
@@ -194,11 +195,15 @@ fun AllDayEventsHeader(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = 2.dp, vertical = 4.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                // Limit to showing 2-3 all-day events to prevent the header from getting too tall
-                eventsForDay.take(2).forEach { event ->
-                    AllDayEventItem(event = event, onClick = { onEventClick(event) })
+                eventsForDay.forEach { event ->
+                    AllDayEventItem(
+                        event = event,
+                        onClick = { onEventClick(event) }
+                    )
                 }
             }
         }
