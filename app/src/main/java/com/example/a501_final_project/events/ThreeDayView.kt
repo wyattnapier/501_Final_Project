@@ -1,11 +1,19 @@
 package com.example.a501_final_project.events
 
+import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
@@ -31,6 +39,10 @@ fun ThreeDayView(
     events: List<CalendarEventInfo>,
     modifier: Modifier = Modifier,
     onEventClick: (CalendarEventInfo) -> Unit = {},
+    onIncrementDay: () -> Unit,
+    onDecrementDay: () -> Unit,
+    canIncrement: Boolean,
+    canDecrement: Boolean,
 ) {
     val days = remember(leftDay) {
         listOf(
@@ -72,7 +84,13 @@ fun ThreeDayView(
     val scrollState = rememberScrollState(1090)
 
     Column(modifier.fillMaxSize()) {
-        DayHeaders(days)
+        DayHeaders(
+            days = days,
+            onIncrementDay = onIncrementDay,
+            onDecrementDay = onDecrementDay,
+            canIncrement = canIncrement,
+            canDecrement = canDecrement
+        )
         AllDayEventsHeader(days, allDayEventsByDay, onEventClick)
         Divider()
         Row(
@@ -90,10 +108,30 @@ fun ThreeDayView(
 }
 
 @Composable
-fun DayHeaders(days: List<Calendar>) {
+fun DayHeaders(
+    days: List<Calendar>,
+    onIncrementDay: () -> Unit,
+    onDecrementDay: () -> Unit,
+    canIncrement: Boolean,
+    canDecrement: Boolean
+) {
     Row(modifier = Modifier
-        .fillMaxWidth()
-        .padding(start = sidebarWidth)) { // Pad for the hour sidebar
+            .fillMaxWidth()
+            .padding(start = sidebarWidth), // Pad for the hour sidebar
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Log.d("DayHeaders", "canIncrement: $canIncrement, canDecrement: $canDecrement")
+        // Decrement (Left Arrow) Button
+        IconButton(
+            onClick = onDecrementDay,
+            enabled = canDecrement,
+            modifier = Modifier.alpha(if (canDecrement) 1f else 0f)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                contentDescription = "Previous Day",
+            )
+        }
         days.forEach { day ->
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -102,6 +140,17 @@ fun DayHeaders(days: List<Calendar>) {
                 Text(text = SimpleDateFormat("EEE", Locale.getDefault()).format(day.time), style = MaterialTheme.typography.labelSmall)
                 Text(text = SimpleDateFormat("d", Locale.getDefault()).format(day.time), style = MaterialTheme.typography.titleMedium)
             }
+        }
+        // Increment (Right Arrow) Button
+        IconButton(
+            onClick = onIncrementDay,
+            enabled = canIncrement,
+            modifier = Modifier.alpha(if (canIncrement) 1f else 0f)
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = "Next Day",
+            )
         }
     }
 }

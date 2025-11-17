@@ -401,6 +401,30 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun incrementThreeDayView() {
+        val currentLeftDay = _leftDayForThreeDay.value.clone() as Calendar
+        currentLeftDay.add(Calendar.DAY_OF_YEAR, 1)
+
+        // The view shows 3 days, so the last visible day is leftDay + 2
+        val lastVisibleDay = currentLeftDay.clone() as Calendar
+        lastVisibleDay.add(Calendar.DAY_OF_YEAR, 2)
+
+        // Allow incrementing if the last visible day is not after the 14-day end date
+        if (!lastVisibleDay.after(_fourteenDayEnd.value)) {
+            _leftDayForThreeDay.value = currentLeftDay
+        }
+    }
+
+    fun decrementThreeDayView() {
+        val currentLeftDay = _leftDayForThreeDay.value.clone() as Calendar
+        currentLeftDay.add(Calendar.DAY_OF_YEAR, -1)
+
+        // Allow decrementing if the new leftDay is not before today (the start of the 14-day range)
+        if (!currentLeftDay.before(_fourteenDayStart.value)) {
+            _leftDayForThreeDay.value = currentLeftDay
+        }
+    }
+
     /** Called when user clicks a day in the month calendar */
     fun onDaySelected(clickedDay: Calendar) {
         val start = fourteenDayStart.value
@@ -414,10 +438,6 @@ class MainViewModel : ViewModel() {
             adjusted.after(end) -> adjusted.timeInMillis = end.timeInMillis
         }
 
-        // LEFT day should be one day before the clicked day
-//        val leftDay = (adjusted.clone() as Calendar).apply {
-//            add(Calendar.DAY_OF_YEAR, -1)
-//        }
         val leftDay = adjusted.clone() as Calendar
 
         setLeftDayForThreeDay(leftDay)

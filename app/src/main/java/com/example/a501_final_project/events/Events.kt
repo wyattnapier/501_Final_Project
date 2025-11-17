@@ -38,6 +38,9 @@ fun EventsScreen(
     val leftDay by mainViewModel.leftDayForThreeDay.collectAsState()
     val fourteenDayStart by mainViewModel.fourteenDayStart.collectAsState()
     val fourteenDayEnd by mainViewModel.fourteenDayEnd.collectAsState()
+    val canDecrement = leftDay.after(fourteenDayStart)
+    val lastIncrementingDay = (leftDay.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 3) } // left day + 2 is last visible day in 3 day view
+    val canIncrement = lastIncrementingDay.before(fourteenDayEnd)
 
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -59,7 +62,11 @@ fun EventsScreen(
                         CalendarViewType.THREE_DAY -> ThreeDayView(
                             leftDay = leftDay,
                             events = allEvents,
-                            onEventClick = { selectedEvent = it }
+                            onEventClick = { selectedEvent = it },
+                            onIncrementDay = { mainViewModel.incrementThreeDayView() },
+                            onDecrementDay = { mainViewModel.decrementThreeDayView() },
+                            canIncrement = canIncrement,
+                            canDecrement = canDecrement
                         )
                         CalendarViewType.FOURTEEN_DAY -> MonthCalendarView(
                             events = allEvents,
