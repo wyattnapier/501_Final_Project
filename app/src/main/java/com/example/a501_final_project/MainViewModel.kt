@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.concurrent.TimeUnit
 import java.util.Locale
 
 // custom data object created here for now
@@ -215,8 +214,8 @@ class MainViewModel : ViewModel() {
      */
     fun changePriority(chore : Chore) {
         val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH) // e.g. "November 15, 2024"
-        val today = java.util.Calendar.getInstance() // Use fully qualified name
-        val due = java.util.Calendar.getInstance() // Use fully qualified name
+        val today = Calendar.getInstance() // Use fully qualified name
+        val due = Calendar.getInstance() // Use fully qualified name
         val dueDate: Date = dateFormat.parse(chore.dueDate) ?: return
         due.time = dueDate
         val diffMillis = due.timeInMillis - today.timeInMillis
@@ -427,35 +426,36 @@ class MainViewModel : ViewModel() {
 
     /** Called when user clicks a day in the month calendar */
     fun onDaySelected(clickedDay: Calendar) {
-        val start = fourteenDayStart.value
-        val end = (fourteenDayEnd.value.clone() as Calendar).apply {
-            add(Calendar.DAY_OF_YEAR, -2)
-        } // need to make it -2 days since it is leftmost
-        val adjusted = (clickedDay.clone() as Calendar)
+        val startRange = fourteenDayStart.value
+        val endRange = fourteenDayEnd.value
+        var potentialLeftDay = clickedDay.clone() as Calendar
 
-        when {
-            adjusted.before(start) -> adjusted.timeInMillis = start.timeInMillis
-            adjusted.after(end) -> adjusted.timeInMillis = end.timeInMillis
+        // The potential last day of the 3-day view if we use the clicked day as the start.
+        val potentialRightDay = (clickedDay.clone() as Calendar).apply {
+            add(Calendar.DAY_OF_YEAR, 2)
         }
 
-        val leftDay = adjusted.clone() as Calendar
+        // SCENARIO 1: The clicked day is before the valid range.
+        // Adjust the view to start on the first valid day.
+        if (potentialLeftDay.before(startRange)) {
+            potentialLeftDay = startRange.clone() as Calendar
+        }
+        // SCENARIO 2: The resulting 3-day view would extend beyond the valid range.
+        // Adjust the view to end on the last valid day.
+        else if (potentialRightDay.after(endRange)) {
+            // To make `endRange` the rightmost day, the `leftDay` must be `endRange` - 3 days.
+            potentialLeftDay = (endRange.clone() as Calendar).apply {
+                add(Calendar.DAY_OF_YEAR, -3)
+            }
+        }
 
-        setLeftDayForThreeDay(leftDay)
+        // Set the correctly adjusted left day and switch the view.
+        Log.d("MainViewModel","Last day of range is $potentialRightDay and range end is $endRange")
+        Log.d("MainViewModel", "Clicked day was $clickedDay but setting left day to $potentialLeftDay")
+        setLeftDayForThreeDay(potentialLeftDay)
         setCalendarView(CalendarViewType.THREE_DAY)
     }
 
-
-    /**
-     * Optional helper if you want to manually move the 14-day range
-     * which can be used when implementing date picker
-     */
-    fun setFourteenDayRange(startDate: Calendar) {
-        _fourteenDayStart.value = (startDate.clone() as Calendar)
-
-        _fourteenDayEnd.value = (startDate.clone() as Calendar).apply {
-            add(Calendar.DAY_OF_YEAR, 14)
-        }
-    }
 
     // TODO: add a date picker to input start date and end date of date range
     fun fetchCalendarEvents(
@@ -493,8 +493,8 @@ class MainViewModel : ViewModel() {
 
                 // set time range for fetching events
                 val now = DateTime(System.currentTimeMillis())
-                val timeMax = java.util.Calendar.getInstance().apply {
-                    add(java.util.Calendar.DAY_OF_YEAR, days)
+                val timeMax = Calendar.getInstance().apply {
+                    add(Calendar.DAY_OF_YEAR, days)
                 }.timeInMillis
                 val maxDateTime = DateTime(timeMax)
 
@@ -520,10 +520,8 @@ class MainViewModel : ViewModel() {
                     val items = eventsResult.items.mapNotNull { event ->
                         val isAllDay = event.start?.dateTime == null && event.start?.date != null
 
-                        // In MainViewModel.kt, inside fetchCalendarEvents...
                         if (isAllDay) {
                             val startString = event.start.date.toString()
-                            // --- START OF FIX ---
                             // The end date from the API is exclusive, so we need to get it too.
                             val endString = event.end?.date?.toString()
 
@@ -531,29 +529,29 @@ class MainViewModel : ViewModel() {
                             val startDate = dateFormat.parse(startString)
 
                             if (startDate != null) {
-                                val localStartCal = java.util.Calendar.getInstance().apply {
+                                val localStartCal = Calendar.getInstance().apply {
                                     time = startDate
                                 }
                                 val startDateTime = DateTime(localStartCal.time)
 
                                 // Now, handle the end date.
-                                val localEndCal: java.util.Calendar
+                                val localEndCal: Calendar
                                 if (endString != null) {
                                     val endDate = dateFormat.parse(endString)
-                                    localEndCal = java.util.Calendar.getInstance().apply {
+                                    localEndCal = Calendar.getInstance().apply {
                                         time = endDate
                                         // The API end date is exclusive, so subtract 1 day to get the inclusive end day.
-                                        add(java.util.Calendar.DAY_OF_YEAR, -1)
+                                        add(Calendar.DAY_OF_YEAR, -1)
                                     }
                                 } else {
                                     // Fallback for safety, though API should always provide an end date.
-                                    localEndCal = localStartCal.clone() as java.util.Calendar
+                                    localEndCal = localStartCal.clone() as Calendar
                                 }
 
                                 // Set the time to the very end of the final day.
-                                localEndCal.set(java.util.Calendar.HOUR_OF_DAY, 23)
-                                localEndCal.set(java.util.Calendar.MINUTE, 59)
-                                localEndCal.set(java.util.Calendar.SECOND, 59)
+                                localEndCal.set(Calendar.HOUR_OF_DAY, 23)
+                                localEndCal.set(Calendar.MINUTE, 59)
+                                localEndCal.set(Calendar.SECOND, 59)
 
                                 val endDateTime = DateTime(localEndCal.time)
 
@@ -565,7 +563,6 @@ class MainViewModel : ViewModel() {
                                     endDateTime = endDateTime,
                                     isAllDay = true
                                 )
-                                // --- END OF FIX ---
                             } else {
                                 null // Skip if date is invalid
                             }

@@ -16,10 +16,7 @@ import com.example.a501_final_project.MainViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-private class EventData(
-    val position: Int,
-    val total: Int
-) : ParentDataModifier {
+private class EventData() : ParentDataModifier {
     override fun Density.modifyParentData(parentData: Any?) = this@EventData
 }
 
@@ -73,7 +70,7 @@ fun EventsScreen(
                             fourteenDayStart = fourteenDayStart,
                             fourteenDayEnd = fourteenDayEnd,
                             onDaySelected = { clickedDay ->
-                                mainViewModel.setLeftDayForThreeDay(clickedDay)
+                                mainViewModel.onDaySelected(clickedDay)
                                 mainViewModel.setCalendarView(CalendarViewType.THREE_DAY)
                             }
                         )
