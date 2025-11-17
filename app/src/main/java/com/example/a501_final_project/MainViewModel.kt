@@ -378,9 +378,13 @@ class MainViewModel : ViewModel() {
     )
     val fourteenDayEnd = _fourteenDayEnd.asStateFlow()
 
-    // The date the 3-Day View should center on
-    private val _centerDateForThreeDay = MutableStateFlow(Calendar.getInstance())
-    val centerDateForThreeDay = _centerDateForThreeDay.asStateFlow()
+    // The leftmost date of 3-day view
+    private val _leftDayForThreeDay = MutableStateFlow(Calendar.getInstance())
+    val leftDayForThreeDay: StateFlow<Calendar> = _leftDayForThreeDay.asStateFlow()
+
+    fun setLeftDayForThreeDay(day: Calendar) {
+        _leftDayForThreeDay.value = day
+    }
 
     // change the view type
     fun setCalendarView(viewType: CalendarViewType) {
@@ -398,34 +402,28 @@ class MainViewModel : ViewModel() {
     }
 
     /** Called when user clicks a day in the month calendar */
-    fun setCenterDateForThreeDayView(clickedDay: Calendar) {
+    fun onDaySelected(clickedDay: Calendar) {
         val start = fourteenDayStart.value
-        val end = fourteenDayEnd.value
-
+        val end = (fourteenDayEnd.value.clone() as Calendar).apply {
+            add(Calendar.DAY_OF_YEAR, -2)
+        } // need to make it -2 days since it is leftmost
         val adjusted = (clickedDay.clone() as Calendar)
 
         when {
-            // If clicked day is BEFORE the 14-day window:
-            clickedDay.before(start) -> {
-                // Center on the START of the window
-                adjusted.timeInMillis = start.timeInMillis
-            }
-
-            // If clicked day is AFTER the 14-day window:
-            clickedDay.after(end) -> {
-                // Center on the END of the window
-                adjusted.timeInMillis = end.timeInMillis
-            }
-
-            // Otherwise: clicked day is inside the 14-day range
-            else -> {
-                // Center exactly on the clicked date
-                adjusted.timeInMillis = clickedDay.timeInMillis
-            }
+            adjusted.before(start) -> adjusted.timeInMillis = start.timeInMillis
+            adjusted.after(end) -> adjusted.timeInMillis = end.timeInMillis
         }
 
-        _centerDateForThreeDay.value = adjusted
+        // LEFT day should be one day before the clicked day
+//        val leftDay = (adjusted.clone() as Calendar).apply {
+//            add(Calendar.DAY_OF_YEAR, -1)
+//        }
+        val leftDay = adjusted.clone() as Calendar
+
+        setLeftDayForThreeDay(leftDay)
+        setCalendarView(CalendarViewType.THREE_DAY)
     }
+
 
     /**
      * Optional helper if you want to manually move the 14-day range

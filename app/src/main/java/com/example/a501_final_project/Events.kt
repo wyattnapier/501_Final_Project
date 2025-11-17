@@ -61,6 +61,7 @@ fun EventsScreen(
     val context = LocalContext.current
     val viewType by mainViewModel.calendarViewType.collectAsState()
     var selectedEvent by remember { mutableStateOf<CalendarEventInfo?>(null) }
+    val leftDay by mainViewModel.leftDayForThreeDay.collectAsState()
     val fourteenDayStart by mainViewModel.fourteenDayStart.collectAsState()
     val fourteenDayEnd by mainViewModel.fourteenDayEnd.collectAsState()
 
@@ -82,6 +83,7 @@ fun EventsScreen(
                     when (viewType) {
                         CalendarViewType.AGENDA -> AgendaView(mainViewModel)
                         CalendarViewType.THREE_DAY -> ThreeDayView(
+                            leftDay = leftDay,
                             events = allEvents,
                             onEventClick = { selectedEvent = it }
                         )
@@ -90,7 +92,7 @@ fun EventsScreen(
                             fourteenDayStart = fourteenDayStart,
                             fourteenDayEnd = fourteenDayEnd,
                             onDaySelected = { clickedDay ->
-                                mainViewModel.setCenterDateForThreeDayView(clickedDay)
+                                mainViewModel.setLeftDayForThreeDay(clickedDay)
                                 mainViewModel.setCalendarView(CalendarViewType.THREE_DAY)
                             }
                         )
@@ -313,21 +315,23 @@ private val am_pm_time_formatter = SimpleDateFormat("h a", Locale.getDefault()) 
 
 @Composable
 fun ThreeDayView(
+    leftDay: Calendar,
     events: List<CalendarEventInfo>,
     onEventClick: (CalendarEventInfo) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val numDays = 3
-    val today = Calendar.getInstance()
-
-    val days = (0 until numDays).map { dayIndex ->
-        (today.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, dayIndex) }
+    // Compute the 3 days from the passed-in leftDay
+    val days = remember(leftDay) {
+        listOf(
+            leftDay.clone() as Calendar,
+            (leftDay.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 1) },
+            (leftDay.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 2) }
+        )
     }
 
     val allDayEventsByDay = remember(events, days) {
         days.associateWith { day ->
-            // Normalize the current day to midnight for accurate range checking.
-            val dayAtMidnight = (day.clone() as java.util.Calendar).apply {
+            val dayAtMidnight = (day.clone() as Calendar).apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
@@ -335,23 +339,11 @@ fun ThreeDayView(
             }
 
             events.filter { event ->
-                if (!event.isAllDay || event.startDateTime == null || event.endDateTime == null) {
-                    false
-                } else {
-                    val eventStartCal = event.startDateTime.toCalendar().apply {
-                        set(Calendar.HOUR_OF_DAY, 0)
-                        set(Calendar.MINUTE, 0)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-                    val eventEndCal = event.endDateTime.toCalendar().apply {
-                        set(Calendar.HOUR_OF_DAY, 0)
-                        set(Calendar.MINUTE, 0)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }
-                    !dayAtMidnight.before(eventStartCal) && !dayAtMidnight.after(eventEndCal)
-                }
+                event.isAllDay &&
+                        event.startDateTime != null &&
+                        event.endDateTime != null &&
+                        !dayAtMidnight.before(event.startDateTime.toCalendarAtMidnight()) &&
+                        !dayAtMidnight.after(event.endDateTime.toCalendarAtMidnight())
             }
         }
     }
@@ -359,7 +351,8 @@ fun ThreeDayView(
     val timedEventsByDay = remember(events, days) {
         days.associateWith { day ->
             events.filter { event ->
-                !event.isAllDay && event.startDateTime != null &&
+                !event.isAllDay &&
+                        event.startDateTime != null &&
                         event.startDateTime.toCalendar().isSameDayAs(day)
             }
         }
@@ -371,28 +364,43 @@ fun ThreeDayView(
         modifier = modifier.fillMaxSize()
     ) {
         DayHeaders(days)
-        AllDayEventsHeader( // not included in scrollable section
+
+        AllDayEventsHeader(
             days = days,
             allDayEventsByDay = allDayEventsByDay,
             onEventClick = onEventClick
         )
+
         HorizontalDivider()
-        Row(modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)) {
-            HourSidebar(modifier = Modifier
-                .width(sidebarWidth)
-                .height(hourHeight * 24))
+
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+        ) {
+            HourSidebar(
+                modifier = Modifier
+                    .width(sidebarWidth)
+                    .height(hourHeight * 24)
+            )
+
             BasicCalendar(
                 modifier = Modifier.weight(1f),
                 days = days,
-                // Pass the timed events to the grid
                 eventsByDay = timedEventsByDay,
                 onEventClick = onEventClick
             )
         }
     }
 }
+
+private fun DateTime.toCalendarAtMidnight(): Calendar =
+    this.toCalendar().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
 
 @Composable
 fun DayHeaders(days: List<Calendar>) {
@@ -863,11 +871,17 @@ fun DayCell_Month(
     val today = Calendar.getInstance()
     val isToday = day.isSameDayAs(today)
 
+    val clickableModifier = if (isIn14DayRange) {
+        Modifier.clickable(onClick = onClick)
+    } else {
+        Modifier   // no clickable modifier added → cannot click
+    }
+
     Column(
         modifier = Modifier
             .padding(4.dp)
             .clip(RoundedCornerShape(6.dp))
-            .clickable(onClick = onClick)
+            .then(clickableModifier)
             .background(
                 when {
                     isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
