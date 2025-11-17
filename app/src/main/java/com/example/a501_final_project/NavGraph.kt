@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
+import com.example.a501_final_project.events.EventsScreen
 
 @Composable
 fun AppNavGraph(
@@ -33,7 +34,11 @@ fun AppNavGraph(
         }
         // Calendar
         composable(Screen.Calendar.route) {
-            EventsScreen(modifier = modifier, loginViewModel = loginViewModel, mainViewModel = mainViewModel)
+            EventsScreen(
+                modifier = modifier,
+                loginViewModel = loginViewModel,
+                mainViewModel = mainViewModel
+            )
         }
         // Profile
         composable(Screen.Profile.route) {
