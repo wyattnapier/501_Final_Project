@@ -55,7 +55,7 @@ fun HomeScreen(
             ) {
                 UpcomingEventsWidget(
                     events = eventsByCalendar.values.flatten().sortedBy { it.startDateTime?.value },
-                    onEventClick = { navigateToScreen(navController, Screen.Calendar) },
+                    onEventClick = { eventsWidgetOnClick(navController, mainViewModel) },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -112,4 +112,12 @@ fun RowScope.BoxItem(text: String, color: Color, onClick: () -> Unit) {
             color = MaterialTheme.colorScheme.onPrimaryContainer
         )
     }
+}
+
+fun eventsWidgetOnClick(
+    navController: NavController,
+    mainViewModel: MainViewModel
+) {
+    mainViewModel.setCalendarView(CalendarViewType.THREE_DAY)
+    navigateToScreen(navController, Screen.Calendar)
 }
