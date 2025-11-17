@@ -2,13 +2,16 @@ package com.example.a501_final_project
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -19,7 +22,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 
 
 // temp state variables to mark out which step of log in process we are in
@@ -99,13 +108,49 @@ fun SignUpGoogle(loginViewModel: LoginViewModel, onSuccess: ()-> Unit) {
 }
 
 // composable for entering other user info
+
+@Preview(
+    showBackground=true
+)
 @Composable
 fun GetUserInfo() {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+//        verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize()
+            .padding(top=32.dp, start=16.dp, end=16.dp)
     ) {
-        Text(text = "this is where we ask for more info")
+        Text(text = "Tell us more about yourself!",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom=16.dp)
+        )
+
+        Text(text="What should we call you?",
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(8.dp))
+        TextField(
+            value = "",
+            onValueChange = {},
+            label = { Text("Name") },
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.padding(bottom=32.dp),
+            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+        )
+
+        Text(text="What's is your venmo username?",
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(8.dp))
+        TextField(
+            value = "",
+            onValueChange = {},
+            label = { Text("Venmo") },
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.padding(bottom=32.dp),
+            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+        )
+        Button(onClick = {}) {
+            Text(text = "Next")
+        }
     }
 }
