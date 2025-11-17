@@ -2,13 +2,18 @@ package com.example.a501_final_project
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.ParentDataModifier
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +61,9 @@ fun EventsScreen(
     val context = LocalContext.current
     val viewType by mainViewModel.calendarViewType.collectAsState()
     var selectedEvent by remember { mutableStateOf<CalendarEventInfo?>(null) }
+    val fourteenDayStart by mainViewModel.fourteenDayStart.collectAsState()
+    val fourteenDayEnd by mainViewModel.fourteenDayEnd.collectAsState()
+
 
     Column(modifier = modifier.fillMaxSize()) {
         CalendarViewSwitcher(
@@ -76,7 +85,15 @@ fun EventsScreen(
                             events = allEvents,
                             onEventClick = { selectedEvent = it }
                         )
-                        CalendarViewType.FOURTEEN_DAY -> FourteenDayAgendaView(events = allEvents)
+                        CalendarViewType.FOURTEEN_DAY -> MonthCalendarView(
+                            events = allEvents,
+                            fourteenDayStart = fourteenDayStart,
+                            fourteenDayEnd = fourteenDayEnd,
+                            onDaySelected = { clickedDay ->
+                                mainViewModel.setCenterDateForThreeDayView(clickedDay)
+                                mainViewModel.setCalendarView(CalendarViewType.THREE_DAY)
+                            }
+                        )
                     }
                 }
             }
@@ -289,7 +306,6 @@ fun FourteenDayAgendaView(events: List<CalendarEventInfo>) {
         }
     }
 }
-
 
 private val hourHeight = 60.dp
 private val sidebarWidth = 60.dp
@@ -736,4 +752,157 @@ fun EventDetailDialog(event: CalendarEventInfo, onDismiss: () -> Unit) {
             }
         }
     )
+}
+
+// month calendar implementation
+@Composable
+fun MonthCalendarView(
+    events: List<CalendarEventInfo>,
+    fourteenDayStart: Calendar,
+    fourteenDayEnd: Calendar,
+    onDaySelected: (Calendar) -> Unit
+) {
+    var displayedMonth by remember { mutableStateOf(Calendar.getInstance()) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+
+        // --- Month Header ---
+        MonthHeader(
+            monthCalendar = displayedMonth,
+            onPrev = { displayedMonth = (displayedMonth.clone() as Calendar).apply { add(Calendar.MONTH, -1) } },
+            onNext = { displayedMonth = (displayedMonth.clone() as Calendar).apply { add(Calendar.MONTH, 1) } }
+        )
+
+        WeekdayLabels()
+
+        val monthDays = remember(displayedMonth) {
+            generateMonthGrid(displayedMonth)
+        }
+
+        // Group events by DAY_OF_YEAR for quick lookup
+        val eventsByDay = remember(events) {
+            events.groupBy { it.startDateTime?.toCalendar()?.get(Calendar.DAY_OF_YEAR) ?: -1 }
+        }
+
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(7),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            items(monthDays) { day ->
+                val dayKey = day.get(Calendar.DAY_OF_YEAR)
+                val hasEvents = eventsByDay[dayKey]?.isNotEmpty() == true
+
+                DayCell_Month(
+                    day = day,
+                    isInCurrentMonth = day.get(Calendar.MONTH) == displayedMonth.get(Calendar.MONTH),
+                    isIn14DayRange = !day.before(fourteenDayStart) && !day.after(fourteenDayEnd),
+                    hasEvents = hasEvents,
+                    onClick = { onDaySelected(day) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun MonthHeader(
+    monthCalendar: Calendar,
+    onPrev: () -> Unit,
+    onNext: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = onPrev) {
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Previous Month")
+        }
+
+        Text(
+            text = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(monthCalendar.time),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+
+        IconButton(onClick = onNext) {
+            Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Next Month")
+        }
+    }
+}
+
+@Composable
+fun WeekdayLabels() {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceAround
+    ) {
+        listOf("S", "M", "T", "W", "T", "F", "S").forEach {
+            Text(
+                text = it,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun DayCell_Month(
+    day: Calendar,
+    isInCurrentMonth: Boolean,
+    isIn14DayRange: Boolean,
+    hasEvents: Boolean,
+    onClick: () -> Unit
+) {
+    val today = Calendar.getInstance()
+    val isToday = day.isSameDayAs(today)
+
+    Column(
+        modifier = Modifier
+            .padding(4.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick)
+            .background(
+                when {
+                    isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                    !isIn14DayRange -> Color.Gray.copy(alpha = 0.2f)
+                    else -> Color.Transparent
+                }
+            )
+            .padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = day.get(Calendar.DAY_OF_MONTH).toString(),
+            color = if (isInCurrentMonth) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+        )
+        if (hasEvents) {
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+        }
+    }
+}
+
+fun generateMonthGrid(monthCalendar: Calendar): List<Calendar> {
+    val cal = (monthCalendar.clone() as Calendar).apply {
+        set(Calendar.DAY_OF_MONTH, 1)
+    }
+
+    val firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK) - 1 // 0 index
+    cal.add(Calendar.DAY_OF_YEAR, -firstDayOfWeek)
+
+    return List(42) { i ->
+        (cal.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, i) }
+    }
 }

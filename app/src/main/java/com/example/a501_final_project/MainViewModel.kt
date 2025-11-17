@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.concurrent.TimeUnit
 import java.util.Locale
@@ -367,6 +368,20 @@ class MainViewModel : ViewModel() {
     private val _isLoadingCalendar = MutableStateFlow(false)
     val isLoadingCalendar = _isLoadingCalendar.asStateFlow()
 
+    private val _fourteenDayStart = MutableStateFlow(Calendar.getInstance())
+    val fourteenDayStart = _fourteenDayStart.asStateFlow()
+
+    private val _fourteenDayEnd = MutableStateFlow(
+        (Calendar.getInstance().clone() as Calendar).apply {
+            add(Calendar.DAY_OF_YEAR, 14)
+        }
+    )
+    val fourteenDayEnd = _fourteenDayEnd.asStateFlow()
+
+    // The date the 3-Day View should center on
+    private val _centerDateForThreeDay = MutableStateFlow(Calendar.getInstance())
+    val centerDateForThreeDay = _centerDateForThreeDay.asStateFlow()
+
     // change the view type
     fun setCalendarView(viewType: CalendarViewType) {
         _calendarViewType.value = viewType
@@ -379,6 +394,48 @@ class MainViewModel : ViewModel() {
             current - calendarName
         } else {
             current + calendarName
+        }
+    }
+
+    /** Called when user clicks a day in the month calendar */
+    fun setCenterDateForThreeDayView(clickedDay: Calendar) {
+        val start = fourteenDayStart.value
+        val end = fourteenDayEnd.value
+
+        val adjusted = (clickedDay.clone() as Calendar)
+
+        when {
+            // If clicked day is BEFORE the 14-day window:
+            clickedDay.before(start) -> {
+                // Center on the START of the window
+                adjusted.timeInMillis = start.timeInMillis
+            }
+
+            // If clicked day is AFTER the 14-day window:
+            clickedDay.after(end) -> {
+                // Center on the END of the window
+                adjusted.timeInMillis = end.timeInMillis
+            }
+
+            // Otherwise: clicked day is inside the 14-day range
+            else -> {
+                // Center exactly on the clicked date
+                adjusted.timeInMillis = clickedDay.timeInMillis
+            }
+        }
+
+        _centerDateForThreeDay.value = adjusted
+    }
+
+    /**
+     * Optional helper if you want to manually move the 14-day range
+     * which can be used when implementing date picker
+     */
+    fun setFourteenDayRange(startDate: Calendar) {
+        _fourteenDayStart.value = (startDate.clone() as Calendar)
+
+        _fourteenDayEnd.value = (startDate.clone() as Calendar).apply {
+            add(Calendar.DAY_OF_YEAR, 14)
         }
     }
 
