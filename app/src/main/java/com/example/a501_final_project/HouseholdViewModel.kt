@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.google.firebase.firestore.FirebaseFirestore
 
 data class ChoreInput(
     var name: String = "",
@@ -22,6 +23,8 @@ data class PaymentInput(
 )
 
 class HouseholdViewModel : ViewModel() {
+    //TODO: properly fetch the uid of the active user
+    var uid = "alice"
     var setupStep by mutableStateOf(0)
     var householdName by mutableStateOf("")
     var choreInputs = mutableStateListOf(ChoreInput())
@@ -66,16 +69,52 @@ class HouseholdViewModel : ViewModel() {
     }
 
     fun createHousehold() {
-//        val db = Firebase.firestore
+        val db = FirebaseFirestore.getInstance()
 
-//        val householdRef = db.collection("households").document()
-//        householdRef.set(
-//            mapOf(
-//                "name" to householdName,
-//                "ownerId" to uid,
-//                "createdAt" to FieldValue.serverTimestamp()
-//            )
-//        )
+        val recurring_chores = choreInputs.mapIndexed { index, chore ->
+            mapOf(
+                "name" to chore.name,
+                "description" to chore.description,
+                "cycle" to chore.cycle
+            )
+        }
+
+        val recurring_payments = paymentInputs.mapIndexed { index, payment ->
+            mapOf(
+                "name" to payment.name,
+                "amount" to payment.amount,
+                "cycle" to payment.cycle,
+                if(payment.youPay) "payee" to uid else "payee" to null
+            )
+        }
+
+        val payment_split = paymentInputs.map{it.split}
+2
+        val residents = listOf(
+            mapOf(
+                "id" to uid,
+                "payment_percents" to payment_split
+            )
+        )
+
+        val fullHouseholdObject = mapOf(
+            "name" to householdName,
+            "recurring_chores" to recurring_chores,
+            "recurring_payments" to recurring_payments,
+            "calendar" to calendarName,
+            "residents" to residents
+        )
+
+
         Log.d("HouseholdViewModel", "Household created with name: $householdName")
+
+        db.collection("households")
+            .add(fullHouseholdObject)
+            .addOnSuccessListener { doc ->
+                Log.d("HouseholdViewModel", "Created household ${doc.id}")
+            }
+            .addOnFailureListener { e ->
+                Log.e("HouseholdViewModel", "Error creating household", e)
+            }
     }
 }

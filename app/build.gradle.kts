@@ -49,10 +49,22 @@ android {
 }
 
 dependencies {
-    // firebase BoM
-    implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
-    implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-auth")
+//    // firebase BoM
+//    implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
+//    implementation("com.google.firebase:firebase-analytics")
+//    implementation("com.google.firebase:firebase-auth")
+
+    // Firebase BoM (version manager)
+    implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
+
+    // Firestore
+    implementation("com.google.firebase:firebase-firestore-ktx")
+
+    // Auth
+    implementation("com.google.firebase:firebase-auth-ktx")
+
+    // Analytics (optional but recommended)
+    implementation("com.google.firebase:firebase-analytics-ktx")
 
     // For Google Sign-In, which handles authentication on Android
     implementation(libs.google.play.services.auth)
