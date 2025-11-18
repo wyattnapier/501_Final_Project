@@ -1,21 +1,32 @@
 package com.example.a501_final_project
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,50 +40,103 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewHousehold(viewModel: HouseholdViewModel){
-    var name by rememberSaveable { mutableStateOf("") }
+    Scaffold(
+        topBar = { TopAppBar(
+            title = { Text("Household Set Up", modifier=Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary) },
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                titleContentColor = MaterialTheme.colorScheme.primary,
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) },
+        bottomBar = {
+            BottomAppBar(
+                containerColor = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = { viewModel.decrementStep() },
+                        enabled = viewModel.setupStep > 0
+                    ) {
+                        Text("Previous")
+                    }
+                    if (viewModel.setupStep < 4) {
+                        Button(
+                            onClick = { viewModel.incrementStep() },
+                            enabled = viewModel.setupStep < 4
+                        ) {
+                            Text("Next")
+                        }
+                    } else {
+                        Button(
+                            onClick = { viewModel.createHousehold() },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text("Create Household")
+                        }
+                    }
+                }
+            }
+        },
+        content = { innerPadding ->
+            AnimatedContent(targetState = viewModel.setupStep) { step ->
+                when (step) {
+                    0 -> NewHouseholdName(viewModel, Modifier.padding(innerPadding))
+                    1 -> NewHouseholdChore(viewModel, Modifier.padding(innerPadding))
+                    2 -> NewHouseholdPayment(viewModel, Modifier.padding(innerPadding))
+                    3 -> NewHouseholdCalendar(viewModel, Modifier.padding(innerPadding))
+                    4 -> ReviewHouseholdDetails(viewModel, Modifier.padding(innerPadding))
+                }
+            }
+        }
+    )
+}
+
+
+
+@Composable
+fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxHeight().padding(10.dp)
+        modifier = modifier.fillMaxHeight().padding(10.dp)
     ){
         Text(
-            "New Household",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
+            "Name Your Household",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.secondary
         )
         OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
+            value = viewModel.householdName,
+            onValueChange = { viewModel.updateName(it) },
             label = { Text("Create a Household Name") },
             modifier = Modifier.fillMaxWidth()
         )
-        Button(
-            onClick = {
-                if (name.isNotBlank()) {
-                    viewModel.updateName(name)
-                }
-            },
-            enabled = name.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Create Household")
-        }
     }
 }
 
 @Composable
-fun NewHouseholdChore(viewModel: HouseholdViewModel){
+fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxHeight().padding(10.dp)
+        modifier = modifier.fillMaxHeight().padding(10.dp)
     ){
         Text(
             "Create Chores",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.primary
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.secondary
         )
         Text(
             "Define the recurring chores that you will have for your household. These can be changed at any point through the household settings under profile.",
@@ -81,7 +145,7 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel){
         )
 
         LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ){
             itemsIndexed(viewModel.choreInputs) { index, chore ->
@@ -105,16 +169,6 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel){
         ) {
             Text("Add another chore")
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        Button(
-            onClick = { /* Save chores to Firestore */ },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Save Chores")
-        }
-
 
     }
 }
@@ -155,15 +209,15 @@ fun ChoreSection(
 }
 
 @Composable
-fun NewHouseholdPayment(viewModel: HouseholdViewModel) {
+fun NewHouseholdPayment(viewModel: HouseholdViewModel, modifier: Modifier) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxHeight().padding(10.dp)
+        modifier = modifier.fillMaxHeight().padding(10.dp)
     ) {
         Text(
             "Create Recurring Payments",
-            style = MaterialTheme.typography.headlineLarge,
+            style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center
 
@@ -175,7 +229,7 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel) {
         )
 
         LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().weight(1f),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             itemsIndexed(viewModel.paymentInputs) { index, payment ->
@@ -198,15 +252,6 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Add another payment")
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        Button(
-            onClick = { /* Save payments to Firestore */ },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Save Payments")
         }
     }
 }
@@ -244,7 +289,7 @@ fun PaymentSection(
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
-            value = "payment.cycle.toString()",
+            value = payment.cycle.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
                     onPaymentChanged(payment.copy(cycle = newValue.toInt()))
@@ -257,7 +302,7 @@ fun PaymentSection(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Do you pay this bill?")
+            Text("I pay this bill:")
             Spacer(modifier = Modifier.weight(1f))
             Switch(
                 checked = payment.youPay,
@@ -271,16 +316,15 @@ fun PaymentSection(
 }
 
 @Composable
-fun NewHouseholdCalendar(viewModel: HouseholdViewModel){
-    var calendarName by rememberSaveable { mutableStateOf("") }
+fun NewHouseholdCalendar(viewModel: HouseholdViewModel, modifier: Modifier){
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = Modifier.fillMaxHeight().padding(10.dp)
+        modifier = modifier.fillMaxHeight().padding(10.dp)
     ){
         Text(
-            "New Household",
-            style = MaterialTheme.typography.headlineLarge,
+            "Set Up Household Calendar",
+            style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
         Text(
@@ -289,25 +333,108 @@ fun NewHouseholdCalendar(viewModel: HouseholdViewModel){
             color = MaterialTheme.colorScheme.secondary
         )
         OutlinedTextField(
-            value = calendarName,
-            onValueChange = { calendarName = it },
+            value = viewModel.calendarName,
+            onValueChange = { viewModel.updateCalendar(it) },
             label = { Text("Shared Calendar Name") },
             modifier = Modifier.fillMaxWidth()
         )
-        Button(
-            onClick = {
-                if (calendarName.isNotBlank()) {
-                    viewModel.updateName(calendarName)
-                }
-            },
-            enabled = calendarName.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Create Household")
-        }
     }
 }
 
+@Composable
+fun ReviewHouseholdDetails(viewModel: HouseholdViewModel, modifier: Modifier){
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
+    ) {
+
+        item {
+            Text(
+                "Household Name",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                viewModel.householdName.ifBlank { "Not set" },
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+
+        item {
+            Text(
+                "Chores",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        if (viewModel.choreInputs.isEmpty()) {
+            item { Text("No chores added.") }
+        } else {
+            itemsIndexed(viewModel.choreInputs) { index, chore ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("Chore ${index + 1}", style = MaterialTheme.typography.titleMedium)
+                        Text("Name: ${chore.name}")
+                        Text("Description: ${chore.description}")
+                        Text("Cycle: ${chore.cycle} days")
+                    }
+                }
+            }
+        }
+
+        item {
+            Text(
+                "Payments",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        if (viewModel.paymentInputs.isEmpty()) {
+            item { Text("No payments added.") }
+        } else {
+            itemsIndexed(viewModel.paymentInputs) { index, payment ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("Payment ${index + 1}", style = MaterialTheme.typography.titleMedium)
+                        Text("Name: ${payment.name}")
+                        Text("Amount: $${payment.amount}")
+                        Text("Split: ${payment.split}%")
+                        Text("Cycle: ${payment.cycle} days")
+                        Text("Pays: ${if (payment.youPay) "You" else "Someone else"}")
+                    }
+                }
+            }
+        }
+
+        item {
+            Text(
+                "Calendar Name",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                viewModel.calendarName.ifBlank { "Not set" },
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    }
+}
 
 
 
@@ -316,6 +443,6 @@ fun NewHouseholdCalendar(viewModel: HouseholdViewModel){
 fun HouseholdPreview() {
     _501_Final_ProjectTheme {
         val viewModel = remember { HouseholdViewModel() }
-        NewHouseholdCalendar(viewModel)
+        NewHousehold(viewModel)
     }
 }

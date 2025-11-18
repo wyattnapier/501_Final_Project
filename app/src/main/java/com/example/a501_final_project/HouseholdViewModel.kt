@@ -1,5 +1,6 @@
 package com.example.a501_final_project
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -21,7 +22,7 @@ data class PaymentInput(
 )
 
 class HouseholdViewModel : ViewModel() {
-
+    var setupStep by mutableStateOf(0)
     var householdName by mutableStateOf("")
     var choreInputs = mutableStateListOf(ChoreInput())
         private set
@@ -29,18 +30,15 @@ class HouseholdViewModel : ViewModel() {
     var paymentInputs = mutableStateListOf(PaymentInput())
         private set
 
+    var calendarName by mutableStateOf("")
+        private set
 
-    fun createHousehold(uid: String) {
-//        val db = Firebase.firestore
+    fun incrementStep(){
+        setupStep++
+    }
 
-//        val householdRef = db.collection("households").document()
-//        householdRef.set(
-//            mapOf(
-//                "name" to householdName,
-//                "ownerId" to uid,
-//                "createdAt" to FieldValue.serverTimestamp()
-//            )
-//        )
+    fun decrementStep(){
+        setupStep--
     }
 
     fun updateName(newName: String) {
@@ -61,5 +59,23 @@ class HouseholdViewModel : ViewModel() {
 
     fun updatePayment(index: Int, update: PaymentInput){
         paymentInputs[index] = update
+    }
+
+    fun updateCalendar(calendar: String){
+        calendarName = calendar
+    }
+
+    fun createHousehold() {
+//        val db = Firebase.firestore
+
+//        val householdRef = db.collection("households").document()
+//        householdRef.set(
+//            mapOf(
+//                "name" to householdName,
+//                "ownerId" to uid,
+//                "createdAt" to FieldValue.serverTimestamp()
+//            )
+//        )
+        Log.d("HouseholdViewModel", "Household created with name: $householdName")
     }
 }
