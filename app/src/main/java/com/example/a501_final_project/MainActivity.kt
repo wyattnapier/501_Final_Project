@@ -6,9 +6,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
@@ -141,14 +143,26 @@ fun MainScreen() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopBar(navController: NavController){
+    val actionIconWidth = 64.dp
     TopAppBar(
-        title = {Text("apt.", modifier=Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineLarge)},
+        title = {
+            Text("apt.",
+                modifier=Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.headlineLarge)
+                },
+        navigationIcon = {
+            // Add a Spacer with the same width as the actions icon to balance the layout.
+            Spacer(modifier = Modifier.width(actionIconWidth))
+        },
         actions = {
-            IconButton( onClick = { navigateToScreen(navController, Screen.Profile) }) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "User Profile"
-                )
+            Box(modifier = Modifier.width(actionIconWidth)) {
+                IconButton(onClick = { navigateToScreen(navController, Screen.Profile) }) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "User Profile"
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
