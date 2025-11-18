@@ -9,7 +9,15 @@ import androidx.lifecycle.ViewModel
 data class ChoreInput(
     var name: String = "",
     var description: String = "",
-    var cycle: String = ""
+    var cycle: Number = 0
+)
+
+data class PaymentInput(
+    var name: String = "",
+    var amount: Number = 0,
+    var split: Number = 0,
+    var cycle: Number = 0,
+    var youPay: Boolean = true
 )
 
 class HouseholdViewModel : ViewModel() {
@@ -17,6 +25,10 @@ class HouseholdViewModel : ViewModel() {
     var householdName by mutableStateOf("")
     var choreInputs = mutableStateListOf(ChoreInput())
         private set
+
+    var paymentInputs = mutableStateListOf(PaymentInput())
+        private set
+
 
     fun createHousehold(uid: String) {
 //        val db = Firebase.firestore
@@ -31,11 +43,23 @@ class HouseholdViewModel : ViewModel() {
 //        )
     }
 
+    fun updateName(newName: String) {
+        householdName = newName
+    }
+
     fun addChore() {
         choreInputs.add(ChoreInput())
     }
 
     fun updateChore(index: Int, update: ChoreInput){
         choreInputs[index] = update
+    }
+
+    fun addPayment() {
+        paymentInputs.add(PaymentInput())
+    }
+
+    fun updatePayment(index: Int, update: PaymentInput){
+        paymentInputs[index] = update
     }
 }
