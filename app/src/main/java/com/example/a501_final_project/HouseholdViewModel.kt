@@ -36,6 +36,17 @@ class HouseholdViewModel : ViewModel() {
     var calendarName by mutableStateOf("")
         private set
 
+    var householdCreated by mutableStateOf(false)
+        private set
+
+    var householdID by mutableStateOf("")
+        private set
+
+    var errorMessage by mutableStateOf<String?>(null)
+        private set
+    var isLoading by mutableStateOf(false)
+        private set
+
     fun incrementStep(){
         setupStep++
     }
@@ -69,6 +80,9 @@ class HouseholdViewModel : ViewModel() {
     }
 
     fun createHousehold() {
+        errorMessage = null
+        isLoading = true
+
         val db = FirebaseFirestore.getInstance()
 
         val recurring_chores = choreInputs.mapIndexed { index, chore ->
@@ -112,9 +126,14 @@ class HouseholdViewModel : ViewModel() {
             .add(fullHouseholdObject)
             .addOnSuccessListener { doc ->
                 Log.d("HouseholdViewModel", "Created household ${doc.id}")
+                householdID = doc.id
+                householdCreated = true
+                isLoading = false
             }
             .addOnFailureListener { e ->
                 Log.e("HouseholdViewModel", "Error creating household", e)
+                errorMessage = "Failed to create household: ${e.message}"
+                isLoading = false
             }
     }
 }

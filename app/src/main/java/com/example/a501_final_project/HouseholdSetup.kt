@@ -22,12 +22,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,7 +46,16 @@ import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewHousehold(viewModel: HouseholdViewModel){
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let { msg ->
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = { TopAppBar(
             title = { Text("Household Set Up", modifier=Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary) },
             colors = TopAppBarDefaults.topAppBarColors(
@@ -79,6 +91,7 @@ fun NewHousehold(viewModel: HouseholdViewModel){
                     } else {
                         Button(
                             onClick = { viewModel.createHousehold() },
+                            enabled = !viewModel.isLoading,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary
                             )
@@ -90,13 +103,18 @@ fun NewHousehold(viewModel: HouseholdViewModel){
             }
         },
         content = { innerPadding ->
-            AnimatedContent(targetState = viewModel.setupStep) { step ->
-                when (step) {
-                    0 -> NewHouseholdName(viewModel, Modifier.padding(innerPadding))
-                    1 -> NewHouseholdChore(viewModel, Modifier.padding(innerPadding))
-                    2 -> NewHouseholdPayment(viewModel, Modifier.padding(innerPadding))
-                    3 -> NewHouseholdCalendar(viewModel, Modifier.padding(innerPadding))
-                    4 -> ReviewHouseholdDetails(viewModel, Modifier.padding(innerPadding))
+            if (viewModel.householdCreated) {
+                HouseholdCreated(viewModel, Modifier.padding(innerPadding))
+            }
+            else {
+                AnimatedContent(targetState = viewModel.setupStep) { step ->
+                    when (step) {
+                        0 -> NewHouseholdName(viewModel, Modifier.padding(innerPadding))
+                        1 -> NewHouseholdChore(viewModel, Modifier.padding(innerPadding))
+                        2 -> NewHouseholdPayment(viewModel, Modifier.padding(innerPadding))
+                        3 -> NewHouseholdCalendar(viewModel, Modifier.padding(innerPadding))
+                        4 -> ReviewHouseholdDetails(viewModel, Modifier.padding(innerPadding))
+                    }
                 }
             }
         }
@@ -104,13 +122,14 @@ fun NewHousehold(viewModel: HouseholdViewModel){
 }
 
 
-
 @Composable
 fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.fillMaxHeight().padding(10.dp)
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(10.dp)
     ){
         Text(
             "Name Your Household",
@@ -131,7 +150,9 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.fillMaxHeight().padding(10.dp)
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(10.dp)
     ){
         Text(
             "Create Chores",
@@ -145,7 +166,9 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
         )
 
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ){
             itemsIndexed(viewModel.choreInputs) { index, chore ->
@@ -213,7 +236,9 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel, modifier: Modifier) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.fillMaxHeight().padding(10.dp)
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(10.dp)
     ) {
         Text(
             "Create Recurring Payments",
@@ -229,7 +254,9 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel, modifier: Modifier) {
         )
 
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             itemsIndexed(viewModel.paymentInputs) { index, payment ->
@@ -320,7 +347,9 @@ fun NewHouseholdCalendar(viewModel: HouseholdViewModel, modifier: Modifier){
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier.fillMaxHeight().padding(10.dp)
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(10.dp)
     ){
         Text(
             "Set Up Household Calendar",
@@ -432,6 +461,39 @@ fun ReviewHouseholdDetails(viewModel: HouseholdViewModel, modifier: Modifier){
                 viewModel.calendarName.ifBlank { "Not set" },
                 style = MaterialTheme.typography.bodyLarge
             )
+        }
+    }
+}
+
+@Composable
+fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier){
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(10.dp)
+    ){
+        Text(
+            "Household Created",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            "Household ID: ${viewModel.householdID}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.secondary
+        )
+        Text(
+            "Shared Household ID with your roommates so they can join the household",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary
+        )
+        Button(
+            onClick = { /*TODO: navigate back to home screen*/ },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Proceed to App")
         }
     }
 }
