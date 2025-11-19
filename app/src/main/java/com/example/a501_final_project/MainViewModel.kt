@@ -460,6 +460,24 @@ class MainViewModel : ViewModel() {
         setCalendarView(CalendarViewType.THREE_DAY)
     }
 
+    /**
+     * Finds the calendar ID for a calendar with a specific name.
+     * @param calendarService The authenticated Calendar API service instance.
+     * @param calendarName The name of the calendar to find (e.g., "Other Events").
+     * @return The calendarId string, or null if not found.
+     */
+    private suspend fun getCalendarIdByName(
+        calendarService: com.google.api.services.calendar.Calendar,
+        calendarName: String // TODO: get from database and code into this function
+    ): String? {
+        return try {
+            val calendarList = calendarService.calendarList().list().execute()
+            calendarList.items.find { it.summary.equals(calendarName, ignoreCase = true) }?.id
+        } catch (e: Exception) {
+            Log.e("MainViewModel", "Failed to get calendar list", e)
+            null
+        }
+    }
 
     // TODO: add a date picker to input start date and end date of date range
     fun fetchCalendarEvents(
@@ -631,7 +649,7 @@ class MainViewModel : ViewModel() {
             try {
                 val credential = GoogleAccountCredential.usingOAuth2(
                     context,
-                    setOf(CalendarScopes.CALENDAR_READONLY, CalendarScopes.CALENDAR_EVENTS) // Ensure both scopes
+                    setOf(CalendarScopes.CALENDAR_EVENTS)
                 ).setSelectedAccount(account.account)
 
                 val calendarService = com.google.api.services.calendar.Calendar.Builder(
@@ -639,6 +657,16 @@ class MainViewModel : ViewModel() {
                     GsonFactory.getDefaultInstance(),
                     credential
                 ).setApplicationName("501-Final-Project").build()
+
+                val calendarName = "Other Events"
+                val targetCalendarId = getCalendarIdByName(calendarService, calendarName)
+
+                if (targetCalendarId == null) {
+                    _calendarError.value = "Calendar not found for name $calendarName"
+                    return@launch
+                }
+                val calendarIdForEvent = targetCalendarId
+                Log.d("MainViewModel", "Adding event to calendar ID: $calendarIdForEvent")
 
                 val event = Event().apply {
                     this.summary = summary
@@ -648,7 +676,7 @@ class MainViewModel : ViewModel() {
                 }
 
                 // "primary" is the user's main calendar
-                calendarService.events().insert("primary", event).execute() // TODO: update calendar id
+                calendarService.events().insert(calendarIdForEvent, event).execute() // TODO: update calendar id
 
                 // Refresh the events list to show the new event
                 fetchCalendarEvents(context)
