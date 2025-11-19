@@ -372,7 +372,7 @@ fun PaymentSection(
             value = payment.amount.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(amount = newValue.toDouble()))
+                    onPaymentChanged(payment.copy(amount = newValue.toInt()))
                 }
             },
             label = { Text("Amount ($)") },
@@ -391,7 +391,7 @@ fun PaymentSection(
             value = payment.split.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(split = newValue.toDouble()))
+                    onPaymentChanged(payment.copy(split = newValue.toInt()))
                 }
             },
             label = { Text("Your split (%)") },
