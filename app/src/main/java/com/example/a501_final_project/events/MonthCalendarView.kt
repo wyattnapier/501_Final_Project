@@ -22,8 +22,8 @@ import java.util.*
 @Composable
 fun MonthCalendarView(
     events: List<CalendarEventInfo>,
-    fourteenDayStart: Calendar,
-    fourteenDayEnd: Calendar,
+    calendarDataDateRangeStart: Calendar,
+    calendarDataDateRangeEnd: Calendar,
     onDaySelected: (Calendar) -> Unit
 ) {
     var displayedMonth by remember { mutableStateOf(Calendar.getInstance()) }
@@ -50,7 +50,7 @@ fun MonthCalendarView(
                 DayCell_Month(
                     day = day,
                     isInCurrentMonth = day.get(Calendar.MONTH) == displayedMonth.get(Calendar.MONTH),
-                    isIn14DayRange = !day.before(fourteenDayStart) && !day.after(fourteenDayEnd),
+                    isIn14DayRange = !day.before(calendarDataDateRangeStart) && !day.after(calendarDataDateRangeEnd),
                     hasEvents = hasEvents,
                     onClick = { onDaySelected(day) }
                 )

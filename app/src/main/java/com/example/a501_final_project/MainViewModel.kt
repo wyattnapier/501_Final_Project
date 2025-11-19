@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
@@ -83,9 +82,9 @@ data class CalendarEventInfo(
  * define different UI view types for Calendar
  */
 enum class CalendarViewType {
-    AGENDA, // The collapsible list you already have
+    AGENDA,
     THREE_DAY,
-    FOURTEEN_DAY
+    MONTH
 }
 
 /** our ViewModel to hold our business logic and data.
@@ -368,15 +367,17 @@ class MainViewModel : ViewModel() {
     private val _isLoadingCalendar = MutableStateFlow(false)
     val isLoadingCalendar = _isLoadingCalendar.asStateFlow()
 
-    private val _fourteenDayStart = MutableStateFlow(Calendar.getInstance())
-    val fourteenDayStart = _fourteenDayStart.asStateFlow()
+    private val numCalendarDataDays = 28
 
-    private val _fourteenDayEnd = MutableStateFlow(
+    private val _calendarDataDateRangeStart = MutableStateFlow(Calendar.getInstance())
+    val calendarDataDateRangeStart = _calendarDataDateRangeStart.asStateFlow()
+
+    private val _calendarDataDateRangeEnd = MutableStateFlow(
         (Calendar.getInstance().clone() as Calendar).apply {
-            add(Calendar.DAY_OF_YEAR, 14)
+            add(Calendar.DAY_OF_YEAR, numCalendarDataDays)
         }
     )
-    val fourteenDayEnd = _fourteenDayEnd.asStateFlow()
+    val calendarDataDateRangeEnd = _calendarDataDateRangeEnd.asStateFlow()
 
     // The leftmost date of 3-day view
     private val _leftDayForThreeDay = MutableStateFlow(Calendar.getInstance())
@@ -410,7 +411,7 @@ class MainViewModel : ViewModel() {
         lastVisibleDay.add(Calendar.DAY_OF_YEAR, 2)
 
         // Allow incrementing if the last visible day is not after the 14-day end date
-        if (!lastVisibleDay.after(_fourteenDayEnd.value)) {
+        if (!lastVisibleDay.after(_calendarDataDateRangeEnd.value)) {
             _leftDayForThreeDay.value = currentLeftDay
         }
     }
@@ -420,15 +421,15 @@ class MainViewModel : ViewModel() {
         currentLeftDay.add(Calendar.DAY_OF_YEAR, -1)
 
         // Allow decrementing if the new leftDay is not before today (the start of the 14-day range)
-        if (!currentLeftDay.before(_fourteenDayStart.value)) {
+        if (!currentLeftDay.before(_calendarDataDateRangeStart.value)) {
             _leftDayForThreeDay.value = currentLeftDay
         }
     }
 
     /** Called when user clicks a day in the month calendar */
     fun onDaySelected(clickedDay: Calendar) {
-        val startRange = fourteenDayStart.value
-        val endRange = fourteenDayEnd.value
+        val startRange = calendarDataDateRangeStart.value
+        val endRange = calendarDataDateRangeEnd.value
         var potentialLeftDay = clickedDay.clone() as Calendar
 
         // The potential last day of the 3-day view if we use the clicked day as the start.
@@ -461,7 +462,7 @@ class MainViewModel : ViewModel() {
     // TODO: add a date picker to input start date and end date of date range
     fun fetchCalendarEvents(
         context: Context,
-        days: Int = 14, // default to fetching 14 days of events
+        days: Int = numCalendarDataDays,
         calendarFilterName: String? = "Other Events" // filter to only get one calendar if not null
     ) {
         viewModelScope.launch(Dispatchers.IO) {

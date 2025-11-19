@@ -38,11 +38,11 @@ fun EventsScreen(
     val viewType by mainViewModel.calendarViewType.collectAsState()
     var selectedEvent by remember { mutableStateOf<CalendarEventInfo?>(null) }
     val leftDay by mainViewModel.leftDayForThreeDay.collectAsState()
-    val fourteenDayStart by mainViewModel.fourteenDayStart.collectAsState()
-    val fourteenDayEnd by mainViewModel.fourteenDayEnd.collectAsState()
-    val canDecrement = leftDay.after(fourteenDayStart)
+    val calendarDataDateRangeStart by mainViewModel.calendarDataDateRangeStart.collectAsState()
+    val calendarDataDateRangeEnd by mainViewModel.calendarDataDateRangeEnd.collectAsState()
+    val canDecrement = leftDay.after(calendarDataDateRangeStart)
     val lastIncrementingDay = (leftDay.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 3) } // left day + 2 is last visible day in 3 day view
-    val canIncrement = lastIncrementingDay.before(fourteenDayEnd)
+    val canIncrement = lastIncrementingDay.before(calendarDataDateRangeEnd)
     val context = LocalContext.current
 
 
@@ -93,10 +93,10 @@ fun EventsScreen(
                             canIncrement = canIncrement,
                             canDecrement = canDecrement
                         )
-                        CalendarViewType.FOURTEEN_DAY -> MonthCalendarView(
+                        CalendarViewType.MONTH -> MonthCalendarView(
                             events = allEvents,
-                            fourteenDayStart = fourteenDayStart,
-                            fourteenDayEnd = fourteenDayEnd,
+                            calendarDataDateRangeStart = calendarDataDateRangeStart,
+                            calendarDataDateRangeEnd = calendarDataDateRangeEnd,
                             onDaySelected = { clickedDay ->
                                 mainViewModel.onDaySelected(clickedDay)
                                 mainViewModel.setCalendarView(CalendarViewType.THREE_DAY)
@@ -141,10 +141,10 @@ fun CalendarViewSwitcher(
         ) { Text("3 Day") }
 
         Button(
-            onClick = { onViewSelected(CalendarViewType.FOURTEEN_DAY) },
-            colors = if (selectedView == CalendarViewType.FOURTEEN_DAY) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
+            onClick = { onViewSelected(CalendarViewType.MONTH) },
+            colors = if (selectedView == CalendarViewType.MONTH) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
             modifier = Modifier.padding(horizontal = 4.dp)
-        ) { Text("14 Day") }
+        ) { Text("Month") }
     }
 }
 
