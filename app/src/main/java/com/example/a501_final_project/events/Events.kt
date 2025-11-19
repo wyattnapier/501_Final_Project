@@ -56,8 +56,15 @@ fun EventsScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { showAddEventDialog = true }) { // Open the dialog
-                Icon(Icons.Default.Add, contentDescription = "Add event", tint = MaterialTheme.colorScheme.primary)
+            IconButton(
+                onClick = { showAddEventDialog = true }, // Open the dialog
+                enabled = loginState.isLoggedIn
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add event",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
             }
 
             CalendarViewSwitcher(
@@ -210,14 +217,18 @@ fun AddEventDialog(
 ) {
     var summary by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    // Default to a 1-hour event starting now
-    val now = Calendar.getInstance()
-    val endDefault = (now.clone() as Calendar).apply { add(Calendar.HOUR_OF_DAY, 1) }
 
-    // In a real app, you'd use a Date/Time picker here. For simplicity, we'll use text fields.
-    var startDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(now.time)) }
-    var endDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(endDefault.time)) }
+    // Hold the start and end times in Calendar objects directly
+    var startCal by remember { mutableStateOf(Calendar.getInstance()) }
+    var endCal by remember {
+        mutableStateOf((Calendar.getInstance().clone() as Calendar).apply { add(Calendar.HOUR_OF_DAY, 1) })
+    }
 
+    // State for controlling the visibility of the pickers
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -235,32 +246,44 @@ fun AddEventDialog(
                     onValueChange = { description = it },
                     label = { Text("Description (Optional)") }
                 )
-                OutlinedTextField(
-                    value = startDate,
-                    onValueChange = { startDate = it },
-                    label = { Text("Start Time (YYYY-MM-DD HH:mm)") }
-                )
-                OutlinedTextField(
-                    value = endDate,
-                    onValueChange = { endDate = it },
-                    label = { Text("End Time (YYYY-MM-DD HH:mm)") }
-                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Start Date Button
+                    DateTimePickerButton(
+                        text = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(startCal.time),
+                        onClick = { showStartDatePicker = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Start Time Button
+                    DateTimePickerButton(
+                        text = SimpleDateFormat("h:mm a", Locale.getDefault()).format(startCal.time),
+                        onClick = { showStartTimePicker = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // End Date Button
+                    DateTimePickerButton(
+                        text = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(endCal.time),
+                        onClick = { showEndDatePicker = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                    // End Time Button
+                    DateTimePickerButton(
+                        text = SimpleDateFormat("h:mm a", Locale.getDefault()).format(endCal.time),
+                        onClick = { showEndTimePicker = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    try {
-                        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                        val startCal = Calendar.getInstance().apply { time = dateFormat.parse(startDate)!! }
-                        val endCal = Calendar.getInstance().apply { time = dateFormat.parse(endDate)!! }
-                        onConfirm(summary, description.ifEmpty { null }, startCal, endCal)
-                    } catch (e: Exception) {
-                        // Handle date parsing error, maybe show a toast
-                        Log.e("AddEventDialog", "Date parsing failed", e)
-                    }
+                    onConfirm(summary, description.ifEmpty { null }, startCal, endCal)
                 },
-                enabled = summary.isNotBlank()
+                // Add a check to ensure the end time is after the start time.
+                enabled = summary.isNotBlank() && endCal.after(startCal)
             ) {
                 Text("Save")
             }
@@ -269,6 +292,129 @@ fun AddEventDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
+        }
+    )
+    // Start Date Picker
+    if (showStartDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
+            onDateSet = { year, month, day ->
+                startCal = (startCal.clone() as Calendar).apply { set(year, month, day) }
+                // Also update end date to match if it's before the new start date
+                if (endCal.before(startCal)) {
+                    endCal = startCal.clone() as Calendar
+                }
+            }
+        )
+    }
+
+    // Start Time Picker
+    if (showStartTimePicker) {
+        TimePickerDialog(
+            onDismissRequest = { showStartTimePicker = false },
+            onTimeSet = { hour, minute ->
+                startCal = (startCal.clone() as Calendar).apply {
+                    set(Calendar.HOUR_OF_DAY, hour)
+                    set(Calendar.MINUTE, minute)
+                }
+            }
+        )
+    }
+
+    // End Date Picker
+    if (showEndDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            onDateSet = { year, month, day ->
+                endCal = (endCal.clone() as Calendar).apply { set(year, month, day) }
+            }
+        )
+    }
+
+    // End Time Picker
+    if (showEndTimePicker) {
+        TimePickerDialog(
+            onDismissRequest = { showEndTimePicker = false },
+            onTimeSet = { hour, minute ->
+                endCal = (endCal.clone() as Calendar).apply {
+                    set(Calendar.HOUR_OF_DAY, hour)
+                    set(Calendar.MINUTE, minute)
+                }
+            }
+        )
+    }
+}
+/**
+ * A helper composable for launching Date and Time pickers.
+ */
+@Composable
+fun DateTimePickerButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Text(text)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DatePickerDialog(
+    onDismissRequest: () -> Unit,
+    onDateSet: (year: Int, month: Int, dayOfMonth: Int) -> Unit
+) {
+    val datePickerState = rememberDatePickerState()
+    DatePickerDialog(
+        onDismissRequest = onDismissRequest,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val selectedCal = Calendar.getInstance().apply { timeInMillis = millis }
+                        onDateSet(
+                            selectedCal.get(Calendar.YEAR),
+                            selectedCal.get(Calendar.MONTH),
+                            selectedCal.get(Calendar.DAY_OF_MONTH)
+                        )
+                    }
+                    onDismissRequest()
+                }
+            ) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) { Text("Cancel") }
+        }
+    ) {
+        DatePicker(state = datePickerState)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimePickerDialog(
+    onDismissRequest: () -> Unit,
+    onTimeSet: (hour: Int, minute: Int) -> Unit
+) {
+    val timePickerState = rememberTimePickerState()
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("Select Time") },
+        text = {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                TimePicker(state = timePickerState)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onTimeSet(timePickerState.hour, timePickerState.minute)
+                    onDismissRequest()
+                }
+            ) { Text("OK") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismissRequest) { Text("Cancel") }
         }
     )
 }
