@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.text.ifEmpty
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -193,7 +194,9 @@ fun DatePickerDialog(
             TextButton(
                 onClick = {
                     datePickerState.selectedDateMillis?.let { millis ->
-                        val selectedCal = Calendar.getInstance().apply { timeInMillis = millis }
+                        val selectedCal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                            timeInMillis = millis
+                        }
                         onDateSet(
                             selectedCal.get(Calendar.YEAR),
                             selectedCal.get(Calendar.MONTH),
