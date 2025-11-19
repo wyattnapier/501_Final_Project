@@ -25,10 +25,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import kotlin.math.log
 
 
 // temp state variables to mark out which step of log in process we are in
@@ -51,11 +53,16 @@ fun SignUpScreen(
             })
         }
         SignUpSteps.USER_INFO -> {
-            GetUserInfo()
+            GetUserInfo(onNext = { username, name, venmoUsername ->
+                loginViewModel.username = username
+                loginViewModel.displayName = name
+                loginViewModel.venmoUsername = venmoUsername
+                currentStep = SignUpSteps.REVIEW
+            })
         }
 
         SignUpSteps.REVIEW -> {
-
+            ReviewInfo(loginViewModel)
         }
 
     }
@@ -109,11 +116,17 @@ fun SignUpGoogle(loginViewModel: LoginViewModel, onSuccess: ()-> Unit) {
 
 // composable for entering other user info
 
-@Preview(
-    showBackground=true
-)
+//@Preview(
+//    showBackground=true
+//)
 @Composable
-fun GetUserInfo() {
+fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String) -> Unit) {
+
+    // temp values, will eventually do with view model
+    var name by rememberSaveable { mutableStateOf("")}
+    var venmoUsername by rememberSaveable { mutableStateOf("")}
+    var username by rememberSaveable { mutableStateOf("")}
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
 //        verticalArrangement = Arrangement.Center,
@@ -126,12 +139,24 @@ fun GetUserInfo() {
             modifier = Modifier.padding(bottom=16.dp)
         )
 
+        Text(text="Choose a username",
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(8.dp))
+        TextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("Username") },
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.padding(bottom=32.dp),
+            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+        )
+
         Text(text="What should we call you?",
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(8.dp))
         TextField(
-            value = "",
-            onValueChange = {},
+            value = name,
+            onValueChange = { name = it },
             label = { Text("Name") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
@@ -142,15 +167,61 @@ fun GetUserInfo() {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(8.dp))
         TextField(
-            value = "",
-            onValueChange = {},
+            value = venmoUsername,
+            onValueChange = { venmoUsername = it },
             label = { Text("Venmo") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
             colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
         )
-        Button(onClick = {}) {
+        // TODO: this button should route to household set up (or review info)?
+        Button(onClick = {
+            onNext(username, name, venmoUsername)
+        }) {
             Text(text = "Next")
+        }
+    }
+}
+
+@Composable
+fun ReviewInfo(loginViewModel: LoginViewModel) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+//        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize()
+            .padding(top=32.dp, start=16.dp, end=16.dp)
+    ) {
+        Text(text = "Review your information",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom=16.dp)
+        )
+
+        // Editable name
+        OutlinedTextField(
+            value = loginViewModel.username,
+            onValueChange = { loginViewModel.username = it },
+            label = { Text("Username") },
+            modifier = Modifier.padding(bottom=12.dp)
+        )
+        OutlinedTextField(
+            value = loginViewModel.displayName,
+            onValueChange = { loginViewModel.displayName = it },
+            label = { Text("Name") },
+            modifier = Modifier.padding(bottom=12.dp)
+        )
+        OutlinedTextField(
+            value = loginViewModel.venmoUsername,
+            onValueChange = { loginViewModel.venmoUsername = it },
+            label = { Text("Venmo username") },
+            modifier = Modifier.padding(bottom=24.dp)
+        )
+
+        Text(text = "Looks good?",
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(8.dp))
+        Button(onClick = {loginViewModel.saveUserToDb()}) {
+            Text("Join a household!")
         }
     }
 }

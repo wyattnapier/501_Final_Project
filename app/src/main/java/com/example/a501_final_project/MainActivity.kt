@@ -97,10 +97,28 @@ fun navigateToScreen(navController: NavController, screen: Screen) {
  */
 @Composable
 fun MainScreen() {
+
     val navController = rememberNavController()
+
+    // for conditional rendering o top and bottom bars
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // Screens where the bars should NOT appear
+    val noBars = setOf(
+        Screen.Login.route,
+        Screen.UserSignUp.route
+    )
     Scaffold(
-        bottomBar = { BottomBar(navController) },
-        topBar = { TopBar(navController) },
+        bottomBar = {
+            if (currentRoute !in noBars) {
+                BottomBar(navController)
+            }
+        },
+        topBar = { if(currentRoute !in noBars) {
+            TopBar(navController)
+            }
+            },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         AppNavGraph(Modifier.padding(innerPadding), navController)

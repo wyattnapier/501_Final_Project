@@ -1,6 +1,7 @@
 package com.example.a501_final_project
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -8,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 
 @Composable
 fun AppNavGraph(
@@ -18,6 +20,7 @@ fun AppNavGraph(
     // creating shared viewModels for all screens
     val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
     val loginViewModel: LoginViewModel = viewModel()
+
 
     NavHost(
         navController = navController,
