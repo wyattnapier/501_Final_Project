@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 
 data class ChoreInput(
@@ -22,7 +23,26 @@ data class PaymentInput(
     var youPay: Boolean = true
 )
 
+data class PaymentDB(
+    var name: String = "",
+    var amount: Number = 0,
+    var cycle: Number = 0,
+    var payee: String = "",
+    var occupiedSplit: Number = 0,
+    var split: Number = 0,
+    var youPay: Boolean = true
+)
+
+data class ResidentDB(
+    var id: String = "",
+    var payment_percents: List<Number> = listOf()
+)
+
 class HouseholdViewModel : ViewModel() {
+    val db = FirebaseFirestore.getInstance()
+
+    var existingHousehold by mutableStateOf<Boolean?>(null)
+
     //TODO: properly fetch the uid of the active user
     var uid = "alice"
     var setupStep by mutableStateOf(0)
@@ -46,6 +66,14 @@ class HouseholdViewModel : ViewModel() {
         private set
     var isLoading by mutableStateOf(false)
         private set
+
+
+    val paymentsFromDB = mutableStateListOf<PaymentDB>()
+
+    val residentsFromDB = mutableStateListOf<ResidentDB>()
+    var gotHousehold by mutableStateOf(false)
+
+
 
     fun incrementStep(){
         setupStep++
@@ -79,11 +107,13 @@ class HouseholdViewModel : ViewModel() {
         calendarName = calendar
     }
 
+    fun updatePaymentDB(index: Int, update: PaymentDB){
+        paymentsFromDB[index] = update
+    }
+
     fun createHousehold() {
         errorMessage = null
         isLoading = true
-
-        val db = FirebaseFirestore.getInstance()
 
         val recurring_chores = choreInputs.mapIndexed { index, chore ->
             mapOf(
@@ -135,5 +165,76 @@ class HouseholdViewModel : ViewModel() {
                 errorMessage = "Failed to create household: ${e.message}"
                 isLoading = false
             }
+    }
+
+    fun getHousehold(householdID: String){
+        val doc = db.collection("households").document(householdID)
+        doc.get()
+            .addOnSuccessListener { document ->
+                if (document != null) {
+                    householdName = document.getString("name") ?: "Household Not Found"
+                    Log.d("HouseholdViewModel", "DocumentSnapshot data: ${document.data}")
+                    val paymentsList = document.get("recurring_payments") as? List<Map<String, Any>>
+
+                    paymentsList?.let { list ->
+                        paymentsFromDB.clear()
+                        paymentsFromDB.addAll(
+                            list.map { map ->
+                                PaymentDB(
+                                    name = map["name"] as? String ?: "",
+                                    amount = (map["amount"] as? Number)?.toDouble() ?: 0.0,
+                                    cycle = (map["cycle"] as? Number)?.toDouble() ?: 0.0
+                                )
+                            }
+                        )
+                    }
+
+                    val residentsList = document.get("residents") as? List<Map<String, Any>>
+
+                    residentsList?.let { list ->
+                        residentsFromDB.clear()
+                        residentsFromDB.addAll(
+                            list.map { map ->
+                                ResidentDB(
+                                    id = map["id"] as? String ?: "",
+                                    payment_percents = (map["payment_percents"] as? List<Number>) ?: listOf()
+                                )
+                            }
+                        )
+                    }
+
+                    for (paymentIndex in paymentsFromDB.indices) {
+
+                        // Sum all residents' percentages for this payment index
+                        val totalTaken = residentsFromDB.sumOf { resident ->
+                            resident.payment_percents.getOrNull(paymentIndex)?.toDouble() ?: 0.0
+                        }
+
+                        paymentsFromDB[paymentIndex] = paymentsFromDB[paymentIndex].copy(
+                            occupiedSplit = totalTaken
+                        )
+                    }
+
+
+                    gotHousehold = true
+                }
+            }
+    }
+
+    fun addToHousehold(){
+        val userPaymentPercents: List<Number> = paymentsFromDB.map { payment -> payment.split }
+        val newResident = ResidentDB(
+            id = uid,
+            payment_percents = userPaymentPercents
+        )
+
+        val residentMap = mapOf(
+            "id" to newResident.id,
+            "payment_percents" to newResident.payment_percents
+        )
+
+        db.collection("households")
+            .document(householdID)
+            .update("residents", FieldValue.arrayUnion(residentMap))
     }
 }

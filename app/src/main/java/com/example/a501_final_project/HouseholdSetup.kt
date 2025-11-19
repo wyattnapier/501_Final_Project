@@ -18,6 +18,7 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -42,6 +43,63 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
+
+
+
+@Composable
+fun HouseholdLanding(viewModel: HouseholdViewModel){
+    if (viewModel.existingHousehold == null) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
+            modifier = Modifier
+                .fillMaxHeight()
+                .padding(10.dp)
+        ) {
+            Text(
+                "Welcome to apt",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Button(
+                onClick = { viewModel.existingHousehold = true },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text(
+                    "Join Existing Household",
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+
+            Button(
+                onClick = { viewModel.existingHousehold = false },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text(
+                    "Create New Household",
+                    color = MaterialTheme.colorScheme.onSecondary
+                )
+            }
+
+        }
+    }
+    else if (viewModel.existingHousehold == true){
+        if(!viewModel.gotHousehold) {
+            FindHousehold(viewModel, Modifier)
+        }else{
+            JoinHousehold(viewModel, Modifier)
+        }
+    }
+    else if (viewModel.existingHousehold == false){
+        NewHousehold(viewModel)
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -217,7 +275,7 @@ fun ChoreSection(
         )
 
         OutlinedTextField(
-            value = "${chore.cycle}",
+            value = chore.cycle.toString(),
             onValueChange = { newValue ->
                 // Allow empty input OR digits only
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
@@ -225,8 +283,16 @@ fun ChoreSection(
                 }
             },
             label = { Text("Cycle (in days)") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = chore.cycle.toDouble() <= 0
         )
+        if (chore.cycle.toDouble() <= 0) {
+            Text(
+                text = "Cycle must be greater than 0",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
     }
 }
@@ -299,22 +365,40 @@ fun PaymentSection(
             value = payment.amount.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(amount = newValue.toInt()))
+                    onPaymentChanged(payment.copy(amount = newValue.toDouble()))
                 }
             },
             label = { Text("Amount ($)") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = (payment.amount.toDouble() <= 0)
         )
+        if (payment.amount.toDouble() <= 0) {
+            Text(
+                text = "Amount must be greater than 0",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
         OutlinedTextField(
             value = payment.split.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(split = newValue.toInt()))
+                    onPaymentChanged(payment.copy(split = newValue.toDouble()))
                 }
             },
             label = { Text("Your split (%)") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100
         )
+        if (payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100) {
+            Text(
+                text = "Split must be between 1 and 99%",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
         OutlinedTextField(
             value = payment.cycle.toString(),
             onValueChange = { newValue ->
@@ -323,13 +407,22 @@ fun PaymentSection(
                 }
             },
             label = { Text("Cycle (in days)") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = payment.cycle.toDouble() <= 0
         )
+        if (payment.cycle.toDouble() <= 0) {
+            Text(
+                text = "Cycle must be greater than 0",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("I pay this bill:")
+            Text("You pay this bill:")
             Spacer(modifier = Modifier.weight(1f))
             Switch(
                 checked = payment.youPay,
@@ -495,6 +588,144 @@ fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier){
         ) {
             Text("Proceed to App")
         }
+    }
+}
+
+@Composable
+fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier){
+    var householdID by remember { mutableStateOf("") }
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+            .fillMaxHeight()
+            .padding(10.dp)
+    ){
+        Text(
+            "Join Household",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        OutlinedTextField(
+            value = householdID,
+            onValueChange = { householdID = it },
+            label = { Text("Household ID") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Button(
+            onClick = { viewModel.getHousehold(householdID) },
+            modifier = Modifier.fillMaxWidth()
+        ){
+            Text("Search for Household")
+        }
+    }
+}
+
+@Composable
+fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp)
+    ) {
+
+        // --- Household Title ---
+        Text(
+            text = viewModel.householdName,
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        // --- Payments List ---
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            itemsIndexed(viewModel.paymentsFromDB) { index, payment ->
+                Text(
+                    "Payment ${index + 1}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                PaymentItem(
+                    payment = payment,
+                    onPaymentChanged = { updated ->
+                        viewModel.updatePaymentDB(index, updated)
+                    }
+                )
+            }
+        }
+
+        Button(
+            onClick = { viewModel.addToHousehold() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp)
+        ) {
+            Text("Confirm")
+        }
+    }
+}
+
+@Composable
+fun PaymentItem(
+    payment: PaymentDB,
+    onPaymentChanged: (PaymentDB) -> Unit
+) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            text = payment.name,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            "Occupied split: ${payment.occupiedSplit}%",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.secondary
+        )
+
+        // USER SPLIT INPUT
+        OutlinedTextField(
+            value = payment.split.toString(),
+            onValueChange = { input ->
+                val value = input.toDoubleOrNull() ?: 0.0
+                onPaymentChanged(payment.copy(split = value))
+            },
+            label = { Text("Your Split (%)") },
+            modifier = Modifier.fillMaxWidth(),
+            isError = payment.split.toDouble() <= 0 ||
+                    payment.split.toDouble() >= 100
+        )
+
+        if (payment.split.toDouble() + payment.occupiedSplit.toDouble() <= 0 || payment.split.toDouble() + payment.occupiedSplit.toDouble() >= 100) {
+            Text(
+                "Total split must be between 1–99%",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        // SWITCH — YOU PAY?
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("You pay this bill:")
+            Spacer(modifier = Modifier.weight(1f))
+            Switch(
+                checked = payment.youPay,
+                onCheckedChange = { checked ->
+                    onPaymentChanged(payment.copy(youPay = checked))
+                }
+            )
+        }
+
     }
 }
 
