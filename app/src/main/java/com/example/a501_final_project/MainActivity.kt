@@ -114,10 +114,7 @@ fun MainScreen() {
         if (loginState.isLoggedIn && account != null) {
             Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
             mainViewModel.fetchCalendarEvents(
-                account,
                 context,
-                days = 14,
-                calendarFilterName = "Other Events" // TODO: update calendar filter name to household calendar name
             )
         }
     }

@@ -1,11 +1,16 @@
 package com.example.a501_final_project.events
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ParentDataModifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -38,13 +43,36 @@ fun EventsScreen(
     val canDecrement = leftDay.after(fourteenDayStart)
     val lastIncrementingDay = (leftDay.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 3) } // left day + 2 is last visible day in 3 day view
     val canIncrement = lastIncrementingDay.before(fourteenDayEnd)
+    val context = LocalContext.current
 
 
     Column(modifier = modifier.fillMaxSize()) {
-        CalendarViewSwitcher(
-            selectedView = viewType,
-            onViewSelected = { mainViewModel.setCalendarView(it) }
-        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = {}) { // TODO: implement logic to add calendar events
+                Icon(Icons.Default.Add, contentDescription = "Add event", tint = MaterialTheme.colorScheme.primary)
+            }
+
+            CalendarViewSwitcher(
+                selectedView = viewType,
+                onViewSelected = { mainViewModel.setCalendarView(it) }
+            )
+
+            IconButton(
+                onClick = {
+                    // Ensure user is logged in and we have the necessary info before fetching.
+                    if (loginState.isLoggedIn) {
+                        mainViewModel.fetchCalendarEvents(context) // TODO: make sure number of days is up to date in all places
+                    }
+                },
+                enabled = !isLoading && loginState.isLoggedIn
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
+            }
+        }
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when {
@@ -97,7 +125,6 @@ fun CalendarViewSwitcher(
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
             .padding(8.dp),
         horizontalArrangement = Arrangement.Center
     ) {

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.http.javanet.NetHttpTransport
@@ -459,12 +460,21 @@ class MainViewModel : ViewModel() {
 
     // TODO: add a date picker to input start date and end date of date range
     fun fetchCalendarEvents(
-        googleAccount: GoogleSignInAccount,
         context: Context,
         days: Int = 14, // default to fetching 14 days of events
-        calendarFilterName: String?  = null // filter to only get one calendar if not null
+        calendarFilterName: String? = "Other Events" // filter to only get one calendar if not null
     ) {
         viewModelScope.launch(Dispatchers.IO) {
+            // Get the last signed-in Google account using the provided context.
+            val googleAccount = GoogleSignIn.getLastSignedInAccount(context)
+
+            // If account is null, the user is not signed in. Post an error and stop.
+            if (googleAccount == null) {
+                _calendarError.value = "Cannot refresh events: User is not signed in."
+                Log.e("MainViewModel", "fetchCalendarEvents failed: GoogleSignInAccount is null.")
+                return@launch
+            }
+
             _isLoadingCalendar.value = true
             _calendarError.value = null
             try {
