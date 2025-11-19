@@ -468,7 +468,7 @@ class MainViewModel : ViewModel() {
      */
     private suspend fun getCalendarIdByName(
         calendarService: com.google.api.services.calendar.Calendar,
-        calendarName: String // TODO: get from database and code into this function
+        calendarName: String = "Other Events" // TODO: get from database and code into this function
     ): String? {
         return try {
             val calendarList = calendarService.calendarList().list().execute()
@@ -518,9 +518,15 @@ class MainViewModel : ViewModel() {
                     .setApplicationName("501_Final_Project")
                     .build()
 
-                // 3. Get the list of all calendars
-                val calendarList = calendarService.calendarList().list().execute()
-                val eventsMap = mutableMapOf<String, List<CalendarEventInfo>>()
+                val targetCalendarId = getCalendarIdByName(calendarService, "Other Events")
+
+                // 2. If the calendar doesn't exist, stop here.
+                if (targetCalendarId == null) {
+                    _calendarError.value = "Calendar 'Other Events' not found."
+                    Log.e("MainViewModel", "Could not find calendar 'Other Events'.")
+                    _isLoadingCalendar.value = false // Make sure to stop loading
+                    return@launch
+                }
 
                 // set time range for fetching events
                 val now = DateTime(System.currentTimeMillis())
@@ -529,100 +535,84 @@ class MainViewModel : ViewModel() {
                 }.timeInMillis
                 val maxDateTime = DateTime(timeMax)
 
+                // fetch events for the target calendar ID
+                val eventsResult = calendarService.events().list(targetCalendarId)
+                    .setTimeMin(now)
+                    .setTimeMax(maxDateTime)
+                    .setOrderBy("startTime")
+                    .setSingleEvents(true)
+                    .execute()
 
-                // 4. Iterate over each calendar to fetch its events
-                for (calendarListEntry in calendarList.items) {
-                    val calendarName = calendarListEntry.summary ?: "Unknown Calendar"
-                    Log.d("MainViewModel", "Fetching events for calendar: $calendarName")
+                val items = eventsResult.items.mapNotNull { event ->
+                    val isAllDay = event.start?.dateTime == null && event.start?.date != null
 
-                    // if we're filtering by name then only fetch that calendar
-                    // otherwise fetch all calendars
-                    if (calendarFilterName != null && calendarName != calendarFilterName) {
-                        continue
-                    }
+                    if (isAllDay) {
+                        val startString = event.start.date.toString()
+                        // The end date from the API is exclusive, so we need to get it too.
+                        val endString = event.end?.date?.toString()
 
-                    val eventsResult = calendarService.events().list(calendarListEntry.id)
-                        .setTimeMin(now)
-                        .setTimeMax(maxDateTime)
-                        .setOrderBy("startTime")
-                        .setSingleEvents(true)
-                        .execute()
+                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val startDate = dateFormat.parse(startString)
 
-                    val items = eventsResult.items.mapNotNull { event ->
-                        val isAllDay = event.start?.dateTime == null && event.start?.date != null
+                        if (startDate != null) {
+                            val localStartCal = Calendar.getInstance().apply {
+                                time = startDate
+                            }
+                            val startDateTime = DateTime(localStartCal.time)
 
-                        if (isAllDay) {
-                            val startString = event.start.date.toString()
-                            // The end date from the API is exclusive, so we need to get it too.
-                            val endString = event.end?.date?.toString()
-
-                            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                            val startDate = dateFormat.parse(startString)
-
-                            if (startDate != null) {
-                                val localStartCal = Calendar.getInstance().apply {
-                                    time = startDate
+                            // Now, handle the end date.
+                            val localEndCal: Calendar
+                            if (endString != null) {
+                                val endDate = dateFormat.parse(endString)
+                                localEndCal = Calendar.getInstance().apply {
+                                    time = endDate
+                                    // The API end date is exclusive, so subtract 1 day to get the inclusive end day.
+                                    add(Calendar.DAY_OF_YEAR, -1)
                                 }
-                                val startDateTime = DateTime(localStartCal.time)
+                            } else {
+                                // Fallback for safety, though API should always provide an end date.
+                                localEndCal = localStartCal.clone() as Calendar
+                            }
 
-                                // Now, handle the end date.
-                                val localEndCal: Calendar
-                                if (endString != null) {
-                                    val endDate = dateFormat.parse(endString)
-                                    localEndCal = Calendar.getInstance().apply {
-                                        time = endDate
-                                        // The API end date is exclusive, so subtract 1 day to get the inclusive end day.
-                                        add(Calendar.DAY_OF_YEAR, -1)
-                                    }
-                                } else {
-                                    // Fallback for safety, though API should always provide an end date.
-                                    localEndCal = localStartCal.clone() as Calendar
-                                }
+                            // Set the time to the very end of the final day.
+                            localEndCal.set(Calendar.HOUR_OF_DAY, 23)
+                            localEndCal.set(Calendar.MINUTE, 59)
+                            localEndCal.set(Calendar.SECOND, 59)
 
-                                // Set the time to the very end of the final day.
-                                localEndCal.set(Calendar.HOUR_OF_DAY, 23)
-                                localEndCal.set(Calendar.MINUTE, 59)
-                                localEndCal.set(Calendar.SECOND, 59)
+                            val endDateTime = DateTime(localEndCal.time)
 
-                                val endDateTime = DateTime(localEndCal.time)
-
-                                Log.d("MainViewModel", "Summary: ${event.summary}, Start date time: $startDateTime, End date time: $endDateTime")
+                            Log.d("MainViewModel", "Summary: ${event.summary}, Start date time: $startDateTime, End date time: $endDateTime")
+                            CalendarEventInfo(
+                                id = event.id,
+                                summary = event.summary,
+                                startDateTime = startDateTime,
+                                endDateTime = endDateTime,
+                                isAllDay = true
+                            )
+                        } else {
+                            null // Skip if date is invalid
+                        }
+                    } else {
+                            // Timed events logic remains the same
+                            val startDateTime = event.start?.dateTime
+                            val endDateTime = event.end?.dateTime
+                            if (startDateTime != null && endDateTime != null) {
                                 CalendarEventInfo(
                                     id = event.id,
                                     summary = event.summary,
                                     startDateTime = startDateTime,
                                     endDateTime = endDateTime,
-                                    isAllDay = true
+                                    isAllDay = false
                                 )
-                            } else {
-                                null // Skip if date is invalid
-                            }
-                        } else {
-                                // Timed events logic remains the same
-                                val startDateTime = event.start?.dateTime
-                                val endDateTime = event.end?.dateTime
-                                if (startDateTime != null && endDateTime != null) {
-                                    CalendarEventInfo(
-                                        id = event.id,
-                                        summary = event.summary,
-                                        startDateTime = startDateTime,
-                                        endDateTime = endDateTime,
-                                        isAllDay = false
-                                    )
-                                } else {
-                                    null // Skip timed events with invalid dates
-                                }
-                            }
+                            } else { null } // Skip timed events with invalid dates
                         }
-
-
-                    if (items.isNotEmpty()) {
-                        eventsMap[calendarName] = items
                     }
-                }
 
-                // 5. Update the UI state with the map of events
-                _eventsByCalendar.value = eventsMap
+                _eventsByCalendar.value = if (items.isNotEmpty()) {
+                    mapOf("Other Events" to items)
+                } else {
+                    emptyMap()
+                }
 
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Calendar API error", e)
@@ -649,7 +639,7 @@ class MainViewModel : ViewModel() {
             try {
                 val credential = GoogleAccountCredential.usingOAuth2(
                     context,
-                    setOf(CalendarScopes.CALENDAR_EVENTS)
+                    setOf(CalendarScopes.CALENDAR)
                 ).setSelectedAccount(account.account)
 
                 val calendarService = com.google.api.services.calendar.Calendar.Builder(
@@ -658,14 +648,12 @@ class MainViewModel : ViewModel() {
                     credential
                 ).setApplicationName("501-Final-Project").build()
 
-                val calendarName = "Other Events"
-                val targetCalendarId = getCalendarIdByName(calendarService, calendarName)
+                val calendarIdForEvent = getCalendarIdByName(calendarService)
 
-                if (targetCalendarId == null) {
-                    _calendarError.value = "Calendar not found for name $calendarName"
+                if (calendarIdForEvent == null) {
+                    _calendarError.value = "Calendar not found to add event"
                     return@launch
                 }
-                val calendarIdForEvent = targetCalendarId
                 Log.d("MainViewModel", "Adding event to calendar ID: $calendarIdForEvent")
 
                 val event = Event().apply {

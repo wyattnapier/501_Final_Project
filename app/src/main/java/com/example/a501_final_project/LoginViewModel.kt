@@ -69,7 +69,6 @@ class LoginViewModel() : ViewModel() {
             .requestServerAuthCode(context.getString(R.string.default_web_client_id))
             .requestScopes( // must match with scopes in MainViewModel (except calendarlist)
                 Scope(CalendarScopes.CALENDAR), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
-//                Scope(CalendarScopes.CALENDAR_READONLY), // See and download any calendar you can access using your Google Calendar
             )
             .build()
         return GoogleSignIn.getClient(context, gso)
