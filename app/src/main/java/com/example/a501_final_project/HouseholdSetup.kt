@@ -400,7 +400,7 @@ fun PaymentSection(
         )
         if (payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100) {
             Text(
-                text = "Split must be between 1 and 99%",
+                text = "Split must be between 1 and 100%",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -723,7 +723,7 @@ fun PaymentItem(
 
         if (payment.split.toDouble() + payment.occupiedSplit.toDouble() <= 0 || payment.split.toDouble() + payment.occupiedSplit.toDouble() >= 100) {
             Text(
-                "Total split must be between 1–99%",
+                "Total split must be between 1–100%",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
