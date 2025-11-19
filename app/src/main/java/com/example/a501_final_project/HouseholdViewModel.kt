@@ -30,7 +30,7 @@ data class PaymentDB(
     var payee: String = "",
     var occupiedSplit: Number = 0,
     var split: Number = 0,
-    var youPay: Boolean = true
+    var youPay: Boolean = false
 )
 
 data class ResidentDB(
@@ -44,7 +44,7 @@ class HouseholdViewModel : ViewModel() {
     var existingHousehold by mutableStateOf<Boolean?>(null)
 
     //TODO: properly fetch the uid of the active user
-    var uid = "alice"
+    var uid = "wyatt"
     var setupStep by mutableStateOf(0)
     var householdName by mutableStateOf("")
     var choreInputs = mutableStateListOf(ChoreInput())
@@ -63,7 +63,6 @@ class HouseholdViewModel : ViewModel() {
         private set
 
     var errorMessage by mutableStateOf<String?>(null)
-        private set
     var isLoading by mutableStateOf(false)
         private set
 
@@ -81,6 +80,10 @@ class HouseholdViewModel : ViewModel() {
 
     fun decrementStep(){
         setupStep--
+    }
+
+    fun updateID(newID: String) {
+        householdID = newID
     }
 
     fun updateName(newName: String) {
@@ -133,7 +136,7 @@ class HouseholdViewModel : ViewModel() {
         }
 
         val payment_split = paymentInputs.map{it.split}
-2
+
         val residents = listOf(
             mapOf(
                 "id" to uid,
@@ -183,7 +186,8 @@ class HouseholdViewModel : ViewModel() {
                                 PaymentDB(
                                     name = map["name"] as? String ?: "",
                                     amount = (map["amount"] as? Number)?.toDouble() ?: 0.0,
-                                    cycle = (map["cycle"] as? Number)?.toDouble() ?: 0.0
+                                    cycle = (map["cycle"] as? Number)?.toDouble() ?: 0.0,
+                                    payee = (map["payee"] as? String) ?: ""
                                 )
                             }
                         )
@@ -215,7 +219,7 @@ class HouseholdViewModel : ViewModel() {
                         )
                     }
 
-
+                    updateID(householdID)
                     gotHousehold = true
                 }
             }
@@ -233,8 +237,42 @@ class HouseholdViewModel : ViewModel() {
             "payment_percents" to newResident.payment_percents
         )
 
-        db.collection("households")
-            .document(householdID)
-            .update("residents", FieldValue.arrayUnion(residentMap))
+        val paymentsMap = paymentsFromDB.mapIndexed { index, payment ->
+            val payeeValue = when {
+                payment.youPay -> uid
+                payment.payee.isNullOrEmpty() -> null
+                else -> payment.payee
+            }
+            mapOf(
+                "name" to payment.name,
+                "amount" to payment.amount,
+                "cycle" to payment.cycle,
+                "payee" to payeeValue
+            )
+        }
+
+        Log.d("HouseholdViewModel", "Resident to add: $residentMap")
+        Log.d("HouseholdViewModel", "Household ID: $householdID")
+
+
+        val householdRef = db.collection("households").document(householdID)
+
+        val updateMap = mapOf(
+            "recurring_payments" to paymentsMap,
+            "residents" to FieldValue.arrayUnion(residentMap)
+        )
+
+        householdRef.update(updateMap)
+            .addOnSuccessListener {
+                Log.d("HouseholdViewModel", "Successfully updated household.")
+                // Do something like navigate or show Toast/Snackbar
+                householdCreated = true
+            }
+            .addOnFailureListener { e ->
+                Log.e("HouseholdViewModel", "Failed to update household", e)
+                // Show error to user
+                errorMessage = "Failed to create household: ${e.message}"
+                isLoading = false
+            }
     }
 }

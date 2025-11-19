@@ -1,5 +1,6 @@
 package com.example.a501_final_project
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -90,11 +92,16 @@ fun HouseholdLanding(viewModel: HouseholdViewModel){
         }
     }
     else if (viewModel.existingHousehold == true){
-        if(!viewModel.gotHousehold) {
+        if(!viewModel.gotHousehold and !viewModel.householdCreated) {
             FindHousehold(viewModel, Modifier)
         }else{
             JoinHousehold(viewModel, Modifier)
         }
+        if(viewModel.householdCreated){
+            // TODO: navigate them to the home page
+            Text("Joined Household")
+        }
+
     }
     else if (viewModel.existingHousehold == false){
         NewHousehold(viewModel)
@@ -668,6 +675,16 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier) {
         ) {
             Text("Confirm")
         }
+
+        val context = LocalContext.current
+        val error = viewModel.errorMessage
+
+        LaunchedEffect(error) {
+            error?.let {
+                Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+                viewModel.errorMessage = null // clear after showing
+            }
+        }
     }
 }
 
@@ -695,7 +712,7 @@ fun PaymentItem(
         OutlinedTextField(
             value = payment.split.toString(),
             onValueChange = { input ->
-                val value = input.toDoubleOrNull() ?: 0.0
+                val value = input.toIntOrNull() ?: 0
                 onPaymentChanged(payment.copy(split = value))
             },
             label = { Text("Your Split (%)") },
@@ -715,15 +732,17 @@ fun PaymentItem(
         Spacer(Modifier.height(10.dp))
 
         // SWITCH — YOU PAY?
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("You pay this bill:")
-            Spacer(modifier = Modifier.weight(1f))
-            Switch(
-                checked = payment.youPay,
-                onCheckedChange = { checked ->
-                    onPaymentChanged(payment.copy(youPay = checked))
-                }
-            )
+        if(payment.payee == "") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("You pay this bill:")
+                Spacer(modifier = Modifier.weight(1f))
+                Switch(
+                    checked = payment.youPay,
+                    onCheckedChange = { checked ->
+                        onPaymentChanged(payment.copy(youPay = checked))
+                    }
+                )
+            }
         }
 
     }
