@@ -1,5 +1,6 @@
 package com.example.a501_final_project.events
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
@@ -7,6 +8,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ParentDataModifier
@@ -44,6 +47,7 @@ fun EventsScreen(
     val lastIncrementingDay = (leftDay.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 3) } // left day + 2 is last visible day in 3 day view
     val canIncrement = lastIncrementingDay.before(calendarDataDateRangeEnd)
     val context = LocalContext.current
+    var showAddEventDialog by remember { mutableStateOf(false) }
 
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -52,7 +56,7 @@ fun EventsScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = {}) { // TODO: implement logic to add calendar events
+            IconButton(onClick = { showAddEventDialog = true }) { // Open the dialog
                 Icon(Icons.Default.Add, contentDescription = "Add event", tint = MaterialTheme.colorScheme.primary)
             }
 
@@ -63,9 +67,8 @@ fun EventsScreen(
 
             IconButton(
                 onClick = {
-                    // Ensure user is logged in and we have the necessary info before fetching.
                     if (loginState.isLoggedIn) {
-                        mainViewModel.fetchCalendarEvents(context) // TODO: make sure number of days is up to date in all places
+                        mainViewModel.fetchCalendarEvents(context)
                     }
                 },
                 enabled = !isLoading && loginState.isLoggedIn
@@ -112,6 +115,16 @@ fun EventsScreen(
             EventDetailDialog(
                 event = event,
                 onDismiss = { selectedEvent = null }
+            )
+        }
+
+        if (showAddEventDialog) {
+            AddEventDialog(
+                onDismiss = { showAddEventDialog = false },
+                onConfirm = { summary, description, start, end ->
+                    mainViewModel.addCalendarEvent(context, summary, description, start, end)
+                    showAddEventDialog = false // Close dialog on confirm
+                }
             )
         }
     }
@@ -184,6 +197,77 @@ fun EventDetailDialog(event: CalendarEventInfo, onDismiss: () -> Unit) {
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text("Close")
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddEventDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (summary: String, description: String?, start: Calendar, end: Calendar) -> Unit
+) {
+    var summary by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    // Default to a 1-hour event starting now
+    val now = Calendar.getInstance()
+    val endDefault = (now.clone() as Calendar).apply { add(Calendar.HOUR_OF_DAY, 1) }
+
+    // In a real app, you'd use a Date/Time picker here. For simplicity, we'll use text fields.
+    var startDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(now.time)) }
+    var endDate by remember { mutableStateOf(SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(endDefault.time)) }
+
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add New Event") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = summary,
+                    onValueChange = { summary = it },
+                    label = { Text("Title") },
+                    singleLine = true
+                )
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (Optional)") }
+                )
+                OutlinedTextField(
+                    value = startDate,
+                    onValueChange = { startDate = it },
+                    label = { Text("Start Time (YYYY-MM-DD HH:mm)") }
+                )
+                OutlinedTextField(
+                    value = endDate,
+                    onValueChange = { endDate = it },
+                    label = { Text("End Time (YYYY-MM-DD HH:mm)") }
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    try {
+                        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+                        val startCal = Calendar.getInstance().apply { time = dateFormat.parse(startDate)!! }
+                        val endCal = Calendar.getInstance().apply { time = dateFormat.parse(endDate)!! }
+                        onConfirm(summary, description.ifEmpty { null }, startCal, endCal)
+                    } catch (e: Exception) {
+                        // Handle date parsing error, maybe show a toast
+                        Log.e("AddEventDialog", "Date parsing failed", e)
+                    }
+                },
+                enabled = summary.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
             }
         }
     )

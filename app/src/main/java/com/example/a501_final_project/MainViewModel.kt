@@ -10,6 +10,8 @@ import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
 import com.google.api.services.calendar.CalendarScopes
+import com.google.api.services.calendar.model.Event
+import com.google.api.services.calendar.model.EventDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -609,6 +611,51 @@ class MainViewModel : ViewModel() {
                 _calendarError.value = "Failed to fetch events: ${e.message}"
             } finally {
                 _isLoadingCalendar.value = false
+            }
+        }
+    }
+    fun addCalendarEvent(
+        context: Context,
+        summary: String,
+        description: String?,
+        startTime: Calendar,
+        endTime: Calendar,
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val account = GoogleSignIn.getLastSignedInAccount(context)
+            if (account == null) {
+                _calendarError.value = "Cannot add event: User not signed in."
+                return@launch
+            }
+
+            try {
+                val credential = GoogleAccountCredential.usingOAuth2(
+                    context,
+                    setOf(CalendarScopes.CALENDAR_READONLY, CalendarScopes.CALENDAR_EVENTS) // Ensure both scopes
+                ).setSelectedAccount(account.account)
+
+                val calendarService = com.google.api.services.calendar.Calendar.Builder(
+                    NetHttpTransport(),
+                    GsonFactory.getDefaultInstance(),
+                    credential
+                ).setApplicationName("501-Final-Project").build()
+
+                val event = Event().apply {
+                    this.summary = summary
+                    this.description = description
+                    start = EventDateTime().setDateTime(DateTime(startTime.time))
+                    end = EventDateTime().setDateTime(DateTime(endTime.time))
+                }
+
+                // "primary" is the user's main calendar
+                calendarService.events().insert("primary", event).execute() // TODO: update calendar id
+
+                // Refresh the events list to show the new event
+                fetchCalendarEvents(context)
+
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Failed to add event", e)
+                _calendarError.value = "Error adding event: ${e.message}"
             }
         }
     }
