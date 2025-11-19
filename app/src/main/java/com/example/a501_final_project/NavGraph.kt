@@ -2,30 +2,25 @@ package com.example.a501_final_project
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavHostController
+import com.example.a501_final_project.events.EventsScreen
 
 @Composable
 fun AppNavGraph(
     modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController(),
+    navController: NavHostController,
+    mainViewModel: MainViewModel,
+    loginViewModel: LoginViewModel
 ) {
-
-    // creating shared viewModels for all screens
-    val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
-    val loginViewModel: LoginViewModel = viewModel()
-
     NavHost(
         navController = navController,
         startDestination = Screen.Login.route
     ) {
         // Home
         composable(Screen.Home.route) {
-            HomeScreen(modifier, navController)
+            HomeScreen(navController, mainViewModel, modifier = modifier)
         }
         // Chores
         composable(Screen.Chores.route) {
@@ -39,7 +34,11 @@ fun AppNavGraph(
         }
         // Calendar
         composable(Screen.Calendar.route) {
-            EventsScreen(modifier = modifier, mainViewModel)
+            EventsScreen(
+                modifier = modifier,
+                loginViewModel = loginViewModel,
+                mainViewModel = mainViewModel
+            )
         }
         // Profile
         composable(Screen.Profile.route) {
