@@ -14,9 +14,11 @@ fun DateTime.toCalendarAtMidnight(): Calendar =
         set(Calendar.MILLISECOND, 0)
     }
 
-fun Calendar.isSameDayAs(other: Calendar): Boolean =
-    this.get(Calendar.YEAR) == other.get(Calendar.YEAR) &&
+fun Calendar.isSameDayAs(other: Calendar?): Boolean {
+    if (other == null) return false
+    return this.get(Calendar.YEAR) == other.get(Calendar.YEAR) &&
             this.get(Calendar.DAY_OF_YEAR) == other.get(Calendar.DAY_OF_YEAR)
+}
 
 fun Calendar.cloneAs(block: Calendar.() -> Unit): Calendar =
     (this.clone() as Calendar).apply(block)
