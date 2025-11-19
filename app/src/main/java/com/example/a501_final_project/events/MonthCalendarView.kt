@@ -7,6 +7,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,7 +52,7 @@ fun MonthCalendarView(
                 DayCell_Month(
                     day = day,
                     isInCurrentMonth = day.get(Calendar.MONTH) == displayedMonth.get(Calendar.MONTH),
-                    isIn14DayRange = !day.before(calendarDataDateRangeStart) && !day.after(calendarDataDateRangeEnd),
+                    isInDataDateRange = !day.before(calendarDataDateRangeStart) && !day.after(calendarDataDateRangeEnd),
                     hasEvents = hasEvents,
                     onClick = { onDaySelected(day) }
                 )
@@ -70,9 +72,9 @@ fun MonthHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onPrev) { Icon(Icons.Default.KeyboardArrowDown, null) }
+        IconButton(onClick = onPrev) { Icon(Icons.Default.KeyboardArrowLeft, null) }
         Text(SimpleDateFormat("MMMM yyyy").format(monthCalendar.time), style = MaterialTheme.typography.titleLarge)
-        IconButton(onClick = onNext) { Icon(Icons.Default.KeyboardArrowUp, null) }
+        IconButton(onClick = onNext) { Icon(Icons.Default.KeyboardArrowRight, null) }
     }
 }
 
@@ -97,14 +99,14 @@ fun WeekdayLabels() {
 fun DayCell_Month(
     day: Calendar,
     isInCurrentMonth: Boolean,
-    isIn14DayRange: Boolean,
+    isInDataDateRange: Boolean,
     hasEvents: Boolean,
     onClick: () -> Unit
 ) {
     val today = Calendar.getInstance()
     val isToday = day.isSameDayAs(today)
 
-    val clickableModifier = if (isIn14DayRange) {
+    val clickableModifier = if (isInDataDateRange) {
         Modifier.clickable(onClick = onClick)
     } else {
         Modifier   // no clickable modifier added → cannot click
@@ -112,18 +114,20 @@ fun DayCell_Month(
 
     Column(
         modifier = Modifier
+            .height(50.dp)
             .padding(4.dp)
             .clip(RoundedCornerShape(6.dp))
             .then(clickableModifier)
             .background(
                 when {
                     isToday -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                    !isIn14DayRange -> Color.Transparent
+                    !isInDataDateRange -> Color.Transparent
                     else -> Color.Gray.copy(alpha = 0.2f)
                 }
             )
             .padding(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
             text = day.get(Calendar.DAY_OF_MONTH).toString(),
@@ -137,6 +141,9 @@ fun DayCell_Month(
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
             )
+        } else {
+            // This spacer takes up the same space as the dot, ensuring consistent height
+            Spacer(modifier = Modifier.size(6.dp))
         }
     }
 }
