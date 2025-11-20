@@ -124,68 +124,6 @@ fun SignUpScreen(
     }
 
 }
-//
-//// composable for google login page
-//@Composable
-//fun SignUpGoogle(loginViewModel: LoginViewModel, onSuccess: ()-> Unit, onUserExists: () -> Unit) {
-//    val uiState by loginViewModel.uiState.collectAsState()
-//    val context = LocalContext.current
-//
-//    val signInLauncher = rememberLauncherForActivityResult(
-//        contract = ActivityResultContracts.StartActivityForResult()
-//    ) { result ->
-//        // Pass the result directly to the ViewModel to handle the logic.
-//        loginViewModel.handleSignInResult(result)
-//    }
-//    Column(
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center,
-//        modifier = Modifier.fillMaxSize()
-//    ) {
-//        if (uiState.isLoggedIn) {
-//            // if signed in to google successfully, move to next step of the sign up process
-//            when (uiState.userAlreadyExists) {
-//                true -> {
-//                    // User exists, redirect to login page
-//                    LaunchedEffect(Unit) {
-//                        loginViewModel.signOut(context)
-//                        onUserExists()
-//                    }
-//                }
-//                false -> {
-//                    // New user, continue with sign up
-//                    LaunchedEffect(Unit) {
-//                        onSuccess()
-//                    }
-//                }
-//                null -> {
-//                    // Still checking
-//                    CircularProgressIndicator()
-//                }
-//            }        } else if (uiState.isLoginInProgress) {
-//            CircularProgressIndicator()
-//        } else {
-//            // --- SIGNED-OUT VIEW ---
-//            Button(
-//                onClick = {
-//                    val client = loginViewModel.getGoogleSignInClient(context)
-//                    signInLauncher.launch(client.signInIntent)
-//                }
-//            ) {
-//                Text(text = "Sign up with Google")
-//            }
-//        }
-//
-//        // Optionally display errors
-//        uiState.error?.let {
-//            Text(
-//                text = it,
-//                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
-//                modifier = Modifier.padding(top = 8.dp)
-//            )
-//        }
-//    }
-//}
 
 // composable for entering other user info
 
