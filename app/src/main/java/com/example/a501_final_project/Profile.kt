@@ -64,7 +64,7 @@ fun ProfileScreen(modifier: Modifier, loginViewModel: LoginViewModel = viewModel
         } else {
             // doesn't navigate to login screen
             // stays in profile screen so after logging back in your see your details
-            LoginScreen(modifier, loginViewModel)
+            LoginScreen(modifier, loginViewModel, navController)
         }
     }
 }

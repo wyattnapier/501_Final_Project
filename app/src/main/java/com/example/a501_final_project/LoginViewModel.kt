@@ -5,6 +5,9 @@ import android.content.Context
 import android.util.Log
 import androidx.activity.result.ActivityResult
 import androidx.compose.animation.core.copy
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -17,6 +20,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.auth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -24,6 +28,12 @@ import kotlinx.coroutines.tasks.await
 import com.google.api.services.calendar.CalendarScopes
 
 class LoginViewModel() : ViewModel() {
+
+    // to send to firestore..?
+    var displayName by mutableStateOf("")
+    var username by mutableStateOf("")
+
+    var venmoUsername by mutableStateOf("")
 
     private val auth: FirebaseAuth = Firebase.auth
 
@@ -36,15 +46,18 @@ class LoginViewModel() : ViewModel() {
         auth.addAuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser
             if (firebaseUser != null) {
-                // User is signed in to Firebase
-                _uiState.value = _uiState.value.copy(
-                    userEmail = firebaseUser.email,
-                    userName = firebaseUser.displayName,
-                    profilePictureUrl = firebaseUser.photoUrl?.toString(),
-                    isLoginInProgress = false,
-                    isLoggedIn = true,
-                    userAccount = firebaseUser.email?.let { Account(it, "com.google") }
-                )
+                viewModelScope.launch {
+                    val userExists = checkExistingUser()
+                    _uiState.value = _uiState.value.copy(
+                        userEmail = firebaseUser.email,
+                        userName = firebaseUser.displayName,
+                        profilePictureUrl = firebaseUser.photoUrl?.toString(),
+                        isLoginInProgress = false,
+                        isLoggedIn = true,
+                        userAccount = firebaseUser.email?.let { Account(it, "com.google") },
+                        userAlreadyExists = userExists  // This is now set at the same time
+                    )
+                }
                 Log.d("LoginViewModel", "Firebase user signed in: ${firebaseUser.email}")
             } else {
                 // User is signed out
@@ -104,6 +117,14 @@ class LoginViewModel() : ViewModel() {
         try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
+
+//            // Check if user already exists in Firestore
+//            val userExists = checkExistingUser()
+//            _uiState.value = _uiState.value.copy(
+//                isLoginInProgress = false,
+//                userAlreadyExists = userExists  // Add this new field
+//            )
+
             // AuthStateListener will handle updating the UI state.
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
@@ -133,6 +154,55 @@ class LoginViewModel() : ViewModel() {
             }
         }
     }
+
+
+    /**
+     * function to store user data to firestore
+     */
+    fun saveUserToDb() {
+
+        // get instance of firebase (geeks for geeks did in main but i am doing here...?)
+        val db = FirebaseFirestore.getInstance()
+        val currentUser = auth.currentUser // this will alredybe in there cuz it gets sent on google auth, which has happened byt his point
+
+        if (currentUser == null) {
+            Log.w("LoginViewModel", "No authenticated user found, can't save to Firestore")
+            return
+        }
+
+        val user = Member(name = displayName, username = username, venmoUsername = venmoUsername)
+        val uid = currentUser.uid // this hte current user's UID given by firebase auth
+
+        db.collection("users") // the name of the collection in firestore
+            .document(uid)
+            .set(user)
+            .addOnSuccessListener {
+                Log.d("LoginViewModel", "User saved to Firestore with ID: ${uid}")
+            }
+            .addOnFailureListener { e ->
+                Log.w("LoginViewModel", "Error saving user to Firestore", e)
+            }
+    }
+
+    /**
+     * function to check if user is in db already
+     */
+    suspend fun checkExistingUser() : Boolean {
+        val currentUser = auth.currentUser ?: return false
+        val db = FirebaseFirestore.getInstance()
+
+        return try {
+            val document = db.collection("users")
+                .document(currentUser.uid)
+                .get()
+                .await()
+
+            document.exists()
+        } catch (e: Exception) {
+            Log.e("LoginViewModel", "Error checking if user exists", e)
+            false
+        }
+    }
 }
 
 // A data class to hold all UI state in one object.
@@ -143,5 +213,13 @@ data class LoginUiState(
     val profilePictureUrl: String? = null,
     val isLoginInProgress: Boolean = false,
     val error: String? = null,
-    val isLoggedIn: Boolean = false // flag for firebase state
+    val isLoggedIn: Boolean = false, // flag for firebase state
+    val userAlreadyExists: Boolean? = null
+)
+
+// data class for a user
+data class Member(
+    val name : String,
+    val username : String,
+    val venmoUsername : String,
 )

@@ -1,10 +1,13 @@
 package com.example.a501_final_project
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.a501_final_project.events.EventsScreen
 
 @Composable
@@ -14,6 +17,12 @@ fun AppNavGraph(
     mainViewModel: MainViewModel,
     loginViewModel: LoginViewModel
 ) {
+
+    // creating shared viewModels for all screens
+    val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
+    val loginViewModel: LoginViewModel = viewModel()
+
+
     NavHost(
         navController = navController,
         startDestination = Screen.Login.route
@@ -46,7 +55,7 @@ fun AppNavGraph(
         }
         // Login
         composable(Screen.Login.route) {
-            LoginScreen(modifier = modifier, viewModel = loginViewModel)
+            LoginScreen(modifier = modifier, viewModel = loginViewModel, navController = navController)
         }
         // Settings
         composable(Screen.Settings.route) {
@@ -59,6 +68,16 @@ fun AppNavGraph(
                 modifier = modifier
             )
             // TODO: add onclick?
+        }
+
+        // User sign up page
+        // TODO: adjust this navigation later on, currently jsut to be able to navigate to sign up page
+        composable(Screen.UserSignUp.route) {
+            SignUpScreen(loginViewModel = loginViewModel, navController = navController, onNavigateToLogin = {
+                navController.navigate("login") {
+                    popUpTo("signup") { inclusive = true }
+                }
+            })
         }
     }
 }

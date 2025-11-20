@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -17,11 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 
 @Composable
 fun LoginScreen(
     modifier: Modifier = Modifier,
-    viewModel: LoginViewModel = viewModel()
+    viewModel: LoginViewModel = viewModel(),
+    navController: NavController,
 ) {
     // Observe the UI state from the ViewModel.
     // The UI will automatically recompose whenever the state changes.
@@ -49,6 +52,11 @@ fun LoginScreen(
             Button(onClick = { viewModel.signOut(context) }) {
                 Text(text = "Logout")
             }
+            Button(onClick={
+                navController.navigate("Home")
+            }) {
+                Text(text="Go Home")
+            }
         } else if (uiState.isLoginInProgress) {
             CircularProgressIndicator()
         } else {
@@ -60,6 +68,18 @@ fun LoginScreen(
                 }
             ) {
                 Text(text = "Login")
+            }
+
+            // OR SIGN UP (just placeholding/temp)?
+            Text(text="OR",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(16.dp)
+            )
+            Button(onClick={
+                navController.navigate("UserSignUp")
+            }) {
+                Text(text="Sign up")
             }
         }
 
