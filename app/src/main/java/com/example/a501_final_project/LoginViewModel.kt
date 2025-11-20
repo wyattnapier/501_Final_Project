@@ -25,8 +25,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import com.google.api.services.calendar.CalendarScopes
 
-class LoginViewModel : ViewModel() {
+class LoginViewModel() : ViewModel() {
 
     // to send to firestore..?
     var displayName by mutableStateOf("")
@@ -73,12 +74,16 @@ class LoginViewModel : ViewModel() {
         }
     }
 
-    // get token that firebase can use to sign in while also getting gcal permissions
+    // get token that firebase can use to sign in while also getting gcal permissions and auth code
     fun getGoogleSignInClient(context: Context): GoogleSignInClient {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
-            .requestScopes(Scope("https://www.googleapis.com/auth/calendar.events.readonly"))
+            .requestServerAuthCode(context.getString(R.string.default_web_client_id))
+            .requestScopes( // must match with scopes in MainViewModel (except calendarlist)
+//                Scope(CalendarScopes.CALENDAR), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
+                Scope(CalendarScopes.CALENDAR_READONLY), // See and download any calendar you can access using your Google Calendar
+            )
             .build()
         return GoogleSignIn.getClient(context, gso)
     }
@@ -92,6 +97,7 @@ class LoginViewModel : ViewModel() {
 
                 if (googleAccount?.idToken != null) {
                     firebaseAuthWithGoogle(googleAccount.idToken!!)
+                    // TODO: add call to fetch gcal data here
                 } else {
                     _uiState.value = _uiState.value.copy(
                         error = "Google Sign-In failed: No ID token.",
