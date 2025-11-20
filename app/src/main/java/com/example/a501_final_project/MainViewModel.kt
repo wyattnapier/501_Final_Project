@@ -351,13 +351,9 @@ class MainViewModel : ViewModel() {
 
     /***********************************************************************************************************************************************************************/
     // --- CALENDAR SECTION ---
-    // Store events as a map from Calendar Name -> List of Events
-    private val _eventsByCalendar = MutableStateFlow<Map<String, List<CalendarEventInfo>>>(emptyMap())
-    val eventsByCalendar = _eventsByCalendar.asStateFlow()
 
-    // Store the set of expanded calendar names
-    private val _expandedCalendarNames = MutableStateFlow<Set<String>>(emptySet())
-    val expandedCalendarNames = _expandedCalendarNames.asStateFlow()
+    private val _events = MutableStateFlow<List<CalendarEventInfo>>(emptyList())
+    val events: StateFlow<List<CalendarEventInfo>> = _events.asStateFlow()
 
     // State to manage the current calendar view
     private val _calendarViewType = MutableStateFlow(CalendarViewType.AGENDA)
@@ -393,15 +389,6 @@ class MainViewModel : ViewModel() {
     fun setCalendarView(viewType: CalendarViewType) {
         _calendarViewType.value = viewType
         // TODO: re-fetch events if the date range changes significantly
-    }
-
-    fun toggleCalendarSection(calendarName: String) {
-        val current = _expandedCalendarNames.value
-        _expandedCalendarNames.value = if (calendarName in current) {
-            current - calendarName
-        } else {
-            current + calendarName
-        }
     }
 
     fun incrementThreeDayView() {
@@ -483,7 +470,6 @@ class MainViewModel : ViewModel() {
     fun fetchCalendarEvents(
         context: Context,
         days: Int = numCalendarDataDays,
-        calendarFilterName: String? = "Other Events" // filter to only get one calendar if not null
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             // Get the last signed-in Google account using the provided context.
@@ -607,13 +593,7 @@ class MainViewModel : ViewModel() {
                             } else { null } // Skip timed events with invalid dates
                         }
                     }
-
-                _eventsByCalendar.value = if (items.isNotEmpty()) {
-                    mapOf("Other Events" to items)
-                } else {
-                    emptyMap()
-                }
-
+                _events.value = items
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Calendar API error", e)
                 _calendarError.value = "Failed to fetch events: ${e.message}"

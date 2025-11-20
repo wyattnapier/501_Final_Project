@@ -35,10 +35,10 @@ fun EventsScreen(
     mainViewModel: MainViewModel
 ) {
     val loginState by loginViewModel.uiState.collectAsState()
-    val eventsByCalendar by mainViewModel.eventsByCalendar.collectAsState()
     val isLoading by mainViewModel.isLoadingCalendar.collectAsState()
     val error by mainViewModel.calendarError.collectAsState()
     val viewType by mainViewModel.calendarViewType.collectAsState()
+    val allEvents by mainViewModel.events.collectAsState()
     var selectedEvent by remember { mutableStateOf<CalendarEventInfo?>(null) }
     val leftDay by mainViewModel.leftDayForThreeDay.collectAsState()
     val calendarDataDateRangeStart by mainViewModel.calendarDataDateRangeStart.collectAsState()
@@ -87,13 +87,13 @@ fun EventsScreen(
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when {
                 !loginState.isLoggedIn -> Text("Please sign in to see events.")
-                isLoading && eventsByCalendar.isEmpty() -> CircularProgressIndicator()
+                isLoading && allEvents.isEmpty() -> CircularProgressIndicator()
                 error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error)
-                eventsByCalendar.isEmpty() && !isLoading -> Text("No upcoming events found.")
+                allEvents.isEmpty() && !isLoading -> Text("No upcoming events found.")
                 else -> {
-                    val allEvents = eventsByCalendar.values.flatten().sortedBy { it.startDateTime?.value }
+                    val allEvents = allEvents.sortedBy { it.startDateTime?.value }
                     when (viewType) {
-                        CalendarViewType.AGENDA -> AgendaView(mainViewModel)
+                        CalendarViewType.AGENDA -> AgendaView(events = allEvents)
                         CalendarViewType.THREE_DAY -> ThreeDayView(
                             leftDay = leftDay,
                             events = allEvents,
