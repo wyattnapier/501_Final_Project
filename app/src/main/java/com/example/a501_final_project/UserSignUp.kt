@@ -27,9 +27,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.remember
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.navigation.NavController
 import kotlin.math.log
 
 
@@ -42,77 +47,145 @@ enum class SignUpSteps {
 }
 @Composable
 fun SignUpScreen(
-    loginViewModel: LoginViewModel
+    loginViewModel: LoginViewModel,
+    navController: NavController,
+    onNavigateToLogin : () -> Unit
 ) {
     var currentStep by rememberSaveable { mutableStateOf(SignUpSteps.GOOGLE_LOGIN) }
-    when (currentStep) {
-        // handle each different step[
-        SignUpSteps.GOOGLE_LOGIN -> {
-            SignUpGoogle(loginViewModel, onSuccess = {
-                currentStep = SignUpSteps.USER_INFO // update to go to next step
-            })
-        }
-        SignUpSteps.USER_INFO -> {
-            GetUserInfo(onNext = { username, name, venmoUsername ->
-                loginViewModel.username = username
-                loginViewModel.displayName = name
-                loginViewModel.venmoUsername = venmoUsername
-                currentStep = SignUpSteps.REVIEW
-            })
-        }
+    val snackbarHostState = remember { SnackbarHostState() }
+    // scaffold so we can have snackbar message
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        when (currentStep) {
+            // handle each different step[
+            SignUpSteps.GOOGLE_LOGIN -> {
+                val context = LocalContext.current
+                val uiState by loginViewModel.uiState.collectAsState()
 
-        SignUpSteps.REVIEW -> {
-            ReviewInfo(loginViewModel)
-        }
-
-    }
-
-}
-
-// composable for google login page
-@Composable
-fun SignUpGoogle(loginViewModel: LoginViewModel, onSuccess: ()-> Unit) {
-    val uiState by loginViewModel.uiState.collectAsState()
-    val context = LocalContext.current
-
-    val signInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        // Pass the result directly to the ViewModel to handle the logic.
-        loginViewModel.handleSignInResult(result)
-    }
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        if (uiState.isLoggedIn) {
-            // if signed in to google successfully, move to next step of the sign up process
-            LaunchedEffect(Unit) { onSuccess() } // on success does what was defined for it in the parent composable
-        } else if (uiState.isLoginInProgress) {
-            CircularProgressIndicator()
-        } else {
-            // --- SIGNED-OUT VIEW ---
-            Button(
-                onClick = {
-                    val client = loginViewModel.getGoogleSignInClient(context)
-                    signInLauncher.launch(client.signInIntent)
+                val launcher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.StartActivityForResult()
+                ) { result ->
+                    loginViewModel.handleSignInResult(result)
                 }
-            ) {
-                Text(text = "Sign up with Google")
-            }
-        }
 
-        // Optionally display errors
-        uiState.error?.let {
-            Text(
-                text = it,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
-            )
+                // launch Google Sign-In automatically
+                // essentially the logic of prev screen just here so its direct
+                LaunchedEffect(Unit) {
+                    val client = loginViewModel.getGoogleSignInClient(context)
+                    launcher.launch(client.signInIntent)
+                }
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxSize()
+                        .padding(paddingValues)
+                ) {
+                    when {
+                        uiState.isLoginInProgress -> CircularProgressIndicator()
+
+                        uiState.isLoggedIn && uiState.userAlreadyExists == true -> {
+                            LaunchedEffect(Unit) {
+                                snackbarHostState.showSnackbar(
+                                    message = "Account already exists. Please login",
+                                    withDismissAction = true
+                                )
+                                loginViewModel.signOut(context)
+                                onNavigateToLogin()
+                            }
+                        }
+
+                        uiState.isLoggedIn && uiState.userAlreadyExists == false -> {
+                            LaunchedEffect(Unit) {
+                                currentStep = SignUpSteps.USER_INFO
+                            }
+                        }
+
+                        uiState.error != null -> Text(uiState.error!!, color = Color.Red)
+                    }
+                }
+            }
+
+            SignUpSteps.USER_INFO -> {
+                GetUserInfo(onNext = { username, name, venmoUsername ->
+                    loginViewModel.username = username
+                    loginViewModel.displayName = name
+                    loginViewModel.venmoUsername = venmoUsername
+                    currentStep = SignUpSteps.REVIEW
+                })
+            }
+
+            SignUpSteps.REVIEW -> {
+                ReviewInfo(loginViewModel)
+            }
+
         }
     }
+
 }
+//
+//// composable for google login page
+//@Composable
+//fun SignUpGoogle(loginViewModel: LoginViewModel, onSuccess: ()-> Unit, onUserExists: () -> Unit) {
+//    val uiState by loginViewModel.uiState.collectAsState()
+//    val context = LocalContext.current
+//
+//    val signInLauncher = rememberLauncherForActivityResult(
+//        contract = ActivityResultContracts.StartActivityForResult()
+//    ) { result ->
+//        // Pass the result directly to the ViewModel to handle the logic.
+//        loginViewModel.handleSignInResult(result)
+//    }
+//    Column(
+//        horizontalAlignment = Alignment.CenterHorizontally,
+//        verticalArrangement = Arrangement.Center,
+//        modifier = Modifier.fillMaxSize()
+//    ) {
+//        if (uiState.isLoggedIn) {
+//            // if signed in to google successfully, move to next step of the sign up process
+//            when (uiState.userAlreadyExists) {
+//                true -> {
+//                    // User exists, redirect to login page
+//                    LaunchedEffect(Unit) {
+//                        loginViewModel.signOut(context)
+//                        onUserExists()
+//                    }
+//                }
+//                false -> {
+//                    // New user, continue with sign up
+//                    LaunchedEffect(Unit) {
+//                        onSuccess()
+//                    }
+//                }
+//                null -> {
+//                    // Still checking
+//                    CircularProgressIndicator()
+//                }
+//            }        } else if (uiState.isLoginInProgress) {
+//            CircularProgressIndicator()
+//        } else {
+//            // --- SIGNED-OUT VIEW ---
+//            Button(
+//                onClick = {
+//                    val client = loginViewModel.getGoogleSignInClient(context)
+//                    signInLauncher.launch(client.signInIntent)
+//                }
+//            ) {
+//                Text(text = "Sign up with Google")
+//            }
+//        }
+//
+//        // Optionally display errors
+//        uiState.error?.let {
+//            Text(
+//                text = it,
+//                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+//                modifier = Modifier.padding(top = 8.dp)
+//            )
+//        }
+//    }
+//}
 
 // composable for entering other user info
 
@@ -130,8 +203,9 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
 //        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
-            .padding(top=32.dp, start=16.dp, end=16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 32.dp, start = 16.dp, end = 16.dp)
     ) {
         Text(text = "Tell us more about yourself!",
             style = MaterialTheme.typography.headlineSmall,
@@ -188,8 +262,9 @@ fun ReviewInfo(loginViewModel: LoginViewModel) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
 //        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
-            .padding(top=32.dp, start=16.dp, end=16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 32.dp, start = 16.dp, end = 16.dp)
     ) {
         Text(text = "Review your information",
             style = MaterialTheme.typography.headlineSmall,

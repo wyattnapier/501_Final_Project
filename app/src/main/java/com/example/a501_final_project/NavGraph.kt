@@ -68,7 +68,11 @@ fun AppNavGraph(
         // User sign up page
         // TODO: adjust this navigation later on, currently jsut to be able to navigate to sign up page
         composable(Screen.UserSignUp.route) {
-            SignUpScreen(loginViewModel = loginViewModel)
+            SignUpScreen(loginViewModel = loginViewModel, navController = navController, onNavigateToLogin = {
+                navController.navigate("login") {
+                    popUpTo("signup") { inclusive = true }
+                }
+            })
         }
     }
 }

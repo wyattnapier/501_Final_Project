@@ -45,15 +45,18 @@ class LoginViewModel : ViewModel() {
         auth.addAuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser
             if (firebaseUser != null) {
-                // User is signed in to Firebase
-                _uiState.value = _uiState.value.copy(
-                    userEmail = firebaseUser.email,
-                    userName = firebaseUser.displayName,
-                    profilePictureUrl = firebaseUser.photoUrl?.toString(),
-                    isLoginInProgress = false,
-                    isLoggedIn = true,
-                    userAccount = firebaseUser.email?.let { Account(it, "com.google") }
-                )
+                viewModelScope.launch {
+                    val userExists = checkExistingUser()
+                    _uiState.value = _uiState.value.copy(
+                        userEmail = firebaseUser.email,
+                        userName = firebaseUser.displayName,
+                        profilePictureUrl = firebaseUser.photoUrl?.toString(),
+                        isLoginInProgress = false,
+                        isLoggedIn = true,
+                        userAccount = firebaseUser.email?.let { Account(it, "com.google") },
+                        userAlreadyExists = userExists  // This is now set at the same time
+                    )
+                }
                 Log.d("LoginViewModel", "Firebase user signed in: ${firebaseUser.email}")
             } else {
                 // User is signed out
@@ -109,6 +112,14 @@ class LoginViewModel : ViewModel() {
         try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
+
+//            // Check if user already exists in Firestore
+//            val userExists = checkExistingUser()
+//            _uiState.value = _uiState.value.copy(
+//                isLoginInProgress = false,
+//                userAlreadyExists = userExists  // Add this new field
+//            )
+
             // AuthStateListener will handle updating the UI state.
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
@@ -167,6 +178,26 @@ class LoginViewModel : ViewModel() {
                 Log.w("LoginViewModel", "Error saving user to Firestore", e)
             }
     }
+
+    /**
+     * function to check if user is in db already
+     */
+    suspend fun checkExistingUser() : Boolean {
+        val currentUser = auth.currentUser ?: return false
+        val db = FirebaseFirestore.getInstance()
+
+        return try {
+            val document = db.collection("users")
+                .document(currentUser.uid)
+                .get()
+                .await()
+
+            document.exists()
+        } catch (e: Exception) {
+            Log.e("LoginViewModel", "Error checking if user exists", e)
+            false
+        }
+    }
 }
 
 // A data class to hold all UI state in one object.
@@ -177,7 +208,8 @@ data class LoginUiState(
     val profilePictureUrl: String? = null,
     val isLoginInProgress: Boolean = false,
     val error: String? = null,
-    val isLoggedIn: Boolean = false // flag for firebase state
+    val isLoggedIn: Boolean = false, // flag for firebase state
+    val userAlreadyExists: Boolean? = null
 )
 
 // data class for a user
