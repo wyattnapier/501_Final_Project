@@ -42,7 +42,7 @@ fun HomeScreen(
     val showChores by prefs.showChores.collectAsState(initial = true)
     val showEvents by prefs.showEvents.collectAsState(initial = true)
 
-    val eventsByCalendar by mainViewModel.eventsByCalendar.collectAsState()
+    val events by mainViewModel.events.collectAsState()
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp)
@@ -54,7 +54,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 UpcomingEventsWidget(
-                    events = eventsByCalendar.values.flatten().sortedBy { it.startDateTime?.value },
+                    events = events.sortedBy { it.startDateTime?.value },
                     onCardClick = { eventsWidgetCardOnClick(navController, mainViewModel) },
                     onEventClick = { eventsWidgetEventOnClick(navController, mainViewModel) },
                     modifier = Modifier.fillMaxSize()

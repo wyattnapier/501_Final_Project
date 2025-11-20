@@ -1,11 +1,19 @@
 package com.example.a501_final_project.events
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ParentDataModifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -27,35 +35,65 @@ fun EventsScreen(
     mainViewModel: MainViewModel
 ) {
     val loginState by loginViewModel.uiState.collectAsState()
-    val eventsByCalendar by mainViewModel.eventsByCalendar.collectAsState()
     val isLoading by mainViewModel.isLoadingCalendar.collectAsState()
     val error by mainViewModel.calendarError.collectAsState()
     val viewType by mainViewModel.calendarViewType.collectAsState()
+    val allEvents by mainViewModel.events.collectAsState()
     var selectedEvent by remember { mutableStateOf<CalendarEventInfo?>(null) }
     val leftDay by mainViewModel.leftDayForThreeDay.collectAsState()
-    val fourteenDayStart by mainViewModel.fourteenDayStart.collectAsState()
-    val fourteenDayEnd by mainViewModel.fourteenDayEnd.collectAsState()
-    val canDecrement = leftDay.after(fourteenDayStart)
+    val calendarDataDateRangeStart by mainViewModel.calendarDataDateRangeStart.collectAsState()
+    val calendarDataDateRangeEnd by mainViewModel.calendarDataDateRangeEnd.collectAsState()
+    val canDecrement = leftDay.after(calendarDataDateRangeStart)
     val lastIncrementingDay = (leftDay.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 3) } // left day + 2 is last visible day in 3 day view
-    val canIncrement = lastIncrementingDay.before(fourteenDayEnd)
+    val canIncrement = lastIncrementingDay.before(calendarDataDateRangeEnd)
+    val context = LocalContext.current
+    var showAddEventDialog by remember { mutableStateOf(false) }
 
 
     Column(modifier = modifier.fillMaxSize()) {
-        CalendarViewSwitcher(
-            selectedView = viewType,
-            onViewSelected = { mainViewModel.setCalendarView(it) }
-        )
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { showAddEventDialog = true }, // Open the dialog
+                enabled = loginState.isLoggedIn
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Add event",
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+
+            CalendarViewSwitcher(
+                selectedView = viewType,
+                onViewSelected = { mainViewModel.setCalendarView(it) }
+            )
+
+            IconButton(
+                onClick = {
+                    if (loginState.isLoggedIn) {
+                        mainViewModel.fetchCalendarEvents(context)
+                    }
+                },
+                enabled = !isLoading && loginState.isLoggedIn
+            ) {
+                Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
+            }
+        }
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when {
                 !loginState.isLoggedIn -> Text("Please sign in to see events.")
-                isLoading && eventsByCalendar.isEmpty() -> CircularProgressIndicator()
+                isLoading && allEvents.isEmpty() -> CircularProgressIndicator()
                 error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error)
-                eventsByCalendar.isEmpty() && !isLoading -> Text("No upcoming events found.")
+                allEvents.isEmpty() && !isLoading -> Text("No upcoming events found.")
                 else -> {
-                    val allEvents = eventsByCalendar.values.flatten().sortedBy { it.startDateTime?.value }
+                    val allEvents = allEvents.sortedBy { it.startDateTime?.value }
                     when (viewType) {
-                        CalendarViewType.AGENDA -> AgendaView(mainViewModel)
+                        CalendarViewType.AGENDA -> AgendaView(events = allEvents)
                         CalendarViewType.THREE_DAY -> ThreeDayView(
                             leftDay = leftDay,
                             events = allEvents,
@@ -65,10 +103,10 @@ fun EventsScreen(
                             canIncrement = canIncrement,
                             canDecrement = canDecrement
                         )
-                        CalendarViewType.FOURTEEN_DAY -> MonthCalendarView(
+                        CalendarViewType.MONTH -> MonthCalendarView(
                             events = allEvents,
-                            fourteenDayStart = fourteenDayStart,
-                            fourteenDayEnd = fourteenDayEnd,
+                            calendarDataDateRangeStart = calendarDataDateRangeStart,
+                            calendarDataDateRangeEnd = calendarDataDateRangeEnd,
                             onDaySelected = { clickedDay ->
                                 mainViewModel.onDaySelected(clickedDay)
                                 mainViewModel.setCalendarView(CalendarViewType.THREE_DAY)
@@ -86,6 +124,16 @@ fun EventsScreen(
                 onDismiss = { selectedEvent = null }
             )
         }
+
+        if (showAddEventDialog) {
+            AddEventDialog(
+                onDismiss = { showAddEventDialog = false },
+                onConfirm = { summary, description, start, end ->
+                    mainViewModel.addCalendarEvent(context, summary, description, start, end)
+                    showAddEventDialog = false // Close dialog on confirm
+                }
+            )
+        }
     }
 }
 
@@ -97,7 +145,6 @@ fun CalendarViewSwitcher(
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth()
             .padding(8.dp),
         horizontalArrangement = Arrangement.Center
     ) {
@@ -114,10 +161,10 @@ fun CalendarViewSwitcher(
         ) { Text("3 Day") }
 
         Button(
-            onClick = { onViewSelected(CalendarViewType.FOURTEEN_DAY) },
-            colors = if (selectedView == CalendarViewType.FOURTEEN_DAY) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
+            onClick = { onViewSelected(CalendarViewType.MONTH) },
+            colors = if (selectedView == CalendarViewType.MONTH) ButtonDefaults.buttonColors() else ButtonDefaults.outlinedButtonColors(),
             modifier = Modifier.padding(horizontal = 4.dp)
-        ) { Text("14 Day") }
+        ) { Text("Month") }
     }
 }
 

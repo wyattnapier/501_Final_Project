@@ -7,8 +7,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
@@ -53,20 +51,27 @@ fun ThreeDayView(
     }
 
     val allDayEventsByDay = remember(events, days) {
-        days.associateWith { day ->
-            val dayAtMidnight = (day.clone() as Calendar).apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
+        // First, identify all events that should be treated as all-day.
+        // This includes true all-day events and timed events that span across midnight.
+        val spanningOrAllDayEvents = events.filter { event ->
+            event.isAllDay || (event.startDateTime != null && !event.startDateTime.toCalendar().isSameDayAs(
+                event.endDateTime?.toCalendar()
+            ))
+        }
 
-            events.filter { event ->
-                event.isAllDay &&
-                        event.startDateTime != null &&
-                        event.endDateTime != null &&
-                        !dayAtMidnight.before(event.startDateTime.toCalendarAtMidnight()) &&
-                        !dayAtMidnight.after(event.endDateTime.toCalendarAtMidnight())
+        // Then, for each day in the view, find which of these events fall on that day.
+        days.associateWith { day ->
+            val dayStart = day.cloneAs { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0) }
+            val dayEnd = day.cloneAs { set(Calendar.HOUR_OF_DAY, 23); set(Calendar.MINUTE, 59) }
+
+            spanningOrAllDayEvents.filter { event ->
+                val eventStart = event.startDateTime?.toCalendar()
+                val eventEnd = event.endDateTime?.toCalendar()
+
+                // An event is on this day if the day is not completely after the event ends,
+                // and the day is not completely before the event starts.
+                eventStart != null && eventEnd != null &&
+                        !dayStart.after(eventEnd) && !dayEnd.before(eventStart)
             }
         }
     }
@@ -76,6 +81,7 @@ fun ThreeDayView(
             events.filter { event ->
                 !event.isAllDay &&
                         event.startDateTime != null &&
+                        event.startDateTime.toCalendar().isSameDayAs(event.endDateTime?.toCalendar()) &&
                         event.startDateTime.toCalendar().isSameDayAs(day)
             }
         }
