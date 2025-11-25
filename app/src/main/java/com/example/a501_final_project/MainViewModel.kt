@@ -126,7 +126,7 @@ class MainViewModel : ViewModel() {
             householdID = 1,
             userID = 2,
             dueDate = "November 15, 2025",
-            completed = true,
+            completed = false,
             priority = true
         ),
         Chore(
