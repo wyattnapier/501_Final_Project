@@ -3,6 +3,7 @@ package com.example.a501_final_project
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -61,7 +62,7 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
     val showPrevChores by choresViewModel.showPrevChores.collectAsState()
     Column(modifier = modifier
         .fillMaxHeight()
-        .padding(5.dp),
+        .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)){
         if (showPrevChores) {
             PrevChores(chores, choresViewModel)
@@ -76,20 +77,40 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
 fun MyChoreWidget(chores: List<Chore>, mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
     val chore = chores.find { it.userID == mainViewModel.userID && it.householdID == mainViewModel.householdID }
     val context = LocalContext.current
-    var imageUri by remember { mutableStateOf<Uri?>(null) }
-    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val isOverdue = remember(chore?.dueDate) {
+        chore?.dueDate?.let { dueDateString ->
+            try {
+                val dateFormat = java.text.SimpleDateFormat("MMMM d, yyyy", java.util.Locale.getDefault())
+
+                dateFormat.isLenient = false // Good practice: disallow invalid dates
+                val dueDate = dateFormat.parse(dueDateString)
+                val today = java.util.Calendar.getInstance().time
+
+                // A due date is overdue if it's strictly before today
+                dueDate != null && dueDate.before(today)
+            } catch (e: java.text.ParseException) {
+                // If parsing fails, it's not considered overdue
+                Log.d("MyChoreWidget", "Error parsing due date: ${e.message}")
+                false
+            }
+        } ?: false // If dueDate is null, it's not overdue
+    }
+
+    // Get URIs from ViewModel
+    val tempImageUri by choresViewModel.tempImageUri.collectAsState()
+    val choreImageUris by choresViewModel.choreImageUris.collectAsState()
+    val capturedImageUri = chore?.let { choreImageUris[it.choreID] }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
         onResult = { success ->
-            if (success && imageUri != null) {
-                // Photo captured successfully - save the URI for display
-                capturedImageUri = imageUri
+            if (success && tempImageUri != null && chore != null) {
+                // Photo captured successfully
                 Toast.makeText(context, "Photo captured! Chore marked as complete.", Toast.LENGTH_SHORT).show()
-                choresViewModel.completeChore(chore!!)
+                choresViewModel.completeChoreWithPhoto(chore, tempImageUri!!)
             } else {
                 Toast.makeText(context, "Photo capture cancelled.", Toast.LENGTH_SHORT).show()
-                imageUri = null
+                choresViewModel.clearTempImageUri()
             }
         }
     )
@@ -99,79 +120,90 @@ fun MyChoreWidget(chores: List<Chore>, mainViewModel: MainViewModel, choresViewM
     ) { isGranted: Boolean ->
         if (isGranted) {
             val uri = createImageUri(context)
-            imageUri = uri
+            choresViewModel.setTempImageUri(uri)
             cameraLauncher.launch(uri)
         } else {
             Toast.makeText(context, "Camera permission is required to take a picture.", Toast.LENGTH_SHORT).show()
         }
     }
 
-    Row(
+    Column(
         modifier = modifier
             .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.secondaryContainer)
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(10.dp)
     ) {
-        Column(modifier = Modifier.weight(2f, true)) {
-            Text("My Chore", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
-            Text(chore?.name ?: "No chore assigned", fontSize = MaterialTheme.typography.bodyLarge.fontSize)
-            Text(
-                "Due Date: ${chore?.dueDate}",
-                fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                color = if (chore?.completed == true) Color.Green else MaterialTheme.colorScheme.onPrimaryContainer
-            )
+        // First Row: Task info and button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(2f, true)) {
+                Text("My Chore", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
+                Text(chore?.name ?: "No chore assigned", fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                Text(
+                    "Due Date: ${chore?.dueDate}",
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    color = if (isOverdue && chore?.completed != true) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+            Column(
+                modifier = Modifier.weight(1f, true),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Button(
+                    onClick = {
+                        if (chore == null) {
+                            Toast.makeText(context, "No chore assigned!", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
 
-            // Display the captured image
-            capturedImageUri?.let { uri ->
-                Box(
-                    modifier = Modifier
-                        .padding(top = 8.dp)
-                        .fillMaxWidth()
-                        .height(200.dp)
-                        .clip(MaterialTheme.shapes.medium)
-                        .background(Color.LightGray)
+                        if (chore.completed) {
+                            Toast.makeText(context, "Chore already completed!", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+
+                        when (PackageManager.PERMISSION_GRANTED) {
+                            ContextCompat.checkSelfPermission(
+                                context,
+                                android.Manifest.permission.CAMERA
+                            ) -> {
+                                val uri = createImageUri(context)
+                                choresViewModel.setTempImageUri(uri)
+                                cameraLauncher.launch(uri)
+                            }
+                            else -> {
+                                permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                            }
+                        }
+                    },
+                    enabled = chore?.completed != true
                 ) {
-                    AsyncImage(
-                        model = coil.request.ImageRequest.Builder(context)
-                            .data(uri)
-                            .crossfade(true)
-                            .build(),
-                        contentDescription = "Chore completion proof",
-                        modifier = Modifier.fillMaxWidth(),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
+                    val buttonText = if (chore?.completed == true) "Chore Completed" else "Complete with Photo"
+                    Text(text = buttonText, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             }
         }
-        Column(
-            modifier = Modifier.weight(1f, true),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Button(
-                onClick = {
-                    if (chore?.completed == true) {
-                        Toast.makeText(context, "Chore already completed!", Toast.LENGTH_SHORT).show()
-                        return@Button
-                    }
 
-                    when (PackageManager.PERMISSION_GRANTED) {
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            android.Manifest.permission.CAMERA
-                        ) -> {
-                            val uri = createImageUri(context)
-                            imageUri = uri
-                            cameraLauncher.launch(uri)
-                        }
-                        else -> {
-                            permissionLauncher.launch(android.Manifest.permission.CAMERA)
-                        }
-                    }
-                },
-                enabled = chore?.completed != true
+        // Second Row: Captured photo (only shown if photo exists)
+        capturedImageUri?.let { uri ->
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .padding(top = 6.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(Color.LightGray)
             ) {
-                Text("Complete with Photo", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                AsyncImage(
+                    model = coil.request.ImageRequest.Builder(context)
+                        .data(uri)
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = "Chore completion proof",
+                    modifier = Modifier.fillMaxWidth(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
             }
         }
     }

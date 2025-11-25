@@ -147,7 +147,7 @@ class ChoresViewModel : ViewModel() {
 
     fun onPhotoCaptured(choreId: Int, uri: Uri) {
         // Save the image URI for this chore
-        _choreImageUris.value = _choreImageUris.value + (choreId to uri)
+        _choreImageUris.value += (choreId to uri)
         // Clear the temp URI
         _tempImageUri.value = null
     }
