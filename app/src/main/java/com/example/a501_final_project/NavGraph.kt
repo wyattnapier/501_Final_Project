@@ -1,13 +1,12 @@
 package com.example.a501_final_project
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
+import com.example.a501_final_project.chores.ChoresScreen
+import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
 
 @Composable
@@ -29,7 +28,11 @@ fun AppNavGraph(
         // Chores
         composable(Screen.Chores.route) {
             // TODO: add onclick?
-            ChoresScreen(mainViewModel = mainViewModel, choresViewModel = choresViewModel, modifier = modifier)
+            ChoresScreen(
+                mainViewModel = mainViewModel,
+                choresViewModel = choresViewModel,
+                modifier = modifier
+            )
         }
         // Pay
         composable(Screen.Pay.route) {

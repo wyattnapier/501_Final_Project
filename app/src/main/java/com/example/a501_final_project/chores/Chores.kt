@@ -1,5 +1,6 @@
-package com.example.a501_final_project
+package com.example.a501_final_project.chores
 
+import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -8,7 +9,6 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -31,24 +30,25 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
-import androidx.lifecycle.ViewModel
 import coil.compose.AsyncImage
-import com.example.a501_final_project.BoxItem
-import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
-import com.google.android.libraries.places.api.model.LocalDate
+import coil.request.ImageRequest
+import com.example.a501_final_project.Chore
+import com.example.a501_final_project.chores.ChoresViewModel
+import com.example.a501_final_project.MainViewModel
 import java.io.File
+import java.text.ParseException
+import java.text.SimpleDateFormat
 import java.util.*
 
 data class ChoreTemp(
@@ -62,7 +62,7 @@ data class ChoreTemp(
 )
 
 @Composable
-fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,  modifier: Modifier = Modifier){
+fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
     val chores by choresViewModel.choresList.collectAsState()
     val showPrevChores by choresViewModel.showPrevChores.collectAsState()
     Column(modifier = modifier
@@ -85,15 +85,15 @@ fun MyChoreWidget(chores: List<Chore>, mainViewModel: MainViewModel, choresViewM
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
             try {
-                val dateFormat = java.text.SimpleDateFormat("MMMM d, yyyy", java.util.Locale.getDefault())
+                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
 
                 dateFormat.isLenient = false // Good practice: disallow invalid dates
                 val dueDate = dateFormat.parse(dueDateString)
-                val today = java.util.Calendar.getInstance().time
+                val today = Calendar.getInstance().time
 
                 // A due date is overdue if it's strictly before today
                 dueDate != null && dueDate.before(today)
-            } catch (e: java.text.ParseException) {
+            } catch (e: ParseException) {
                 // If parsing fails, it's not considered overdue
                 Log.d("MyChoreWidget", "Error parsing due date: ${e.message}")
                 false
@@ -171,21 +171,21 @@ fun MyChoreWidget(chores: List<Chore>, mainViewModel: MainViewModel, choresViewM
                         when (PackageManager.PERMISSION_GRANTED) {
                             ContextCompat.checkSelfPermission(
                                 context,
-                                android.Manifest.permission.CAMERA
+                                Manifest.permission.CAMERA
                             ) -> {
                                 val uri = createImageUri(context)
                                 choresViewModel.setTempImageUri(uri)
                                 cameraLauncher.launch(uri)
                             }
                             else -> {
-                                permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                permissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         }
                     },
                     enabled = chore?.completed != true
                 ) {
                     val buttonText = if (chore?.completed == true) "Chore Completed" else "Complete with Photo"
-                    Text(text = buttonText, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    Text(text = buttonText, textAlign = TextAlign.Center)
                 }
             }
         }
@@ -201,27 +201,27 @@ fun MyChoreWidget(chores: List<Chore>, mainViewModel: MainViewModel, choresViewM
                     .background(Color.LightGray)
             ) {
                 AsyncImage(
-                    model = coil.request.ImageRequest.Builder(context)
+                    model = ImageRequest.Builder(context)
                         .data(uri)
                         .crossfade(true)
                         .build(),
                     contentDescription = "Chore completion proof",
                     modifier = Modifier.fillMaxWidth(),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    contentScale = ContentScale.Crop
                 )
                 IconButton(
                     onClick = {
                         when (PackageManager.PERMISSION_GRANTED) {
                             ContextCompat.checkSelfPermission(
                                 context,
-                                android.Manifest.permission.CAMERA
+                                Manifest.permission.CAMERA
                             ) -> {
                                 val newUri = createImageUri(context)
                                 choresViewModel.setTempImageUri(newUri)
                                 cameraLauncher.launch(newUri)
                             }
                             else -> {
-                                permissionLauncher.launch(android.Manifest.permission.CAMERA)
+                                permissionLauncher.launch(Manifest.permission.CAMERA)
                             }
                         }
                     },

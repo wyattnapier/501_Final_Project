@@ -1,7 +1,8 @@
-package com.example.a501_final_project
+package com.example.a501_final_project.chores
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
+import com.example.a501_final_project.Chore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -9,67 +10,67 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import kotlin.plus
-import kotlin.rem
 
 class ChoresViewModel : ViewModel() {
     val roommates = listOf("Alice", "Wyatt", "Tiffany")
-    private val _choresList = MutableStateFlow<List<Chore>>(listOf(
-        Chore(
-            choreID = 1,
-            name = "Wash Dishes",
-            description = "Clean all dishes, utensils, and pots used during dinner.",
-            assignedTo = "Alice",
-            householdID = 1,
-            userID = 1,
-            dueDate = "November 15, 2025",
-            completed = true,
-            priority = true
-        ),
-        Chore(
-            choreID = 2,
-            name = "Vacuum Living Room",
-            description = "Vacuum the carpet and under the furniture in the living room.",
-            assignedTo = "Bob",
-            householdID = 1,
-            userID = 2,
-            dueDate = "November 15, 2025",
-            completed = false,
-            priority = true
-        ),
-        Chore(
-            choreID = 3,
-            name = "Laundry",
-            description = "Wash, dry, and fold all the clothes from the laundry basket.",
-            assignedTo = "Charlie",
-            householdID = 1,
-            userID = 3,
-            dueDate = "November 15, 2025",
-            completed = true,
-            priority = true,
-        ),
-        Chore(
-            choreID = 4,
-            name = "Take Out Trash",
-            description = "Empty all trash bins and take the garbage out to the curb.",
-            assignedTo = "Dana",
-            householdID = 1,
-            userID = 4,
-            dueDate = "November 15, 2025",
-            completed = false,
-            priority = true,
-        ),
-        Chore(
-            choreID = 5,
-            name = "Clean Bathroom",
-            description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
-            assignedTo = "Eve",
-            householdID = 1,
-            userID = 5,
-            dueDate = "November 15, 2025",
-            completed = false,
-            priority = true,
-        ))
+    private val _choresList = MutableStateFlow<List<Chore>>(
+        listOf(
+            Chore(
+                choreID = 1,
+                name = "Wash Dishes",
+                description = "Clean all dishes, utensils, and pots used during dinner.",
+                assignedTo = "Alice",
+                householdID = 1,
+                userID = 1,
+                dueDate = "November 15, 2025",
+                completed = true,
+                priority = true
+            ),
+            Chore(
+                choreID = 2,
+                name = "Vacuum Living Room",
+                description = "Vacuum the carpet and under the furniture in the living room.",
+                assignedTo = "Bob",
+                householdID = 1,
+                userID = 2,
+                dueDate = "November 15, 2025",
+                completed = false,
+                priority = true
+            ),
+            Chore(
+                choreID = 3,
+                name = "Laundry",
+                description = "Wash, dry, and fold all the clothes from the laundry basket.",
+                assignedTo = "Charlie",
+                householdID = 1,
+                userID = 3,
+                dueDate = "November 15, 2025",
+                completed = true,
+                priority = true,
+            ),
+            Chore(
+                choreID = 4,
+                name = "Take Out Trash",
+                description = "Empty all trash bins and take the garbage out to the curb.",
+                assignedTo = "Dana",
+                householdID = 1,
+                userID = 4,
+                dueDate = "November 15, 2025",
+                completed = false,
+                priority = true,
+            ),
+            Chore(
+                choreID = 5,
+                name = "Clean Bathroom",
+                description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
+                assignedTo = "Eve",
+                householdID = 1,
+                userID = 5,
+                dueDate = "November 15, 2025",
+                completed = false,
+                priority = true,
+            )
+        )
     )
 
     var choresList: StateFlow<List<Chore>> = _choresList.asStateFlow()
@@ -124,7 +125,8 @@ class ChoresViewModel : ViewModel() {
      * Should call this function when we load in chores/onResume()?
      */
     fun changePriority(chore : Chore) {
-        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH) // e.g. "November 15, 2024"
+        val dateFormat =
+            SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH) // e.g. "November 15, 2024"
         val today = Calendar.getInstance() // Use fully qualified name
         val due = Calendar.getInstance() // Use fully qualified name
         val dueDate: Date = dateFormat.parse(chore.dueDate) ?: return
