@@ -72,22 +72,21 @@ fun ChoresScreen(viewModel: MainViewModel, modifier: Modifier = Modifier){
     }
 }
 
-// 1. First, update your MyChoreWidget composable:
-
 @Composable
 fun MyChoreWidget(chores: List<Chore>, viewModel: MainViewModel, modifier: Modifier = Modifier){
     val chore = chores.find { it.userID == viewModel.userID && it.householdID == viewModel.householdID }
     val context = LocalContext.current
     var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),
         onResult = { success ->
             if (success && imageUri != null) {
-                // Photo captured successfully
+                // Photo captured successfully - save the URI for display
+                capturedImageUri = imageUri
                 Toast.makeText(context, "Photo captured! Chore marked as complete.", Toast.LENGTH_SHORT).show()
                 viewModel.completeChore(chore!!)
-                // Keep the imageUri so it displays
             } else {
                 Toast.makeText(context, "Photo capture cancelled.", Toast.LENGTH_SHORT).show()
                 imageUri = null
@@ -124,16 +123,25 @@ fun MyChoreWidget(chores: List<Chore>, viewModel: MainViewModel, modifier: Modif
             )
 
             // Display the captured image
-            imageUri?.let {
-                AsyncImage(
-                    model = it,
-                    contentDescription = "Chore completion proof",
+            capturedImageUri?.let { uri ->
+                Box(
                     modifier = Modifier
                         .padding(top = 8.dp)
                         .fillMaxWidth()
                         .height(200.dp)
                         .clip(MaterialTheme.shapes.medium)
-                )
+                        .background(Color.LightGray)
+                ) {
+                    AsyncImage(
+                        model = coil.request.ImageRequest.Builder(context)
+                            .data(uri)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "Chore completion proof",
+                        modifier = Modifier.fillMaxWidth(),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                }
             }
         }
         Column(
@@ -163,13 +171,11 @@ fun MyChoreWidget(chores: List<Chore>, viewModel: MainViewModel, modifier: Modif
                 },
                 enabled = chore?.completed != true
             ) {
-                Text("Complete with Photo")
+                Text("Complete with Photo", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
         }
     }
 }
-
-// 2. Update the createImageUri function to use unique filenames:
 
 private fun createImageUri(context: Context): Uri {
     val timestamp = System.currentTimeMillis()
