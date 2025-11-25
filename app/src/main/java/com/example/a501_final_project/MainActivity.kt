@@ -118,6 +118,7 @@ fun MainScreen() {
     )
     val loginViewModel: LoginViewModel = viewModel()
     val mainViewModel: MainViewModel = viewModel()
+    val choresViewModel: ChoresViewModel = viewModel()
 
     val loginState by loginViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -149,7 +150,8 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding),
             navController = navController,
             loginViewModel = loginViewModel,
-            mainViewModel = mainViewModel
+            mainViewModel = mainViewModel,
+            choresViewModel = choresViewModel,
         )
     }
 }

@@ -56,25 +56,25 @@ data class ChoreTemp(
 )
 
 @Composable
-fun ChoresScreen(viewModel: MainViewModel, modifier: Modifier = Modifier){
-    val chores by viewModel.choresList.collectAsState()
-    val showPrevChores by viewModel.showPrevChores.collectAsState()
+fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,  modifier: Modifier = Modifier){
+    val chores by choresViewModel.choresList.collectAsState()
+    val showPrevChores by choresViewModel.showPrevChores.collectAsState()
     Column(modifier = modifier
         .fillMaxHeight()
         .padding(5.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)){
         if (showPrevChores) {
-            PrevChores(chores, viewModel)
-        }else {
-            MyChoreWidget(chores, viewModel)
-            RoommateChores(chores, viewModel)
+            PrevChores(chores, choresViewModel)
+        } else {
+            MyChoreWidget(chores, mainViewModel, choresViewModel)
+            RoommateChores(chores, mainViewModel, choresViewModel)
         }
     }
 }
 
 @Composable
-fun MyChoreWidget(chores: List<Chore>, viewModel: MainViewModel, modifier: Modifier = Modifier){
-    val chore = chores.find { it.userID == viewModel.userID && it.householdID == viewModel.householdID }
+fun MyChoreWidget(chores: List<Chore>, mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val chore = chores.find { it.userID == mainViewModel.userID && it.householdID == mainViewModel.householdID }
     val context = LocalContext.current
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -86,7 +86,7 @@ fun MyChoreWidget(chores: List<Chore>, viewModel: MainViewModel, modifier: Modif
                 // Photo captured successfully - save the URI for display
                 capturedImageUri = imageUri
                 Toast.makeText(context, "Photo captured! Chore marked as complete.", Toast.LENGTH_SHORT).show()
-                viewModel.completeChore(chore!!)
+                choresViewModel.completeChore(chore!!)
             } else {
                 Toast.makeText(context, "Photo capture cancelled.", Toast.LENGTH_SHORT).show()
                 imageUri = null
@@ -189,8 +189,8 @@ private fun createImageUri(context: Context): Uri {
 
 
 @Composable
-fun RoommateChores(chores: List<Chore>, viewModel: MainViewModel, modifier: Modifier = Modifier){
-    val roommateChores = chores.filter { it.userID != viewModel.userID && it.householdID == viewModel.householdID }
+fun RoommateChores(chores: List<Chore>, mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val roommateChores = chores.filter { it.userID != mainViewModel.userID && it.householdID == mainViewModel.householdID }
 
     Column(modifier =  modifier
         .fillMaxHeight()
@@ -212,7 +212,7 @@ fun RoommateChores(chores: List<Chore>, viewModel: MainViewModel, modifier: Modi
             }
             item {
                 Row( modifier = Modifier.fillParentMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    Button(onClick = { viewModel.toggleShowPrevChores() }) {
+                    Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
                         Text("See Previous Chores")
                     }
                 }
@@ -222,7 +222,7 @@ fun RoommateChores(chores: List<Chore>, viewModel: MainViewModel, modifier: Modi
 }
 
 @Composable
-fun PrevChores(chores: List<Chore>, viewModel: MainViewModel) {
+fun PrevChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier) {
     // if due date < today, display on prev tasks
     Column(modifier =  Modifier
         .fillMaxHeight()
@@ -244,7 +244,7 @@ fun PrevChores(chores: List<Chore>, viewModel: MainViewModel) {
             }
             item {
                 Row( modifier = Modifier.fillParentMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    Button(onClick = { viewModel.toggleShowPrevChores() }) {
+                    Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
                         Text("Back to Current Chores")
                     }
                 }

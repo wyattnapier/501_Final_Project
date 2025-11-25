@@ -15,14 +15,9 @@ fun AppNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController,
     mainViewModel: MainViewModel,
-    loginViewModel: LoginViewModel
+    loginViewModel: LoginViewModel,
+    choresViewModel: ChoresViewModel
 ) {
-
-    // creating shared viewModels for all screens
-    val mainViewModel: MainViewModel = viewModel() // lifecycle-aware
-    val loginViewModel: LoginViewModel = viewModel()
-
-
     NavHost(
         navController = navController,
         startDestination = Screen.Login.route
@@ -34,7 +29,7 @@ fun AppNavGraph(
         // Chores
         composable(Screen.Chores.route) {
             // TODO: add onclick?
-            ChoresScreen(mainViewModel, modifier = modifier)
+            ChoresScreen(mainViewModel = mainViewModel, choresViewModel = choresViewModel, modifier = modifier)
         }
         // Pay
         composable(Screen.Pay.route) {

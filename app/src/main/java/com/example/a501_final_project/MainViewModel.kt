@@ -96,144 +96,16 @@ enum class CalendarViewType {
  **/
 
 class MainViewModel : ViewModel() {
-
-    // dummy household members....
-    val roommates = listOf("Alice", "Wyatt", "Tiffany")
     val users = listOf(
         User("alice_username", "william.henry.harrison@example-pet-store.com", "alice_venmo"),
         User("tiffany_username", "william.henry.harrison@example-pet-store.com", "tiffany_venmo"),
         User("john_username", "william.henry.moody@my-own-personal-domain.com", "john_venmo")
     )
 
-    // chores viewmodel portion
-    private val _choresList = MutableStateFlow<List<Chore>>(listOf(
-        Chore(
-            choreID = 1,
-            name = "Wash Dishes",
-            description = "Clean all dishes, utensils, and pots used during dinner.",
-            assignedTo = "Alice",
-            householdID = 1,
-            userID = 1,
-            dueDate = "November 15, 2025",
-            completed = true,
-            priority = true
-        ),
-        Chore(
-            choreID = 2,
-            name = "Vacuum Living Room",
-            description = "Vacuum the carpet and under the furniture in the living room.",
-            assignedTo = "Bob",
-            householdID = 1,
-            userID = 2,
-            dueDate = "November 15, 2025",
-            completed = false,
-            priority = true
-        ),
-        Chore(
-            choreID = 3,
-            name = "Laundry",
-            description = "Wash, dry, and fold all the clothes from the laundry basket.",
-            assignedTo = "Charlie",
-            householdID = 1,
-            userID = 3,
-            dueDate = "November 15, 2025",
-            completed = true,
-            priority = true,
-        ),
-        Chore(
-            choreID = 4,
-            name = "Take Out Trash",
-            description = "Empty all trash bins and take the garbage out to the curb.",
-            assignedTo = "Dana",
-            householdID = 1,
-            userID = 4,
-            dueDate = "November 15, 2025",
-            completed = false,
-            priority = true,
-        ),
-        Chore(
-            choreID = 5,
-            name = "Clean Bathroom",
-            description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
-            assignedTo = "Eve",
-            householdID = 1,
-            userID = 5,
-            dueDate = "November 15, 2025",
-            completed = false,
-            priority = true,
-        ))
-    )
-
-    var choresList: StateFlow<List<Chore>> = _choresList.asStateFlow()
-    private val _showPrevChores = MutableStateFlow(false)
-    val showPrevChores: StateFlow<Boolean> = _showPrevChores.asStateFlow()
-
     // temporary values to keep track of who is current user and current household
     val userID = 2
     val currentUser = "Wyatt"
     val householdID = 1
-
-    // functions to help us maintain chores
-    /**
-     * function to be used when first initializing/creating the list of chores for the household
-     */
-    fun addChores(newChore : Chore) {
-        _choresList.value = _choresList.value + newChore
-    }
-
-    /**
-     * function to assign chores to members of the household
-     * eventually we should do this based on time?
-     */
-    fun assignChores() {
-        _choresList.value = _choresList.value.mapIndexed { index, chore ->
-            chore.copy(assignedTo = roommates[index % roommates.size])
-        }
-    }
-
-    /**
-     * function to mark a chore as completed
-     * ideally when user completes their chore,
-     * this function is called and gets passed the chore
-     * this function might not be needed, but it could help with safe access/storing logic in one place
-     */
-    fun completeChore(completedChore: Chore) {
-        _choresList.value = _choresList.value.map { chore ->
-            if (chore.choreID == completedChore.choreID) chore.copy(completed = true) else chore
-        }
-    }
-    /**
-     * function to get the chore(s) assigned to the specified person
-     */
-    fun getChoresFor(person: String): List<Chore> {
-        return _choresList.value.filter { it.assignedTo == person }
-    }
-
-    /**
-     * function to change priority fo a chore.
-     * currently making chores that are due sooner higher priority
-     * Should call this function when we load in chores/onResume()?
-     */
-    fun changePriority(chore : Chore) {
-        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH) // e.g. "November 15, 2024"
-        val today = Calendar.getInstance() // Use fully qualified name
-        val due = Calendar.getInstance() // Use fully qualified name
-        val dueDate: Date = dateFormat.parse(chore.dueDate) ?: return
-        due.time = dueDate
-        val diffMillis = due.timeInMillis - today.timeInMillis
-        val daysUntilDue = (diffMillis / (1000 * 60 * 60 * 24)).toInt()
-        chore.priority = daysUntilDue in 0..5
-    }
-
-    /**
-     * function to toggle if we are showing previous chores or not
-     */
-    fun toggleShowPrevChores() {
-        _showPrevChores.value = !_showPrevChores.value
-    }
-
-
-    /***********************************************************************************************************************************************************************/
 
     // pay viewmodel portion
     private val _paymentsList = MutableStateFlow<List<Payment>>(listOf(
