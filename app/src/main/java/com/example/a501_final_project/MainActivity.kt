@@ -120,7 +120,7 @@ fun MainScreen() {
     )
     // view models
     val loginViewModel: LoginViewModel = viewModel()
-    val mainViewModel: MainViewModel = viewModel()
+    val paymentViewModel: PaymentViewModel = viewModel()
     val choresViewModel: ChoresViewModel = viewModel()
     val eventsViewModel: EventsViewModel = viewModel()
 
@@ -144,17 +144,18 @@ fun MainScreen() {
                 BottomBar(navController)
             }
         },
-        topBar = { if(currentRoute !in noBars) {
-            TopBar(navController)
+        topBar = {
+            if (currentRoute !in noBars) {
+                TopBar(navController)
             }
-            },
+         },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         AppNavGraph(
             modifier = Modifier.padding(innerPadding),
             navController = navController,
             loginViewModel = loginViewModel,
-            mainViewModel = mainViewModel,
+            paymentViewModel = paymentViewModel,
             choresViewModel = choresViewModel,
             eventsViewModel = eventsViewModel,
         )

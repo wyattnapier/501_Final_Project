@@ -2,7 +2,6 @@ package com.example.a501_final_project.chores
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import com.example.a501_final_project.Chore
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +10,26 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+
+
+/**
+ * chore should include an id for easy maintainence
+ * title and description for what the chore is
+ * dueDate to keep track of when they are due
+ * assignee to indicate who it is assigned to
+ * completed to indicate if chore is completed
+ */
+data class Chore(
+    val choreID: Int,
+    val userID: Number,
+    val householdID: Number,
+    val name: String,
+    val description: String,
+    var dueDate: String,
+    var assignedTo: String,
+    var completed: Boolean,
+    var priority: Boolean,
+)
 
 class ChoresViewModel : ViewModel() {
     val db = FirebaseFirestore.getInstance()

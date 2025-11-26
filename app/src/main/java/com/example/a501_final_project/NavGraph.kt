@@ -14,7 +14,7 @@ import com.example.a501_final_project.events.EventsViewModel
 fun AppNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController,
-    mainViewModel: MainViewModel,
+    paymentViewModel: PaymentViewModel,
     loginViewModel: LoginViewModel,
     choresViewModel: ChoresViewModel,
     eventsViewModel: EventsViewModel
@@ -29,17 +29,14 @@ fun AppNavGraph(
         }
         // Chores
         composable(Screen.Chores.route) {
-            // TODO: add onclick?
             ChoresScreen(
-                mainViewModel = mainViewModel,
                 choresViewModel = choresViewModel,
                 modifier = modifier
             )
         }
         // Pay
         composable(Screen.Pay.route) {
-            VenmoPaymentScreen(modifier = modifier, mainViewModel) // do I need to pass the viewmodel into it?
-            // TODO: add onclick?
+            VenmoPaymentScreen(modifier = modifier, paymentViewModel) // do I need to pass the viewmodel into it?
         }
         // Calendar
         composable(Screen.Calendar.route) {
@@ -67,7 +64,6 @@ fun AppNavGraph(
                 title = Screen.Error.title,
                 modifier = modifier
             )
-            // TODO: add onclick?
         }
 
         // User sign up page

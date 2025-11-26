@@ -1,53 +1,15 @@
 package com.example.a501_final_project
 
-import android.content.Context
-import android.util.Log
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.http.javanet.NetHttpTransport
-import com.google.api.client.json.gson.GsonFactory
-import com.google.api.client.util.DateTime
-import com.google.api.services.calendar.CalendarScopes
-import com.google.api.services.calendar.model.Event
-import com.google.api.services.calendar.model.EventDateTime
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 // custom data object created here for now
-data class User(
+data class PaymentUser(
     val username: String,
     val email: String,
     val venmoUsername: String,
-)
-
-
-/**
- * chore should include an id for easy maintainence
- * title and description for what the chore is
- * dueDate to keep track of when they are due
- * assignee to indicate who it is assigned to
- * completed to indicate if chore is completed
- */
-data class Chore(
-    val choreID: Int,
-    val userID: Number,
-    val householdID: Number,
-    val name: String,
-    val description: String,
-//    var dueDate: Date, // trying this, can change later
-    var dueDate: String,
-    var assignedTo: String,
-    var completed: Boolean,
-    var priority: Boolean,
 )
 
 /**
@@ -69,23 +31,12 @@ data class Payment(
     val recurring: Boolean
 )
 
-/** our ViewModel to hold our business logic and data.
- * For now this will be one ViewModel that all of the screens can access.
- * One this grows, we may break it down into ViewModels per screen,
- * but since Home view needs all this data we are doing one for now.
- **/
-
-class MainViewModel : ViewModel() {
+class PaymentViewModel : ViewModel() {
     val users = listOf(
-        User("alice_username", "william.henry.harrison@example-pet-store.com", "alice_venmo"),
-        User("tiffany_username", "william.henry.harrison@example-pet-store.com", "tiffany_venmo"),
-        User("john_username", "william.henry.moody@my-own-personal-domain.com", "john_venmo")
+        PaymentUser("alice_username", "william.henry.harrison@example-pet-store.com", "alice_venmo"),
+        PaymentUser("tiffany_username", "william.henry.harrison@example-pet-store.com", "tiffany_venmo"),
+        PaymentUser("john_username", "william.henry.moody@my-own-personal-domain.com", "john_venmo")
     )
-
-    // temporary values to keep track of who is current user and current household
-    val userID = 2
-    val currentUser = "Wyatt"
-    val householdID = 1
 
     // pay viewmodel portion
     private val _paymentsList = MutableStateFlow<List<Payment>>(listOf(
@@ -140,7 +91,7 @@ class MainViewModel : ViewModel() {
                 paid = false,
                 recurring = recurring
             )
-            _paymentsList.value = _paymentsList.value + newPayment
+            _paymentsList.value += newPayment
         }
     }
 
@@ -160,7 +111,7 @@ class MainViewModel : ViewModel() {
         val updatedPayment = payment.copy(paid = true)
 
         // Add to pastPayments
-        _pastPayments.value = _pastPayments.value + updatedPayment
+        _pastPayments.value += updatedPayment
 
         // Remove from active paymentList
         _paymentsList.value = _paymentsList.value.filter { it != payment }
@@ -185,7 +136,7 @@ class MainViewModel : ViewModel() {
      * function to get venmo user name of a user
      */
     fun getVenmoUsername(person: String): String? {
-        val user: User? = users.find { it.username == person }
+        val user: PaymentUser? = users.find { it.username == person }
         return user?.venmoUsername // TODO: should return an error message if null
     }
 
