@@ -3,6 +3,7 @@ package com.example.a501_final_project.chores
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import com.example.a501_final_project.Chore
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,6 +13,7 @@ import java.util.Date
 import java.util.Locale
 
 class ChoresViewModel : ViewModel() {
+    val db = FirebaseFirestore.getInstance()
     val roommates = listOf("Alice", "Wyatt", "Tiffany")
     private val _choresList = MutableStateFlow<List<Chore>>(
         listOf(

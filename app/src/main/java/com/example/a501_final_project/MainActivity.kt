@@ -117,6 +117,7 @@ fun MainScreen() {
         Screen.Login.route,
         Screen.UserSignUp.route
     )
+    // view models
     val loginViewModel: LoginViewModel = viewModel()
     val mainViewModel: MainViewModel = viewModel()
     val choresViewModel: ChoresViewModel = viewModel()
