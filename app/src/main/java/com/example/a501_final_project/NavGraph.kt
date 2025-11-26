@@ -9,6 +9,13 @@ import com.example.a501_final_project.chores.ChoresScreen
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
 import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.LoginScreen
+import com.example.a501_final_project.login_register.LoginViewModel
+import com.example.a501_final_project.login_register.ProfileScreen
+import com.example.a501_final_project.login_register.SignUpScreen
+import com.example.a501_final_project.login_register.UserPrefScreen
+import com.example.a501_final_project.payment.PaymentViewModel
+import com.example.a501_final_project.payment.VenmoPaymentScreen
 
 @Composable
 fun AppNavGraph(
@@ -36,7 +43,10 @@ fun AppNavGraph(
         }
         // Pay
         composable(Screen.Pay.route) {
-            VenmoPaymentScreen(modifier = modifier, paymentViewModel) // do I need to pass the viewmodel into it?
+            VenmoPaymentScreen(
+                modifier = modifier,
+                paymentViewModel
+            ) // do I need to pass the viewmodel into it?
         }
         // Calendar
         composable(Screen.Calendar.route) {
@@ -48,11 +58,19 @@ fun AppNavGraph(
         }
         // Profile
         composable(Screen.Profile.route) {
-            ProfileScreen(modifier = modifier, navController = navController, loginViewModel = loginViewModel)
+            ProfileScreen(
+                modifier = modifier,
+                navController = navController,
+                loginViewModel = loginViewModel
+            )
         }
         // Login
         composable(Screen.Login.route) {
-            LoginScreen(modifier = modifier, viewModel = loginViewModel, navController = navController)
+            LoginScreen(
+                modifier = modifier,
+                viewModel = loginViewModel,
+                navController = navController
+            )
         }
         // Settings
         composable(Screen.Settings.route) {
@@ -69,11 +87,14 @@ fun AppNavGraph(
         // User sign up page
         // TODO: adjust this navigation later on, currently just to be able to navigate to sign up page
         composable(Screen.UserSignUp.route) {
-            SignUpScreen(loginViewModel = loginViewModel, navController = navController, onNavigateToLogin = {
-                navController.navigate("login") {
-                    popUpTo("signup") { inclusive = true }
-                }
-            })
+            SignUpScreen(
+                loginViewModel = loginViewModel,
+                navController = navController,
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("signup") { inclusive = true }
+                    }
+                })
         }
     }
 }

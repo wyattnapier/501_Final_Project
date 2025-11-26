@@ -48,6 +48,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.LoginViewModel
+import com.example.a501_final_project.payment.PaymentViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 

@@ -25,6 +25,7 @@ import androidx.navigation.NavController
 import com.example.a501_final_project.events.CalendarViewType
 import com.example.a501_final_project.events.EventsViewModel
 import com.example.a501_final_project.events.UpcomingEventsWidget
+import com.example.a501_final_project.login_register.UserPreferences
 
 /**
  * composable for the home screen

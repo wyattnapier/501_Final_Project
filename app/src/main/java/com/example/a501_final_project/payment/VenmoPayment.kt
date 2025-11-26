@@ -1,4 +1,4 @@
-package com.example.a501_final_project
+package com.example.a501_final_project.payment
 
 import androidx.compose.runtime.Composable
 

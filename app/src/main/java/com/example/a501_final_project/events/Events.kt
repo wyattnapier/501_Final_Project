@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.example.a501_final_project.LoginViewModel
+import com.example.a501_final_project.login_register.LoginViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
