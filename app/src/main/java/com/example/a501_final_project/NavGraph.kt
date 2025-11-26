@@ -8,6 +8,7 @@ import androidx.navigation.NavHostController
 import com.example.a501_final_project.chores.ChoresScreen
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
+import com.example.a501_final_project.events.EventsViewModel
 
 @Composable
 fun AppNavGraph(
@@ -15,7 +16,8 @@ fun AppNavGraph(
     navController: NavHostController,
     mainViewModel: MainViewModel,
     loginViewModel: LoginViewModel,
-    choresViewModel: ChoresViewModel
+    choresViewModel: ChoresViewModel,
+    eventsViewModel: EventsViewModel
 ) {
     NavHost(
         navController = navController,
@@ -23,7 +25,7 @@ fun AppNavGraph(
     ) {
         // Home
         composable(Screen.Home.route) {
-            HomeScreen(navController, mainViewModel, modifier = modifier)
+            HomeScreen(navController, eventsViewModel, modifier = modifier)
         }
         // Chores
         composable(Screen.Chores.route) {
@@ -44,7 +46,7 @@ fun AppNavGraph(
             EventsScreen(
                 modifier = modifier,
                 loginViewModel = loginViewModel,
-                mainViewModel = mainViewModel
+                eventsViewModel = eventsViewModel
             )
         }
         // Profile
@@ -69,7 +71,7 @@ fun AppNavGraph(
         }
 
         // User sign up page
-        // TODO: adjust this navigation later on, currently jsut to be able to navigate to sign up page
+        // TODO: adjust this navigation later on, currently just to be able to navigate to sign up page
         composable(Screen.UserSignUp.route) {
             SignUpScreen(loginViewModel = loginViewModel, navController = navController, onNavigateToLogin = {
                 navController.navigate("login") {

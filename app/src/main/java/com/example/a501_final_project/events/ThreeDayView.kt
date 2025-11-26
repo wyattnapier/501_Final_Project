@@ -21,7 +21,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.example.a501_final_project.CalendarEventInfo
 import com.google.api.client.util.DateTime
 import java.text.SimpleDateFormat
 import java.util.*

@@ -47,6 +47,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.a501_final_project.chores.ChoresViewModel
+import com.example.a501_final_project.events.EventsViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
@@ -121,6 +122,7 @@ fun MainScreen() {
     val loginViewModel: LoginViewModel = viewModel()
     val mainViewModel: MainViewModel = viewModel()
     val choresViewModel: ChoresViewModel = viewModel()
+    val eventsViewModel: EventsViewModel = viewModel()
 
     val loginState by loginViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -130,7 +132,7 @@ fun MainScreen() {
         val account = GoogleSignIn.getLastSignedInAccount(context)
         if (loginState.isLoggedIn && account != null) {
             Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
-            mainViewModel.fetchCalendarEvents(
+            eventsViewModel.fetchCalendarEvents(
                 context,
             )
         }
@@ -154,6 +156,7 @@ fun MainScreen() {
             loginViewModel = loginViewModel,
             mainViewModel = mainViewModel,
             choresViewModel = choresViewModel,
+            eventsViewModel = eventsViewModel,
         )
     }
 }

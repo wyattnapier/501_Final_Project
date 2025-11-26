@@ -22,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.example.a501_final_project.events.CalendarViewType
+import com.example.a501_final_project.events.EventsViewModel
 import com.example.a501_final_project.events.UpcomingEventsWidget
 
 /**
@@ -32,7 +34,7 @@ import com.example.a501_final_project.events.UpcomingEventsWidget
 @Composable
 fun HomeScreen(
     navController: NavController,
-    mainViewModel: MainViewModel,
+    eventsViewModel: EventsViewModel,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -42,7 +44,7 @@ fun HomeScreen(
     val showChores by prefs.showChores.collectAsState(initial = true)
     val showEvents by prefs.showEvents.collectAsState(initial = true)
 
-    val events by mainViewModel.events.collectAsState()
+    val events by eventsViewModel.events.collectAsState()
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp)
@@ -55,8 +57,8 @@ fun HomeScreen(
             ) {
                 UpcomingEventsWidget(
                     events = events.sortedBy { it.startDateTime?.value },
-                    onCardClick = { eventsWidgetCardOnClick(navController, mainViewModel) },
-                    onEventClick = { eventsWidgetEventOnClick(navController, mainViewModel) },
+                    onCardClick = { eventsWidgetCardOnClick(navController, eventsViewModel) },
+                    onEventClick = { eventsWidgetEventOnClick(navController, eventsViewModel) },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -117,16 +119,16 @@ fun RowScope.BoxItem(text: String, color: Color, onClick: () -> Unit) {
 
 fun eventsWidgetCardOnClick(
     navController: NavController,
-    mainViewModel: MainViewModel
+    eventsViewModel: EventsViewModel
 ) {
-    mainViewModel.setCalendarView(CalendarViewType.AGENDA)
+    eventsViewModel.setCalendarView(CalendarViewType.AGENDA)
     navigateToScreen(navController, Screen.Calendar)
 }
 
 fun eventsWidgetEventOnClick(
     navController: NavController,
-    mainViewModel: MainViewModel
+    eventsViewModel: EventsViewModel
 ) {
-    mainViewModel.setCalendarView(CalendarViewType.THREE_DAY)
+    eventsViewModel.setCalendarView(CalendarViewType.THREE_DAY)
     navigateToScreen(navController, Screen.Calendar)
 }
