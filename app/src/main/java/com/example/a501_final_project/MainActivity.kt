@@ -46,6 +46,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.a501_final_project.chores.ChoresViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
@@ -116,8 +117,10 @@ fun MainScreen() {
         Screen.Login.route,
         Screen.UserSignUp.route
     )
+    // view models
     val loginViewModel: LoginViewModel = viewModel()
     val mainViewModel: MainViewModel = viewModel()
+    val choresViewModel: ChoresViewModel = viewModel()
 
     val loginState by loginViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -149,7 +152,8 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding),
             navController = navController,
             loginViewModel = loginViewModel,
-            mainViewModel = mainViewModel
+            mainViewModel = mainViewModel,
+            choresViewModel = choresViewModel,
         )
     }
 }
