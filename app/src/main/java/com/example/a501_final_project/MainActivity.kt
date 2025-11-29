@@ -138,10 +138,16 @@ fun MainScreen() {
             mainViewModel.loadUserData()
             Log.d("MainScreen", "Loading household data for user")
             mainViewModel.loadHouseholdData()
-            Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
-            eventsViewModel.fetchCalendarEvents(
-                context,
-            )
+        }
+    }
+    // Separate effect that watches for household data to be loaded to handle race conditions
+    LaunchedEffect(loginState.isLoggedIn, mainViewModel.isHouseholdDataLoaded.collectAsState().value) {
+        val account = GoogleSignIn.getLastSignedInAccount(context)
+        val isHouseholdLoaded = mainViewModel.isHouseholdDataLoaded.value
+
+        if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
+            Log.d("MainScreen", "Household loaded, now fetching calendar events")
+            eventsViewModel.fetchCalendarEvents(context)
         }
     }
 

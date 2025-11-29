@@ -19,6 +19,8 @@ class MainViewModel(
     private val _householdData = MutableStateFlow<Map<String, Any>?>(null)
     val householdData: StateFlow<Map<String, Any>?> = _householdData.asStateFlow()
 
+    private val _isHouseholdDataLoaded = MutableStateFlow(false)
+    val isHouseholdDataLoaded: StateFlow<Boolean> = _isHouseholdDataLoaded.asStateFlow()
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -56,11 +58,13 @@ class MainViewModel(
                 _householdId.value = householdId
                 _householdData.value = data
                 _isLoading.value = false
+                _isHouseholdDataLoaded.value = true
                 Log.d("MainViewModel", "Household loaded: $householdId - ${data["name"]}")
             },
             onFailure = { exception ->
                 _errorMessage.value = "Failed to load household: ${exception.message}"
                 _isLoading.value = false
+                _isHouseholdDataLoaded.value = false
                 Log.e("MainViewModel", "Error loading household", exception)
             }
         )

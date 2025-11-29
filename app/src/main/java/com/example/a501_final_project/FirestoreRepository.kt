@@ -164,4 +164,21 @@ class FirestoreRepository {
             }
         )
     }
+
+    fun getHouseholdCalendarNameWithoutId(
+        onSuccess: (String) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        getHouseholdWithoutId(
+            onSuccess = { _, householdData ->
+                val calendarName = householdData["calendar"] as? String
+                if (calendarName != null) {
+                    onSuccess(calendarName)
+                } else {
+                    onFailure(Exception("Household has no calendar name"))
+                }
+            },
+            onFailure = onFailure
+        )
+    }
 }
