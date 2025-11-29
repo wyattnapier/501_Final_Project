@@ -87,50 +87,76 @@ class FirestoreRepository {
     }
 
     /**
-     * Get household ID from Firestore
-     * @param userId: String, the ID of the user to fetch the household ID for
-     * @param onSuccess: (String) -> Unit, a function to call on success
-     * @param onFailure: (Exception) -> Unit, a function
+     * Get the household ID for a user
+     * @param userId: String, the user's ID
+     * @param onSuccess: (String) -> Unit, callback with household ID
+     * @param onFailure: (Exception) -> Unit, callback on failure
      */
-    fun getHouseholdId(
+    fun getHouseholdIdForUser(
         userId: String,
         onSuccess: (String) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        return
+        db.collection("users")
+            .document(userId)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val householdId = document.getString("household_id")
+                    if (householdId != null) {
+                        onSuccess(householdId)
+                    } else {
+                        onFailure(Exception("User has no household"))
+                    }
+                } else {
+                    onFailure(Exception("User not found"))
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirestoreRepository", "Error getting household ID for user", exception)
+                onFailure(exception)
+            }
     }
 
     /**
-     * get household data without needing household ID
+     * Get household data for the current logged-in user
+     * Chains: getCurrentUserId -> getHouseholdIdForUser -> getHousehold
+     * @param onSuccess: (Map<String, Any>) -> Unit, callback with household data
+     * @param onFailure: (Exception) -> Unit, callback on failure
      */
-    /*
     fun getHouseholdWithoutId(
-        onSuccess: (Map<String, Any>) -> Unit,
+        onSuccess: (householdId: String, householdData: Map<String, Any>) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        // 1 - get user id
-        // 2 - get household id (using user id)
-        // 3 - get household data (by household id)
+        // Step 1: Get current user ID
         val currentUserId = getCurrentUserId()
         if (currentUserId == null) {
-            onFailure(Exception("No current user"))
+            onFailure(Exception("No current user logged in"))
             return
         }
+        Log.d("FirestoreRepository", "Current user ID: $currentUserId")
 
-        val householdId = getHouseholdId(currentUserId, onSuccess, onFailure)
-        if (householdId == null) {
-            onFailure(Exception("No household ID found"))
-            return
-        }
-
-        val household = getHousehold(householdId, onSuccess, onFailure)
-        if (household == null) {
-            onFailure(Exception("No household found"))
-        } else {
-            onSuccess(household)
-        }
-
-        return
+        // Step 2: Get household ID for this user
+        getHouseholdIdForUser(
+            userId = currentUserId,
+            onSuccess = { householdId ->
+                // Step 3: Get household data using the household ID
+                getHousehold(
+                    householdID = householdId,
+                    onSuccess = { householdData ->
+                        Log.d("FirestoreRepository", "Successfully loaded household without ID")
+                        onSuccess(householdId, householdData)
+                    },
+                    onFailure = { exception ->
+                        Log.e("FirestoreRepository", "Error loading household", exception)
+                        onFailure(exception)
+                    }
+                )
+            },
+            onFailure = { exception ->
+                Log.e("FirestoreRepository", "Error getting household ID", exception)
+                onFailure(exception)
+            }
+        )
     }
-    */
 }

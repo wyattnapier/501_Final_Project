@@ -134,6 +134,10 @@ fun MainScreen() {
     LaunchedEffect(Unit, loginState) {
         val account = GoogleSignIn.getLastSignedInAccount(context)
         if (loginState.isLoggedIn && account != null) {
+            Log.d("MainScreen", "Loading user data")
+            mainViewModel.loadCurrentUserId() // TODO: get all info for user
+            Log.d("MainScreen", "Loading household data for user")
+            mainViewModel.loadHouseholdData()
             Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
             eventsViewModel.fetchCalendarEvents(
                 context,
