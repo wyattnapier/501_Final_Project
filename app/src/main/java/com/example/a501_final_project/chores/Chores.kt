@@ -163,11 +163,6 @@ fun MyChoreWidget(chores: List<Chore>, mainViewModel: MainViewModel, choresViewM
                             return@Button
                         }
 
-                        if (chore.completed) {
-                            Toast.makeText(context, "Chore already completed!", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-
                         when (PackageManager.PERMISSION_GRANTED) {
                             ContextCompat.checkSelfPermission(
                                 context,
@@ -318,13 +313,3 @@ fun PrevChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: 
         }
     }
 }
-
-
-//@Preview(showBackground = true)
-//@Composable
-//fun ChoresPreview() {
-//    val previewVM = MainViewModel()
-//    _501_Final_ProjectTheme {
-//        ChoresScreen(previewVM)
-//    }
-//}
