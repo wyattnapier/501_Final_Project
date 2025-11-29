@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.a501_final_project.FirestoreRepository
 import com.example.a501_final_project.R
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -26,7 +27,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.api.services.calendar.CalendarScopes
 
-class LoginViewModel() : ViewModel() {
+class LoginViewModel(
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
+) : ViewModel() {
 
     // to send to firestore..?
     var displayName by mutableStateOf("")

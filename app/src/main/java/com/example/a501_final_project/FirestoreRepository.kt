@@ -98,6 +98,7 @@ class FirestoreRepository {
     /**
      * get household data without needing household ID
      */
+    /*
     fun getHouseholdWithoutId(
         onSuccess: (Map<String, Any>) -> Unit,
         onFailure: (Exception) -> Unit
@@ -105,7 +106,26 @@ class FirestoreRepository {
         // 1 - get user id
         // 2 - get household id (using user id)
         // 3 - get household data (by household id)
+        val currentUserId = getCurrentUserId()
+        if (currentUserId == null) {
+            onFailure(Exception("No current user"))
+            return
+        }
+
+        val householdId = getHouseholdId(currentUserId, onSuccess, onFailure)
+        if (householdId == null) {
+            onFailure(Exception("No household ID found"))
+            return
+        }
+
+        val household = getHousehold(householdId, onSuccess, onFailure)
+        if (household == null) {
+            onFailure(Exception("No household found"))
+        } else {
+            onSuccess(household)
+        }
 
         return
     }
+    */
 }
