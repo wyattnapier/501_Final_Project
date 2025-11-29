@@ -21,7 +21,7 @@ import java.util.Locale
  */
 data class Chore(
     val choreID: Int,
-    val userID: Number,
+    val userID: String,
     val householdID: Number,
     val name: String,
     val description: String,
@@ -41,7 +41,7 @@ class ChoresViewModel : ViewModel() {
                 description = "Clean all dishes, utensils, and pots used during dinner.",
                 assignedTo = "Alice",
                 householdID = 1,
-                userID = 1,
+                userID = "oLt5u6tuVlXWUmlh6MWEbur1Sup2",
                 dueDate = "November 15, 2025",
                 completed = true,
                 priority = true
@@ -52,7 +52,7 @@ class ChoresViewModel : ViewModel() {
                 description = "Vacuum the carpet and under the furniture in the living room.",
                 assignedTo = "Bob",
                 householdID = 1,
-                userID = 2,
+                userID = "2",
                 dueDate = "November 15, 2025",
                 completed = false,
                 priority = true
@@ -63,7 +63,7 @@ class ChoresViewModel : ViewModel() {
                 description = "Wash, dry, and fold all the clothes from the laundry basket.",
                 assignedTo = "Charlie",
                 householdID = 1,
-                userID = 3,
+                userID = "3",
                 dueDate = "November 15, 2025",
                 completed = true,
                 priority = true,
@@ -74,7 +74,7 @@ class ChoresViewModel : ViewModel() {
                 description = "Empty all trash bins and take the garbage out to the curb.",
                 assignedTo = "Dana",
                 householdID = 1,
-                userID = 4,
+                userID = "4",
                 dueDate = "November 15, 2025",
                 completed = false,
                 priority = true,
@@ -85,7 +85,7 @@ class ChoresViewModel : ViewModel() {
                 description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
                 assignedTo = "Eve",
                 householdID = 1,
-                userID = 5,
+                userID = "5",
                 dueDate = "November 15, 2025",
                 completed = false,
                 priority = true,

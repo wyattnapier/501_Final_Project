@@ -43,19 +43,22 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.a501_final_project.MainViewModel
 import java.io.File
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
 // TODO: fetch actual value for these constants from database and use below
-const val userID = 2
+//const val userID = 2
 const val householdID = 1
 
 @Composable
-fun ChoresScreen(choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
     val chores by choresViewModel.choresList.collectAsState()
     val showPrevChores by choresViewModel.showPrevChores.collectAsState()
+    val userId by mainViewModel.userId.collectAsState() // was 2 before
+
     Column(modifier = modifier
         .fillMaxHeight()
         .padding(10.dp),
@@ -63,15 +66,15 @@ fun ChoresScreen(choresViewModel: ChoresViewModel, modifier: Modifier = Modifier
         if (showPrevChores) {
             PrevChores(chores, choresViewModel)
         } else {
-            MyChoreWidget(chores, choresViewModel)
-            RoommateChores(chores, choresViewModel)
+            MyChoreWidget(userId!!, chores, choresViewModel)
+            RoommateChores(userId!!, chores, choresViewModel)
         }
     }
 }
 
 @Composable
-fun MyChoreWidget(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val chore = chores.find { it.userID == userID && it.householdID == householdID }
+fun MyChoreWidget(userID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val chore = chores.find { it.userID.toString() == userID && it.householdID == householdID }
     val context = LocalContext.current
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
@@ -240,8 +243,8 @@ private fun createImageUri(context: Context): Uri {
 
 
 @Composable
-fun RoommateChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val roommateChores = chores.filter { it.userID != userID && it.householdID == householdID }
+fun RoommateChores(userID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val roommateChores = chores.filter { it.userID.toString() != userID && it.householdID == householdID }
 
     Column(modifier =  modifier
         .fillMaxHeight()
