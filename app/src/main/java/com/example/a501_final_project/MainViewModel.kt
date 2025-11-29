@@ -11,12 +11,13 @@ class MainViewModel(
 ): ViewModel() {
     private val _userId = MutableStateFlow<String?>(null)
     val userId: StateFlow<String?> = _userId.asStateFlow()
-
-    private val _householdData = MutableStateFlow<Map<String, Any>?>(null)
-    val householdData: StateFlow<Map<String, Any>?> = _householdData.asStateFlow()
+    private val _userData = MutableStateFlow<Map<String, Any>?>(null)
+    val userData: StateFlow<Map<String, Any>?> = _userData.asStateFlow()
 
     private val _householdId = MutableStateFlow<String?>(null)
     val householdId: StateFlow<String?> = _householdId.asStateFlow()
+    private val _householdData = MutableStateFlow<Map<String, Any>?>(null)
+    val householdData: StateFlow<Map<String, Any>?> = _householdData.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -24,13 +25,23 @@ class MainViewModel(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    // TODO: get all data for user rather than just id
-    fun loadCurrentUserId() {
+    fun loadUserData() {
         _isLoading.value = true
         _errorMessage.value = null
 
-        val id = firestoreRepository.getCurrentUserId()
-        _userId.value = id
+        firestoreRepository.getUserWithoutId(
+            onSuccess = { userId, data ->
+                _userId.value = userId
+                _householdData.value = data
+                _isLoading.value = false
+                Log.d("MainViewModel", "Household loaded: $householdId - ${data["name"]}")
+            },
+            onFailure = { exception ->
+                _errorMessage.value = "Failed to load household: ${exception.message}"
+                _isLoading.value = false
+                Log.e("MainViewModel", "Error loading household", exception)
+            }
+        )
     }
 
     /**

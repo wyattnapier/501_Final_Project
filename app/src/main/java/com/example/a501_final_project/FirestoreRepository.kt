@@ -69,21 +69,26 @@ class FirestoreRepository {
     }
 
     fun getUserWithoutId(
-        onSuccess: (Map<String, Any>) -> Unit,
+        onSuccess: (userId: String, userData: Map<String, Any>) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
         val currentUserId = getCurrentUserId()
-        if (currentUserId != null) {
-            val user = getUser(
-                userId = currentUserId,
-                onSuccess = onSuccess,
-                onFailure = onFailure
-            )
-            Log.d("FirestoreRepository", "User: $user")
-            return user
-        } else {
+        if (currentUserId == null) {
             onFailure(Exception("No current user"))
+            return
         }
+
+        getUser(
+            userId = currentUserId,
+            onSuccess = { userData ->
+                Log.d("FirestoreRepository", "Successfully loaded user without ID $userData")
+                onSuccess(currentUserId, userData)
+            },
+            onFailure = {exception ->
+                Log.e("FirestoreRepository", "Error loading user", exception)
+                onFailure(exception)
+            }
+        )
     }
 
     /**
