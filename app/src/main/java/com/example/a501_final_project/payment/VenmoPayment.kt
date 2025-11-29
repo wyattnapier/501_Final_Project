@@ -1,10 +1,9 @@
-package com.example.a501_final_project
+package com.example.a501_final_project.payment
 
 import androidx.compose.runtime.Composable
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,32 +12,27 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.state.ToggleableState
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.net.toUri
+
+// TODO: fetch actual value for these constants from database and use below
+const val currentUser = "Wyatt"
 
 @Composable
 fun VenmoPaymentScreen(
     modifier: Modifier = Modifier,
-    viewModel: MainViewModel
+    paymentViewModel: PaymentViewModel
 ) {
     // using stateflow
-    val showPastPayments by viewModel.showPastPayments.collectAsState()
-    val allPayments by viewModel.paymentsList.collectAsState()
-    val pastPayments by viewModel.pastPayments.collectAsState()
+    val showPastPayments by paymentViewModel.showPastPayments.collectAsState()
+    val pastPayments by paymentViewModel.pastPayments.collectAsState()
 
     // get other lists
-    val currentPaymentsForUser = (viewModel.getPaymentsFor(viewModel.currentUser) + viewModel.getPaymentsFrom(viewModel.currentUser)).filter { !it.paid }
-    val pastPaymentsForUser = pastPayments.filter { it.payFrom == viewModel.currentUser || it.payTo == viewModel.currentUser }
+    val currentPaymentsForUser = (paymentViewModel.getPaymentsFor(currentUser) + paymentViewModel.getPaymentsFrom(currentUser)).filter { !it.paid }
+    val pastPaymentsForUser = pastPayments.filter { it.payFrom == currentUser || it.payTo == currentUser }
 
     Column(
         modifier = modifier,
@@ -58,7 +52,7 @@ fun VenmoPaymentScreen(
             )
 
             FilledTonalButton(
-                onClick = { viewModel.toggleShowPastPayments() },
+                onClick = { paymentViewModel.toggleShowPastPayments() },
                 colors = ButtonDefaults.filledTonalButtonColors(
                     containerColor = if (showPastPayments)
                         MaterialTheme.colorScheme.primaryContainer
@@ -85,7 +79,7 @@ fun VenmoPaymentScreen(
             }
             items(listToShow.size) { index ->
                 val payment = listToShow[index]
-                PaymentListItem(payment, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                PaymentListItem(payment, paymentViewModel, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
             }
         }
     }
@@ -94,6 +88,7 @@ fun VenmoPaymentScreen(
 @Composable
 fun PaymentListItem(
     payment: Payment,
+    paymentViewModel: PaymentViewModel,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -103,7 +98,7 @@ fun PaymentListItem(
         if (payment.paid) {
             PaidPaymentListItem(payment)
         } else {
-            UnpaidPaymentListItem(payment)
+            UnpaidPaymentListItem(payment, paymentViewModel)
         }
     }
 }
@@ -111,6 +106,7 @@ fun PaymentListItem(
 @Composable
 fun UnpaidPaymentListItem(
     payment: Payment,
+    paymentViewModel: PaymentViewModel
 ) {
     Row(
         modifier = Modifier
@@ -151,9 +147,10 @@ fun UnpaidPaymentListItem(
                 payTo = payment.payTo,
                 amount = payment.amount,
                 note = payment.memo,
+                paymentViewModel = paymentViewModel,
                 modifier = Modifier
                     .weight(5f)
-                    .padding(start = 8.dp)
+                    .padding(start = 8.dp),
             )
         }
     }
@@ -199,14 +196,14 @@ fun PayButton(
     amount: Double,
     note: String,
     modifier: Modifier = Modifier,
-    viewModel: MainViewModel = viewModel()
+    paymentViewModel: PaymentViewModel
 ) {
     val context = LocalContext.current // used to open venmo activity
 
-    val payToVenmoUsername = viewModel.getVenmoUsername(payTo)
+    val payToVenmoUsername = paymentViewModel.getVenmoUsername(payTo)
     if (payToVenmoUsername == null) {
         Log.d("payment","Error: Venmo username not found for $payTo")
-        val payToVenmoUsername = "Wyatt" // temp placeholder rather than throwing real error
+        // TODO: add more robust error handling
     }
 
     Button(onClick = {
@@ -232,7 +229,6 @@ fun PayButton(
 fun PaymentReminderButton(
     payment: Payment,
     modifier: Modifier = Modifier,
-    viewModel: MainViewModel = viewModel()
 ) {
     Button(
         onClick = {Log.d("Payment", "Reminder button clicked") },
@@ -241,9 +237,3 @@ fun PaymentReminderButton(
         Text(text = "Remind ${payment.payFrom}")
     }
 }
-//
-//@Preview(showBackground = true)
-//@Composable
-//fun VenmoPaymentScreenPreview() {
-//    VenmoPaymentScreen(modifier = Modifier.fillMaxSize())
-//}

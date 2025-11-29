@@ -43,26 +43,17 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import com.example.a501_final_project.Chore
-import com.example.a501_final_project.chores.ChoresViewModel
-import com.example.a501_final_project.MainViewModel
 import java.io.File
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
-data class ChoreTemp(
-    val name: String,
-    val description: String,
-    val assignedTo: String,
-    val houseHoldID: Number,
-    val userID: Number,
-    val dueDate: String,
-    val status: String = "Pending"
-)
+// TODO: fetch actual value for these constants from database and use below
+const val userID = 2
+const val householdID = 1
 
 @Composable
-fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+fun ChoresScreen(choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
     val chores by choresViewModel.choresList.collectAsState()
     val showPrevChores by choresViewModel.showPrevChores.collectAsState()
     Column(modifier = modifier
@@ -72,15 +63,15 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
         if (showPrevChores) {
             PrevChores(chores, choresViewModel)
         } else {
-            MyChoreWidget(chores, mainViewModel, choresViewModel)
-            RoommateChores(chores, mainViewModel, choresViewModel)
+            MyChoreWidget(chores, choresViewModel)
+            RoommateChores(chores, choresViewModel)
         }
     }
 }
 
 @Composable
-fun MyChoreWidget(chores: List<Chore>, mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val chore = chores.find { it.userID == mainViewModel.userID && it.householdID == mainViewModel.householdID }
+fun MyChoreWidget(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val chore = chores.find { it.userID == userID && it.householdID == householdID }
     val context = LocalContext.current
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
@@ -249,8 +240,8 @@ private fun createImageUri(context: Context): Uri {
 
 
 @Composable
-fun RoommateChores(chores: List<Chore>, mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val roommateChores = chores.filter { it.userID != mainViewModel.userID && it.householdID == mainViewModel.householdID }
+fun RoommateChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val roommateChores = chores.filter { it.userID != userID && it.householdID == householdID }
 
     Column(modifier =  modifier
         .fillMaxHeight()

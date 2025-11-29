@@ -1,4 +1,4 @@
-package com.example.a501_final_project
+package com.example.a501_final_project.login_register
 
 import android.util.Log
 import androidx.compose.runtime.getValue

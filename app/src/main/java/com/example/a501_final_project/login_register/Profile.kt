@@ -1,4 +1,4 @@
-package com.example.a501_final_project
+package com.example.a501_final_project.login_register
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,6 +20,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import coil.compose.AsyncImage
+import com.example.a501_final_project.R
+import com.example.a501_final_project.Screen
+import com.example.a501_final_project.navigateToScreen
 
 @Composable
 fun ProfileScreen(modifier: Modifier, loginViewModel: LoginViewModel = viewModel(), navController: NavController) {
@@ -48,7 +51,7 @@ fun ProfileScreen(modifier: Modifier, loginViewModel: LoginViewModel = viewModel
             uiState.userEmail?.let { Text(it, modifier = Modifier.padding(top = verticalSpacingBetweenInformation)) }
             // settings
             Button(
-                onClick = { navigateToScreen(navController, Screen.Settings)},
+                onClick = { navigateToScreen(navController, Screen.Settings) },
                 modifier = Modifier.padding(top = verticalSpacingBetweenInformation)
             ) {
                 Text("User Settings")

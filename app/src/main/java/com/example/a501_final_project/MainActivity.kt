@@ -47,6 +47,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.a501_final_project.chores.ChoresViewModel
+import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.LoginViewModel
+import com.example.a501_final_project.payment.PaymentViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
@@ -119,8 +122,9 @@ fun MainScreen() {
     )
     // view models
     val loginViewModel: LoginViewModel = viewModel()
-    val mainViewModel: MainViewModel = viewModel()
+    val paymentViewModel: PaymentViewModel = viewModel()
     val choresViewModel: ChoresViewModel = viewModel()
+    val eventsViewModel: EventsViewModel = viewModel()
 
     val loginState by loginViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -130,7 +134,7 @@ fun MainScreen() {
         val account = GoogleSignIn.getLastSignedInAccount(context)
         if (loginState.isLoggedIn && account != null) {
             Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
-            mainViewModel.fetchCalendarEvents(
+            eventsViewModel.fetchCalendarEvents(
                 context,
             )
         }
@@ -142,18 +146,20 @@ fun MainScreen() {
                 BottomBar(navController)
             }
         },
-        topBar = { if(currentRoute !in noBars) {
-            TopBar(navController)
+        topBar = {
+            if (currentRoute !in noBars) {
+                TopBar(navController)
             }
-            },
+         },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         AppNavGraph(
             modifier = Modifier.padding(innerPadding),
             navController = navController,
             loginViewModel = loginViewModel,
-            mainViewModel = mainViewModel,
+            paymentViewModel = paymentViewModel,
             choresViewModel = choresViewModel,
+            eventsViewModel = eventsViewModel,
         )
     }
 }

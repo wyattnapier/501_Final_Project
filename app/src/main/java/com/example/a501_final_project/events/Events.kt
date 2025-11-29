@@ -1,6 +1,5 @@
 package com.example.a501_final_project.events
 
-import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
@@ -17,10 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.example.a501_final_project.CalendarEventInfo
-import com.example.a501_final_project.CalendarViewType
-import com.example.a501_final_project.LoginViewModel
-import com.example.a501_final_project.MainViewModel
+import com.example.a501_final_project.login_register.LoginViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,17 +28,17 @@ private class EventData() : ParentDataModifier {
 fun EventsScreen(
     modifier: Modifier = Modifier,
     loginViewModel: LoginViewModel,
-    mainViewModel: MainViewModel
+    eventsViewModel: EventsViewModel,
 ) {
     val loginState by loginViewModel.uiState.collectAsState()
-    val isLoading by mainViewModel.isLoadingCalendar.collectAsState()
-    val error by mainViewModel.calendarError.collectAsState()
-    val viewType by mainViewModel.calendarViewType.collectAsState()
-    val allEvents by mainViewModel.events.collectAsState()
+    val isLoading by eventsViewModel.isLoadingCalendar.collectAsState()
+    val error by eventsViewModel.calendarError.collectAsState()
+    val viewType by eventsViewModel.calendarViewType.collectAsState()
+    val allEvents by eventsViewModel.events.collectAsState()
     var selectedEvent by remember { mutableStateOf<CalendarEventInfo?>(null) }
-    val leftDay by mainViewModel.leftDayForThreeDay.collectAsState()
-    val calendarDataDateRangeStart by mainViewModel.calendarDataDateRangeStart.collectAsState()
-    val calendarDataDateRangeEnd by mainViewModel.calendarDataDateRangeEnd.collectAsState()
+    val leftDay by eventsViewModel.leftDayForThreeDay.collectAsState()
+    val calendarDataDateRangeStart by eventsViewModel.calendarDataDateRangeStart.collectAsState()
+    val calendarDataDateRangeEnd by eventsViewModel.calendarDataDateRangeEnd.collectAsState()
     val canDecrement = leftDay.after(calendarDataDateRangeStart)
     val lastIncrementingDay = (leftDay.clone() as Calendar).apply { add(Calendar.DAY_OF_YEAR, 3) } // left day + 2 is last visible day in 3 day view
     val canIncrement = lastIncrementingDay.before(calendarDataDateRangeEnd)
@@ -69,13 +65,13 @@ fun EventsScreen(
 
             CalendarViewSwitcher(
                 selectedView = viewType,
-                onViewSelected = { mainViewModel.setCalendarView(it) }
+                onViewSelected = { eventsViewModel.setCalendarView(it) }
             )
 
             IconButton(
                 onClick = {
                     if (loginState.isLoggedIn) {
-                        mainViewModel.fetchCalendarEvents(context)
+                        eventsViewModel.fetchCalendarEvents(context)
                     }
                 },
                 enabled = !isLoading && loginState.isLoggedIn
@@ -98,8 +94,8 @@ fun EventsScreen(
                             leftDay = leftDay,
                             events = allEvents,
                             onEventClick = { selectedEvent = it },
-                            onIncrementDay = { mainViewModel.incrementThreeDayView() },
-                            onDecrementDay = { mainViewModel.decrementThreeDayView() },
+                            onIncrementDay = { eventsViewModel.incrementThreeDayView() },
+                            onDecrementDay = { eventsViewModel.decrementThreeDayView() },
                             canIncrement = canIncrement,
                             canDecrement = canDecrement
                         )
@@ -108,8 +104,8 @@ fun EventsScreen(
                             calendarDataDateRangeStart = calendarDataDateRangeStart,
                             calendarDataDateRangeEnd = calendarDataDateRangeEnd,
                             onDaySelected = { clickedDay ->
-                                mainViewModel.onDaySelected(clickedDay)
-                                mainViewModel.setCalendarView(CalendarViewType.THREE_DAY)
+                                eventsViewModel.onDaySelected(clickedDay)
+                                eventsViewModel.setCalendarView(CalendarViewType.THREE_DAY)
                             }
                         )
                     }
@@ -129,7 +125,7 @@ fun EventsScreen(
             AddEventDialog(
                 onDismiss = { showAddEventDialog = false },
                 onConfirm = { summary, description, start, end ->
-                    mainViewModel.addCalendarEvent(context, summary, description, start, end)
+                    eventsViewModel.addCalendarEvent(context, summary, description, start, end)
                     showAddEventDialog = false // Close dialog on confirm
                 }
             )

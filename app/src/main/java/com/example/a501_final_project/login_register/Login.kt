@@ -1,4 +1,4 @@
-package com.example.a501_final_project
+package com.example.a501_final_project.login_register
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -87,7 +87,7 @@ fun LoginScreen(
         uiState.error?.let {
             Text(
                 text = it,
-                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }

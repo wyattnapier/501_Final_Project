@@ -1,4 +1,4 @@
-package com.example.a501_final_project
+package com.example.a501_final_project.events
 
 import android.content.Context
 import android.util.Log
@@ -19,55 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
-
-// custom data object created here for now
-data class User(
-    val username: String,
-    val email: String,
-    val venmoUsername: String,
-)
-
-
-/**
- * chore should include an id for easy maintainence
- * title and description for what the chore is
- * dueDate to keep track of when they are due
- * assignee to indicate who it is assigned to
- * completed to indicate if chore is completed
- */
-data class Chore(
-    val choreID: Int,
-    val userID: Number,
-    val householdID: Number,
-    val name: String,
-    val description: String,
-//    var dueDate: Date, // trying this, can change later
-    var dueDate: String,
-    var assignedTo: String,
-    var completed: Boolean,
-    var priority: Boolean,
-)
-
-/**
- * payment class should include id for maintenance
- * payTo tracks who the payment should go to
- * payFrom tracks who is sending the payment
- * amount indicates the amount the payment is for
- * memo stores the memo message for the payment
- * paid indicates if payment has been paid
- * date ?
- */
-data class Payment(
-    val id: Int,
-    val payTo: String, // data types may change depending on how we represent this?
-    val payFrom: String,
-    val amount: Double,
-    val memo: String,
-    var paid: Boolean,
-    val recurring: Boolean
-)
 
 /**
  * data class for Calendar events
@@ -89,141 +41,7 @@ enum class CalendarViewType {
     MONTH
 }
 
-/** our ViewModel to hold our business logic and data.
- * For now this will be one ViewModel that all of the screens can access.
- * One this grows, we may break it down into ViewModels per screen,
- * but since Home view needs all this data we are doing one for now.
- **/
-
-class MainViewModel : ViewModel() {
-    val users = listOf(
-        User("alice_username", "william.henry.harrison@example-pet-store.com", "alice_venmo"),
-        User("tiffany_username", "william.henry.harrison@example-pet-store.com", "tiffany_venmo"),
-        User("john_username", "william.henry.moody@my-own-personal-domain.com", "john_venmo")
-    )
-
-    // temporary values to keep track of who is current user and current household
-    val userID = 2
-    val currentUser = "Wyatt"
-    val householdID = 1
-
-    // pay viewmodel portion
-    private val _paymentsList = MutableStateFlow<List<Payment>>(listOf(
-        Payment(
-            0,
-            "tiffany_username",
-            "alice_username",
-            85.50,
-            "Dinner",
-            paid = false,
-            recurring = false
-        ),
-        Payment(1, "alice_username", "Wyatt", 15.50, "Dinner", paid = false, recurring = false),
-        Payment(2, "tiffany_username", "Wyatt", 25.00, "Utilities", paid = false, recurring = true),
-        Payment(3, "john_username", "Wyatt", 100.25, "Rent", paid = false, recurring = false),
-        Payment(4, "Wyatt", "john_username", 100.25, "Rent", paid = true, recurring = false),
-        Payment(5, "john_username", "Wyatt", 100.25, "Rent", paid = true, recurring = false),
-    )
-    )
-
-    // TODO: get this from the viewmodel instead of dummy data
-    var paymentsList: StateFlow<List<Payment>> = _paymentsList.asStateFlow()
-
-    // forcing a past payment, otherwise empty
-    private val _pastPayments = MutableStateFlow<List<Payment>>(listOf(
-        Payment(0, "Wyatt", "alice_username", 85.50, "Dinner", paid = true, recurring = false),
-    ))
-    val pastPayments: StateFlow<List<Payment>> = _pastPayments
-    private val _showPastPayments = MutableStateFlow(false)
-    val showPastPayments: StateFlow<Boolean> = _showPastPayments.asStateFlow()
-
-
-    // functions to help us maintain payments
-
-    /**
-     * function to add payments to active payments
-     * this function should be used more frequently than add chore since
-     * chores are set at creating while payment is constantly changing (either recurring or one time)?
-     *
-     * hypothetically when someone inputs payment information, they can select who has to pay?
-     * so the payFrom may be a list and we add some number of payments based on the calculation
-     *
-     * eventually we can determine weighting of payments for things like room size?
-     */
-//    fun addPayment(newPayment: Payment) {
-//        paymentList.add(newPayment)
-//    }
-    fun addPayment(payTo: String, payFrom: List<String>, amount: Double, memo: String, recurring: Boolean) {
-        val amountPerPerson = amount / payFrom.size
-        for (name in payFrom) {
-            val newPayment = Payment(
-                id = paymentsList.value.size + 1,
-                payTo = payTo,
-                payFrom = name,
-                amount = amountPerPerson,
-                memo = memo,
-                paid = false,
-                recurring = recurring
-            )
-            _paymentsList.value = _paymentsList.value + newPayment
-        }
-    }
-
-    /**
-     * function to remove payment, either to get rid of it or upon completion
-     */
-    fun removePayment(payment: Payment) {
-        _paymentsList.value = _paymentsList.value.filter { it != payment }
-    }
-
-
-    /**
-     * function to mark a payment as paid
-     */
-    fun completePayment(payment: Payment) {
-        // payment should already be in list so we can access
-        val updatedPayment = payment.copy(paid = true)
-
-        // Add to pastPayments
-        _pastPayments.value = _pastPayments.value + updatedPayment
-
-        // Remove from active paymentList
-        _paymentsList.value = _paymentsList.value.filter { it != payment }
-    }
-
-    /**
-     * function to get payments assigned to specified person
-     */
-    fun getPaymentsFor(person: String): List<Payment> {
-        return paymentsList.value.filter { it.payTo == person }
-    }
-
-    /**
-     * function to get payments from a specific person
-     * this will be used for payments they need to make
-     */
-    fun getPaymentsFrom(person: String): List<Payment> {
-        return paymentsList.value.filter { it.payFrom == person }
-    }
-
-    /**
-     * function to get venmo user name of a user
-     */
-    fun getVenmoUsername(person: String): String? {
-        val user: User? = users.find { it.username == person }
-        return user?.venmoUsername // TODO: should return an error message if null
-    }
-
-    /**
-     * function to toggle if past payments are shown
-     */
-    fun toggleShowPastPayments() {
-        _showPastPayments.value = !_showPastPayments.value
-    }
-
-    /***********************************************************************************************************************************************************************/
-    // --- CALENDAR SECTION ---
-
+class EventsViewModel: ViewModel() {
     private val _events = MutableStateFlow<List<CalendarEventInfo>>(emptyList())
     val events: StateFlow<List<CalendarEventInfo>> = _events.asStateFlow()
 
@@ -451,20 +269,20 @@ class MainViewModel : ViewModel() {
                             null // Skip if date is invalid
                         }
                     } else {
-                            // Timed events logic remains the same
-                            val startDateTime = event.start?.dateTime
-                            val endDateTime = event.end?.dateTime
-                            if (startDateTime != null && endDateTime != null) {
-                                CalendarEventInfo(
-                                    id = event.id,
-                                    summary = event.summary,
-                                    startDateTime = startDateTime,
-                                    endDateTime = endDateTime,
-                                    isAllDay = false
-                                )
-                            } else { null } // Skip timed events with invalid dates
-                        }
+                        // Timed events logic remains the same
+                        val startDateTime = event.start?.dateTime
+                        val endDateTime = event.end?.dateTime
+                        if (startDateTime != null && endDateTime != null) {
+                            CalendarEventInfo(
+                                id = event.id,
+                                summary = event.summary,
+                                startDateTime = startDateTime,
+                                endDateTime = endDateTime,
+                                isAllDay = false
+                            )
+                        } else { null } // Skip timed events with invalid dates
                     }
+                }
                 _events.value = items
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Calendar API error", e)
