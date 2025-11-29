@@ -32,7 +32,6 @@ data class Chore(
 )
 
 class ChoresViewModel : ViewModel() {
-    val db = FirebaseFirestore.getInstance()
     val roommates = listOf("Alice", "Wyatt", "Tiffany")
     private val _choresList = MutableStateFlow<List<Chore>>(
         listOf(
