@@ -121,6 +121,7 @@ fun MainScreen() {
         Screen.UserSignUp.route
     )
     // view models
+    val mainViewModel: MainViewModel = viewModel()
     val loginViewModel: LoginViewModel = viewModel()
     val paymentViewModel: PaymentViewModel = viewModel()
     val choresViewModel: ChoresViewModel = viewModel()
@@ -156,6 +157,7 @@ fun MainScreen() {
         AppNavGraph(
             modifier = Modifier.padding(innerPadding),
             navController = navController,
+            mainViewModel = mainViewModel,
             loginViewModel = loginViewModel,
             paymentViewModel = paymentViewModel,
             choresViewModel = choresViewModel,

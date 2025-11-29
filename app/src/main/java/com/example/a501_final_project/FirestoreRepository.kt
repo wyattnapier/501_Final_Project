@@ -74,8 +74,13 @@ class FirestoreRepository {
     ) {
         val currentUserId = getCurrentUserId()
         if (currentUserId != null) {
-            val user: Map<String, Any> = getUser(currentUserId!!, onSuccess, onFailure) // todo: pass different onSuccess and onFailure
-            onSuccess(user)
+            val user = getUser(
+                userId = currentUserId,
+                onSuccess = onSuccess,
+                onFailure = onFailure
+            )
+            Log.d("FirestoreRepository", "User: $user")
+            return user
         } else {
             onFailure(Exception("No current user"))
         }

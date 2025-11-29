@@ -21,6 +21,7 @@ import com.example.a501_final_project.payment.VenmoPaymentScreen
 fun AppNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController,
+    mainViewModel: MainViewModel,
     paymentViewModel: PaymentViewModel,
     loginViewModel: LoginViewModel,
     choresViewModel: ChoresViewModel,
@@ -37,6 +38,7 @@ fun AppNavGraph(
         // Chores
         composable(Screen.Chores.route) {
             ChoresScreen(
+                mainViewModel = mainViewModel,
                 choresViewModel = choresViewModel,
                 modifier = modifier
             )
