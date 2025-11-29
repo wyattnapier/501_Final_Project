@@ -34,14 +34,14 @@ class MainViewModel(
         firestoreRepository.getUserWithoutId(
             onSuccess = { userId, data ->
                 _userId.value = userId
-                _householdData.value = data
+                _userData.value = data
                 _isLoading.value = false
-                Log.d("MainViewModel", "Household loaded: $householdId - ${data["name"]}")
+                Log.d("MainViewModel", "User information loaded: $userId - ${data["name"]}")
             },
             onFailure = { exception ->
-                _errorMessage.value = "Failed to load household: ${exception.message}"
+                _errorMessage.value = "Failed to load user information: ${exception.message}"
                 _isLoading.value = false
-                Log.e("MainViewModel", "Error loading household", exception)
+                Log.e("MainViewModel", "Error loading user", exception)
             }
         )
     }

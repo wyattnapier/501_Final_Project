@@ -17,18 +17,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-
-// TODO: fetch actual value for these constants from database and use below
-const val currentUser = "Wyatt"
+import com.example.a501_final_project.MainViewModel
 
 @Composable
 fun VenmoPaymentScreen(
     modifier: Modifier = Modifier,
-    paymentViewModel: PaymentViewModel
+    paymentViewModel: PaymentViewModel,
+    mainViewModel: MainViewModel
 ) {
     // using stateflow
     val showPastPayments by paymentViewModel.showPastPayments.collectAsState()
     val pastPayments by paymentViewModel.pastPayments.collectAsState()
+    val currentUserData by mainViewModel.userData.collectAsState()
+    val currentUser = currentUserData?.get("name").toString() // TODO: would username or name be better?
 
     // get other lists
     val currentPaymentsForUser = (paymentViewModel.getPaymentsFor(currentUser) + paymentViewModel.getPaymentsFrom(currentUser)).filter { !it.paid }
@@ -79,7 +80,7 @@ fun VenmoPaymentScreen(
             }
             items(listToShow.size) { index ->
                 val payment = listToShow[index]
-                PaymentListItem(payment, paymentViewModel, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                PaymentListItem(payment, paymentViewModel, currentUser, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
             }
         }
     }
@@ -89,6 +90,7 @@ fun VenmoPaymentScreen(
 fun PaymentListItem(
     payment: Payment,
     paymentViewModel: PaymentViewModel,
+    currentUser: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -98,7 +100,7 @@ fun PaymentListItem(
         if (payment.paid) {
             PaidPaymentListItem(payment)
         } else {
-            UnpaidPaymentListItem(payment, paymentViewModel)
+            UnpaidPaymentListItem(payment, paymentViewModel, currentUser)
         }
     }
 }
@@ -106,7 +108,8 @@ fun PaymentListItem(
 @Composable
 fun UnpaidPaymentListItem(
     payment: Payment,
-    paymentViewModel: PaymentViewModel
+    paymentViewModel: PaymentViewModel,
+    currentUser: String
 ) {
     Row(
         modifier = Modifier
@@ -135,7 +138,7 @@ fun UnpaidPaymentListItem(
                 color = if (payment.paid) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
         }
-        if (payment.payTo == "Wyatt") { // TODO: change to current user
+        if (payment.payTo == currentUser) {
             PaymentReminderButton(
                 payment = payment,
                 modifier = Modifier

@@ -47,8 +47,9 @@ fun AppNavGraph(
         composable(Screen.Pay.route) {
             VenmoPaymentScreen(
                 modifier = modifier,
-                paymentViewModel
-            ) // do I need to pass the viewmodel into it?
+                paymentViewModel = paymentViewModel,
+                mainViewModel = mainViewModel
+            )
         }
         // Calendar
         composable(Screen.Calendar.route) {
