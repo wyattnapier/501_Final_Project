@@ -154,11 +154,6 @@ fun MyChoreWidget(chores: List<Chore>, choresViewModel: ChoresViewModel, modifie
                             return@Button
                         }
 
-                        if (chore.completed) {
-                            Toast.makeText(context, "Chore already completed!", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
-
                         when (PackageManager.PERMISSION_GRANTED) {
                             ContextCompat.checkSelfPermission(
                                 context,
