@@ -9,6 +9,8 @@ import com.example.a501_final_project.chores.ChoresScreen
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
 import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.HouseholdLanding
+import com.example.a501_final_project.login_register.HouseholdViewModel
 import com.example.a501_final_project.login_register.LoginScreen
 import com.example.a501_final_project.login_register.LoginViewModel
 import com.example.a501_final_project.login_register.ProfileScreen
@@ -24,7 +26,8 @@ fun AppNavGraph(
     paymentViewModel: PaymentViewModel,
     loginViewModel: LoginViewModel,
     choresViewModel: ChoresViewModel,
-    eventsViewModel: EventsViewModel
+    eventsViewModel: EventsViewModel,
+    householdViewModel : HouseholdViewModel
 ) {
     NavHost(
         navController = navController,
@@ -95,6 +98,13 @@ fun AppNavGraph(
                         popUpTo("signup") { inclusive = true }
                     }
                 })
+        }
+
+        // to make householdsetup page navigable
+        composable(Screen.HouseholdSetup.route) {
+            HouseholdLanding(
+                viewModel = householdViewModel
+            )
         }
     }
 }

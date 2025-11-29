@@ -112,7 +112,7 @@ fun SignUpScreen(
             }
 
             SignUpSteps.REVIEW -> {
-                ReviewInfo(loginViewModel)
+                ReviewInfo(loginViewModel, navController)
             }
 
         }
@@ -191,7 +191,7 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
 }
 
 @Composable
-fun ReviewInfo(loginViewModel: LoginViewModel) {
+fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
 //        verticalArrangement = Arrangement.Center,
@@ -228,7 +228,10 @@ fun ReviewInfo(loginViewModel: LoginViewModel) {
         Text(text = "Looks good?",
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(8.dp))
-        Button(onClick = {loginViewModel.saveUserToDb()}) {
+        Button(onClick = {
+            loginViewModel.saveUserToDb()
+            navController.navigate("HouseholdSetup")
+        }) {
             Text("Join a household!")
         }
     }
