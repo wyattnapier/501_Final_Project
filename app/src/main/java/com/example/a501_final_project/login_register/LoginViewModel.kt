@@ -27,11 +27,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.api.services.calendar.CalendarScopes
 
-class LoginViewModel(
-    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
-) : ViewModel() {
-
-    // to send to firestore..?
+class LoginViewModel() : ViewModel() {
     var displayName by mutableStateOf("")
     var username by mutableStateOf("")
 
@@ -98,7 +94,6 @@ class LoginViewModel(
 
                 if (googleAccount?.idToken != null) {
                     firebaseAuthWithGoogle(googleAccount.idToken!!)
-                    // TODO: add call to fetch gcal data here
                 } else {
                     _uiState.value = _uiState.value.copy(
                         error = "Google Sign-In failed: No ID token.",
@@ -119,13 +114,6 @@ class LoginViewModel(
         try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
-
-//            // Check if user already exists in Firestore
-//            val userExists = checkExistingUser()
-//            _uiState.value = _uiState.value.copy(
-//                isLoginInProgress = false,
-//                userAlreadyExists = userExists  // Add this new field
-//            )
 
             // AuthStateListener will handle updating the UI state.
         } catch (e: Exception) {
