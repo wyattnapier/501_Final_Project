@@ -93,7 +93,7 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
 
 @Composable
 fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val chore = chores.find { it.userID == userID && it.householdID == householdID }
+    val chore = chores.find { it.assignedTo == userID && it.householdID == householdID }
     val context = LocalContext.current
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
@@ -263,7 +263,7 @@ private fun createImageUri(context: Context): Uri {
 
 @Composable
 fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val roommateChores = chores.filter { it.userID.toString() != userID && it.householdID.toString() == householdID }
+    val roommateChores = chores.filter { it.assignedTo != userID && it.householdID == householdID }
 
     Column(modifier =  modifier
         .fillMaxHeight()

@@ -144,8 +144,10 @@ fun MainScreen() {
     LaunchedEffect(loginState.isLoggedIn, mainViewModel.isHouseholdDataLoaded.collectAsState().value) {
         val account = GoogleSignIn.getLastSignedInAccount(context)
         val isHouseholdLoaded = mainViewModel.isHouseholdDataLoaded.value
+        val isChoresLoaded = choresViewModel.isChoresDataLoaded.value
 
-        if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
+
+        if (loginState.isLoggedIn && account != null && isHouseholdLoaded && !isChoresLoaded) {
             Log.d("MainScreen", "Household loaded, now fetching calendar events and household data")
             eventsViewModel.fetchCalendarEvents(context)
             choresViewModel.loadHouseholdData()
