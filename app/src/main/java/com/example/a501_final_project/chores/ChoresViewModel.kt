@@ -1,15 +1,25 @@
 package com.example.a501_final_project.chores
 
+import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import com.example.a501_final_project.storage.SupabaseClientProvider
+import io.github.jan.supabase.storage.storage
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+import androidx.core.net.toUri
 
 
 /**
@@ -167,9 +177,34 @@ class ChoresViewModel : ViewModel() {
         _tempImageUri.value = uri
     }
 
-    fun onPhotoCaptured(choreId: Int, uri: Uri) {
-        // Save the image URI for this chore
-        _choreImageUris.value += (choreId to uri)
+    fun onPhotoCaptured(choreId: Int, uri: Uri, context: Context) {
+        val supabaseClient = SupabaseClientProvider.client
+
+        //launch coroutine to store the image in supabase
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val imageBytes = context.contentResolver.openInputStream(uri)?.readBytes()
+                if (imageBytes == null) {
+                    Log.e("ChoresViewModel", "Could not read image bytes from Uri.")
+                    // Optionally revert chore status or show an error
+                    return@launch
+                }
+
+                // TODO: get the actual householdID instead of this placeholder
+                val path = "chore/householdID/${choreId}"
+
+                supabaseClient.storage.from("chore_photos").upload(path, imageBytes)
+
+                val storedUrl =
+                    supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
+
+                //store the uri for this chore so it can be accessed and displayed
+                _choreImageUris.value += (choreId to storedUrl.toUri())
+            } catch (e: Exception) {
+                Log.e("ChoresViewModel", "Error uploading image: ${e.message}", e)
+            }
+        }
+
         // Clear the temp URI
         _tempImageUri.value = null
     }
@@ -178,13 +213,25 @@ class ChoresViewModel : ViewModel() {
         _tempImageUri.value = null
     }
 
-    fun getChoreImageUri(choreId: Int): Uri? {
-        return _choreImageUris.value[choreId]
+    // return uri for the chore image if it exists
+    suspend fun getChoreImageUri(choreId: Int): Uri? {
+        // TODO: Get the actual household ID in here
+        val path = "chore/householdID/${choreId}"
+
+        return try {
+            val supabaseClient = SupabaseClientProvider.client
+            val signedUrl = supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
+            Log.d("ChoresViewModel", "Signed URL for $choreId: $signedUrl")
+            signedUrl.toUri()
+        }catch (e: Exception){
+            Log.e("ChoresViewModel", "Error getting image URI: ${e.message}", e)
+            null
+        }
     }
 
     // Update your existing completeChore method to accept an optional imageUri
-    fun completeChoreWithPhoto(chore: Chore, imageUri: Uri) {
-        onPhotoCaptured(chore.choreID, imageUri)
+    fun completeChoreWithPhoto(chore: Chore, imageUri: Uri, context: Context) {
         completeChore(chore)
+        onPhotoCaptured(chore.choreID, imageUri, context)
     }
 }
