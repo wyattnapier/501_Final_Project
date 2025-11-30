@@ -4,7 +4,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,7 +51,7 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             modifier = modifier.fillMaxSize()
         ) {
-            CircularProgressIndicator()
+            AptLoading()
             return
         }
     }
@@ -107,5 +109,23 @@ fun LoginScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
+    }
+}
+
+// composable for on app opening (while firebase does all the status checks)
+@Composable
+fun AptLoading() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Text(
+            "apt.",
+            style = MaterialTheme.typography.displayLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(64.dp))
+        CircularProgressIndicator()
     }
 }
