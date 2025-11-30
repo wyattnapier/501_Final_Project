@@ -149,7 +149,7 @@ class FirestoreRepository {
                 getHousehold(
                     householdID = householdId,
                     onSuccess = { householdData ->
-                        Log.d("FirestoreRepository", "Successfully loaded household without ID")
+                        Log.d("FirestoreRepository", "Successfully loaded household without ID: $householdData")
                         onSuccess(householdId, householdData)
                     },
                     onFailure = { exception ->

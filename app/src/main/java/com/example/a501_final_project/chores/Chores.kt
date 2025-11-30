@@ -61,7 +61,25 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
     Log.d("ChoresScreen", "userId: $userId")
     Log.d("ChoresScreen", "sharedHouseholdID: $sharedHouseholdID")
 
+    // Capture values in local variables for smart casting
+    val currentUserId = userId
+    val currentHouseholdId = sharedHouseholdID
 
+    // Now you can smart cast the local variables
+    if (currentUserId == null || currentHouseholdId == null) {
+        Box(
+            modifier = modifier.fillMaxHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Loading chores data...",
+                style = MaterialTheme.typography.headlineMedium
+            )
+        }
+        return
+    }
+
+    // At this point, Kotlin knows currentUserId and currentHouseholdId are non-null
     Column(modifier = modifier
         .fillMaxHeight()
         .padding(10.dp),
@@ -69,15 +87,15 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
         if (showPrevChores) {
             PrevChores(chores, choresViewModel)
         } else {
-            MyChoreWidget(userId!!, sharedHouseholdID, chores, choresViewModel)
-            RoommateChores(userId!!, sharedHouseholdID, chores, choresViewModel)
+            MyChoreWidget(currentUserId, currentHouseholdId, chores, choresViewModel)
+            RoommateChores(currentUserId, currentHouseholdId, chores, choresViewModel)
         }
     }
 }
 
 @Composable
-fun MyChoreWidget(userID: String, householdID: String?, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val chore = chores.find { it.userID == userID && it.householdID.toString() == householdID }
+fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val chore = chores.find { it.userID == userID && it.householdID == householdID }
     val context = LocalContext.current
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
@@ -100,7 +118,7 @@ fun MyChoreWidget(userID: String, householdID: String?, chores: List<Chore>, cho
 
     // Get URIs from ViewModel
     val tempImageUri by choresViewModel.tempImageUri.collectAsState()
-    val choreImageUris by choresViewModel.choreImageUris.collectAsState()
+    val choreImageUris by choresViewModel.choreImageUris.collectAsState<Map<String, Uri>>()
     val capturedImageUri = chore?.let { choreImageUris[it.choreID] }
 
     val cameraLauncher = rememberLauncherForActivityResult(

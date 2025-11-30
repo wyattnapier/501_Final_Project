@@ -147,7 +147,9 @@ fun MainScreen() {
 
         if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
             Log.d("MainScreen", "Household loaded, now fetching calendar events")
+            eventsViewModel.loadHouseholdCalendarName()
             eventsViewModel.fetchCalendarEvents(context)
+            choresViewModel.loadHouseholdData()
         }
     }
 

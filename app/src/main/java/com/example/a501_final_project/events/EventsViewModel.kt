@@ -77,9 +77,6 @@ class EventsViewModel(
     private val _householdCalendarName = MutableStateFlow<String?>(null)
     val householdCalendarName: StateFlow<String?> = _householdCalendarName.asStateFlow() // TODO: when to use this version?
 
-    init {
-        loadHouseholdCalendarName()
-    }
 
     /**
      * Load and cache the household calendar name
