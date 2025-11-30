@@ -3,6 +3,7 @@ package com.example.a501_final_project
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository {
     private val db = FirebaseFirestore.getInstance()
@@ -17,10 +18,7 @@ class FirestoreRepository {
     }
 
     /**
-     * Get household information from Firestore
-     * @param householdID: String, the ID of the household to fetch
-     * @param onSuccess: (Map<String, Any>) -> Unit, a function to call on success
-     * @param onFailure: (Exception) -> Unit, a function to call on failure
+     * Get household information from Firestore (CALLBACK VERSION - keep for compatibility)
      */
     fun getHousehold(
         householdID: String,
@@ -43,10 +41,24 @@ class FirestoreRepository {
     }
 
     /**
-     * Get user information from Firestore
-     * @param userId: String, the ID of the user to fetch
-     * @param onSuccess: (Map<String, Any>) -> Unit, a function to call on success
-     * @param onFailure: (Exception) -> Unit, a function to call on failure
+     * Get household information from Firestore (SUSPEND VERSION - new)
+     */
+    suspend fun getHouseholdSuspend(householdID: String): Map<String, Any> {
+        return try {
+            val document = db.collection("households").document(householdID).get().await()
+            if (document != null && document.exists()) {
+                document.data ?: emptyMap()
+            } else {
+                throw Exception("Household not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting household", e)
+            throw e
+        }
+    }
+
+    /**
+     * Get user information from Firestore (CALLBACK VERSION - keep for compatibility)
      */
     fun getUser(
         userId: String,
@@ -66,6 +78,23 @@ class FirestoreRepository {
                 Log.e("FirestoreRepository", "Error getting user", exception)
                 onFailure(exception)
             }
+    }
+
+    /**
+     * Get user information from Firestore (SUSPEND VERSION - new)
+     */
+    suspend fun getUserSuspend(userId: String): Map<String, Any> {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            if (document != null && document.exists()) {
+                document.data ?: emptyMap()
+            } else {
+                throw Exception("User not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting user", e)
+            throw e
+        }
     }
 
     fun getUserWithoutId(
@@ -93,9 +122,6 @@ class FirestoreRepository {
 
     /**
      * Get the household ID for a user
-     * @param userId: String, the user's ID
-     * @param onSuccess: (String) -> Unit, callback with household ID
-     * @param onFailure: (Exception) -> Unit, callback on failure
      */
     fun getHouseholdIdForUser(
         userId: String,
@@ -124,16 +150,29 @@ class FirestoreRepository {
     }
 
     /**
-     * Get household data for the current logged-in user
-     * Chains: getCurrentUserId -> getHouseholdIdForUser -> getHousehold
-     * @param onSuccess: (Map<String, Any>) -> Unit, callback with household data
-     * @param onFailure: (Exception) -> Unit, callback on failure
+     * Get the household ID for a user (SUSPEND VERSION)
+     */
+    suspend fun getHouseholdIdForUserSuspend(userId: String): String {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            if (document != null && document.exists()) {
+                document.getString("household_id") ?: throw Exception("User has no household")
+            } else {
+                throw Exception("User not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting household ID for user", e)
+            throw e
+        }
+    }
+
+    /**
+     * Get household data for the current logged-in user (CALLBACK VERSION)
      */
     fun getHouseholdWithoutId(
         onSuccess: (householdId: String, householdData: Map<String, Any>) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
-        // Step 1: Get current user ID
         val currentUserId = getCurrentUserId()
         if (currentUserId == null) {
             onFailure(Exception("No current user logged in"))
@@ -141,11 +180,9 @@ class FirestoreRepository {
         }
         Log.d("FirestoreRepository", "Current user ID: $currentUserId")
 
-        // Step 2: Get household ID for this user
         getHouseholdIdForUser(
             userId = currentUserId,
             onSuccess = { householdId ->
-                // Step 3: Get household data using the household ID
                 getHousehold(
                     householdID = householdId,
                     onSuccess = { householdData ->
@@ -163,6 +200,20 @@ class FirestoreRepository {
                 onFailure(exception)
             }
         )
+    }
+
+    /**
+     * Get household data for the current logged-in user (SUSPEND VERSION)
+     */
+    suspend fun getHouseholdWithoutIdSuspend(): Pair<String, Map<String, Any>> {
+        val currentUserId = getCurrentUserId() ?: throw Exception("No current user logged in")
+        Log.d("FirestoreRepository", "Current user ID: $currentUserId")
+
+        val householdId = getHouseholdIdForUserSuspend(currentUserId)
+        val householdData = getHouseholdSuspend(householdId)
+
+        Log.d("FirestoreRepository", "Successfully loaded household without ID")
+        return Pair(householdId, householdData)
     }
 
     // used to get and add events to shared calendar

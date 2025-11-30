@@ -3,6 +3,7 @@ package com.example.a501_final_project.chores
 import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
@@ -10,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -31,6 +33,7 @@ data class Chore(
     var dueDate: String,
     var dateCompleted: String?,
     var assignedToId: String,
+    var assignedToName: String?,
     var completed: Boolean,
 )
 
@@ -75,29 +78,25 @@ class ChoresViewModel(
     }
 
     fun loadHouseholdData() {
-        Log.d("ChoresViewModel", "========================================")
-        Log.d("ChoresViewModel", "loadHouseholdData() CALLED")
-        Log.d("ChoresViewModel", "_isLoading = ${_isLoading.value}")
-        Log.d("ChoresViewModel", "_isChoresDataLoaded = ${_isChoresDataLoaded.value}")
-        Log.d("ChoresViewModel", "Current chores count = ${_choresList.value.size}")
-
         if (_isLoading.value) {
-            Log.w("ChoresViewModel", "⚠️ Already loading, RETURNING EARLY")
+            Log.w("ChoresViewModel", "Already loading, skipping duplicate call")
             return
         }
         if (_isChoresDataLoaded.value) {
-            Log.d("ChoresViewModel", "✓ Already loaded, RETURNING EARLY")
+            Log.w("ChoresViewModel", "Chores data already loaded, skipping")
             return
         }
 
         _isLoading.value = true
-        Log.d("ChoresViewModel", "🔄 Starting load...")
+        Log.d("ChoresViewModel", "Starting to load household data...")
 
-        firestoreRepository.getHouseholdWithoutId(
-            onSuccess = { householdId, data ->
-                Log.d("ChoresViewModel", "========================================")
-                Log.d("ChoresViewModel", "✓✓✓ SUCCESS CALLBACK ENTERED")
-                Log.d("ChoresViewModel", "Household ID: $householdId")
+        // Launch a coroutine in the ViewModel scope to prevent failed results from async
+        viewModelScope.launch {
+            try {
+                // Use the suspend version
+                val (householdId, data) = firestoreRepository.getHouseholdWithoutIdSuspend()
+
+                Log.d("ChoresViewModel", "Loaded household data: $householdId")
 
                 // Parse residents
                 val residentsAnyList = data["residents"] as? List<*>
@@ -110,123 +109,54 @@ class ChoresViewModel(
                         residentMap?.get("id")?.toString()
                     }
                     _roommates.value = residentIds
-                    Log.d("ChoresViewModel", "Loaded ${residentIds.size} residents: $residentIds")
+                    Log.d("ChoresViewModel", "Loaded ${residentIds.size} residents")
                 }
 
                 // Parse recurring chores
                 val recurringChoresListFromDB = data["recurring_chores"] as? List<*>
-                if (recurringChoresListFromDB == null) {
-                    Log.w("ChoresViewModel", "'recurring_chores' is null")
-                    recurringChoresList = null
-                } else {
-                    val recurringChoresListTemp: List<RecurringChore>? =
-                        recurringChoresListFromDB.mapIndexedNotNull { index, item ->
-                            val itemAsMap = item as? Map<*, *> ?: return@mapIndexedNotNull null
-
-                            Log.d("ChoresViewModel", "Parsing recurring chore $index: $itemAsMap")
-
-                            val name = itemAsMap["name"] as? String
-                            if (name == null) {
-                                Log.w("ChoresViewModel", "Recurring chore $index has no name")
-                                return@mapIndexedNotNull null
-                            }
-
-                            val description = itemAsMap["description"] as? String
-                            if (description == null) {
-                                Log.w(
-                                    "ChoresViewModel",
-                                    "Recurring chore $index has no description"
-                                )
-                                return@mapIndexedNotNull null
-                            }
-
-                            // IMPORTANT: Look for "cycle" not "cycle_frequency"
-                            val cycleFrequency =
-                                (itemAsMap["cycle"] ?: itemAsMap["cycle_frequency"]) as? Number
-                            if (cycleFrequency == null) {
-                                Log.w("ChoresViewModel", "Recurring chore $index has no cycle")
-                                return@mapIndexedNotNull null
-                            }
-
-                            val recurringChore = RecurringChore(
-                                name = name,
-                                description = description,
-                                recurringChoreId = index.toString(),  // Use index as ID (0, 1, 2...)
-                                cycleFrequency = cycleFrequency.toInt()
-                            )
-
-                            Log.d(
-                                "ChoresViewModel",
-                                "✓ Parsed recurring chore $index: ${recurringChore.name}"
-                            )
-                            recurringChore
-                        }
-                    recurringChoresList = recurringChoresListTemp
-                    Log.d(
-                        "ChoresViewModel",
-                        "Total recurring chores loaded: ${recurringChoresListTemp?.size ?: 0}"
+                val recurringChoresListTemp: List<RecurringChore>? = recurringChoresListFromDB?.mapIndexedNotNull { index, item ->
+                    val itemAsMap = item as? Map<*, *> ?: return@mapIndexedNotNull null
+                    RecurringChore(
+                        name = itemAsMap["name"] as? String ?: return@mapIndexedNotNull null,
+                        description = itemAsMap["description"] as? String ?: return@mapIndexedNotNull null,
+                        recurringChoreId = index.toString(),
+                        cycleFrequency = ((itemAsMap["cycle"] ?: itemAsMap["cycle_frequency"]) as? Number)?.toInt() ?: return@mapIndexedNotNull null
                     )
-                    Log.d("ChoresViewModel", "Recurring chores: $recurringChoresListTemp")
                 }
+                recurringChoresList = recurringChoresListTemp
+                Log.d("ChoresViewModel", "Loaded ${recurringChoresListTemp?.size ?: 0} recurring chores")
 
                 // Parse chores
                 val choresListFromDB = data["chores"] as? List<*>
                 if (choresListFromDB == null) {
-                    Log.w("ChoresViewModel", "'chores' field is NULL")
+                    Log.w("ChoresViewModel", "'chores' field is null")
                     _choresList.value = emptyList()
                 } else {
-                    Log.d("ChoresViewModel", "📋 Processing ${choresListFromDB.size} chores from DB")
+                    Log.d("ChoresViewModel", "Processing ${choresListFromDB.size} chores")
 
                     val parsedChores = choresListFromDB.mapIndexedNotNull { index, item ->
-                        Log.d("ChoresViewModel", "--- Processing chore $index ---")
-                        val itemAsMap = item as? Map<*, *>
-                        if (itemAsMap == null) {
-                            Log.w("ChoresViewModel", "Chore $index is not a Map")
-                            return@mapIndexedNotNull null
-                        }
+                        val itemAsMap = item as? Map<*, *> ?: return@mapIndexedNotNull null
 
-                        Log.d("ChoresViewModel", "Chore $index data: $itemAsMap")
-
-                        // Get chore_id/choreID
+                        // Get chore_id
                         val choreId = (itemAsMap["chore_id"] ?: itemAsMap["choreID"]).toStringOrNull()
-                        Log.d("ChoresViewModel", "Chore $index - choreId: $choreId")
-                        if (choreId == null) {
-                            Log.w("ChoresViewModel", "Chore $index SKIPPED - no chore_id")
-                            return@mapIndexedNotNull null
-                        }
+                            ?: return@mapIndexedNotNull null
 
                         // Get recurring chore info
                         val recurringChoreIdNum = itemAsMap["recurring_chore_id"] as? Number
-                        Log.d("ChoresViewModel", "Chore $index - recurring_chore_id: $recurringChoreIdNum")
                         val currentRecurringChore: RecurringChore? = recurringChoreIdNum?.let { id ->
                             recurringChoresList?.find { it.recurringChoreId == id.toString() }
                         }
-                        Log.d("ChoresViewModel", "Chore $index - found recurring chore: ${currentRecurringChore?.name}")
 
                         // Parse due date
                         val dueDateValue = itemAsMap["dueDate"] ?: itemAsMap["due_date"]
-                        Log.d("ChoresViewModel", "Chore $index - dueDateValue type: ${dueDateValue?.javaClass?.simpleName}, value: $dueDateValue")
                         val dueDate = when (dueDateValue) {
-                            is String -> {
-                                Log.d("ChoresViewModel", "Chore $index - dueDate is String: $dueDateValue")
-                                dueDateValue
-                            }
+                            is String -> dueDateValue
                             is com.google.firebase.Timestamp -> {
                                 val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
-                                val formatted = sdf.format(dueDateValue.toDate())
-                                Log.d("ChoresViewModel", "Chore $index - dueDate converted from Timestamp: $formatted")
-                                formatted
+                                sdf.format(dueDateValue.toDate())
                             }
-                            else -> {
-                                Log.w("ChoresViewModel", "Chore $index - Invalid dueDate type")
-                                null
-                            }
-                        }
-
-                        if (dueDate == null) {
-                            Log.w("ChoresViewModel", "Chore $index SKIPPED - no valid dueDate")
-                            return@mapIndexedNotNull null
-                        }
+                            else -> null
+                        } ?: return@mapIndexedNotNull null
 
                         // Parse date completed
                         val dateCompletedValue = itemAsMap["dateCompleted"] ?: itemAsMap["date_completed"]
@@ -239,34 +169,26 @@ class ChoresViewModel(
                             null -> null
                             else -> null
                         }
-                        Log.d("ChoresViewModel", "Chore $index - dateCompleted: $dateCompleted")
 
-                        // Parse assignedToId
-                        val assignedToIdValue = itemAsMap["assignedToId"] ?: itemAsMap["assigned_to_id"]
-                        Log.d("ChoresViewModel", "Chore $index - assignedToValue type: ${assignedToIdValue?.javaClass?.simpleName}")
-                        val assignedToId = when (assignedToIdValue) {
-                            is String -> {
-                                Log.d("ChoresViewModel", "Chore $index - assignedTo is String: $assignedToIdValue")
-                                assignedToIdValue
-                            }
-                            is com.google.firebase.firestore.DocumentReference -> {
-                                val id = assignedToIdValue.id
-                                Log.d("ChoresViewModel", "Chore $index - assignedTo from DocumentReference: $id")
-                                id
-                            }
-                            else -> {
-                                val converted = assignedToIdValue.toStringOrNull()
-                                Log.d("ChoresViewModel", "Chore $index - assignedTo converted: $converted")
-                                converted
-                            }
+                        // Parse assignedTo ID
+                        val assignedToId = when (val assignedToIdValue = itemAsMap["assignedToId"] ?: itemAsMap["assigned_to_id"]) {
+                            is String -> assignedToIdValue
+                            is com.google.firebase.firestore.DocumentReference -> assignedToIdValue.id
+                            else -> assignedToIdValue.toStringOrNull()
+                        } ?: return@mapIndexedNotNull null
+
+                        // NOW fetch the user's name using suspend function
+                        val assignedToName = try {
+                            val userData = firestoreRepository.getUserSuspend(assignedToId)
+                            userData["name"] as? String ?: assignedToId
+                        } catch (e: Exception) {
+                            Log.w("ChoresViewModel", "Failed to get name for user $assignedToId: $e")
+                            assignedToId  // Fall back to ID if name fetch fails
                         }
 
-                        if (assignedToId == null) {
-                            Log.w("ChoresViewModel", "Chore $index SKIPPED - no assignedTo")
-                            return@mapIndexedNotNull null
-                        }
+                        Log.d("ChoresViewModel", "Chore $index: ${currentRecurringChore?.name} assigned to $assignedToName")
 
-                        val chore = Chore(
+                        Chore(
                             choreID = choreId,
                             householdID = householdId,
                             completed = itemAsMap["completed"] as? Boolean ?: false,
@@ -275,37 +197,23 @@ class ChoresViewModel(
                             dueDate = dueDate,
                             dateCompleted = dateCompleted,
                             assignedToId = assignedToId,
+                            assignedToName = assignedToName,
                         )
-
-                        Log.d("ChoresViewModel", "✓✓✓ Chore $index SUCCESSFULLY PARSED: ${chore.name} - ${chore.assignedToId}")
-                        chore
                     }
 
-                    Log.d("ChoresViewModel", "========================================")
-                    Log.d("ChoresViewModel", "📊 Parsed ${parsedChores.size} chores out of ${choresListFromDB.size}")
-                    Log.d("ChoresViewModel", "Setting _choresList.value...")
                     _choresList.value = parsedChores
-                    Log.d("ChoresViewModel", "✓ _choresList.value is now: ${_choresList.value.size} chores")
-                    Log.d("ChoresViewModel", "Chores: ${_choresList.value}")
+                    Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
                 }
 
-                Log.d("ChoresViewModel", "Setting flags...")
                 _isChoresDataLoaded.value = true
                 _isLoading.value = false
-                Log.d("ChoresViewModel", "✓✓✓ LOAD COMPLETE - Final count: ${_choresList.value.size}")
-                Log.d("ChoresViewModel", "========================================")
-            },
-            onFailure = { exception ->
-                Log.e("ChoresViewModel", "========================================")
-                Log.e("ChoresViewModel", "✗✗✗ FAILURE CALLBACK ENTERED")
-                Log.e("ChoresViewModel", "Exception: $exception")
-                Log.e("ChoresViewModel", "Stack trace:", exception)
-                _isLoading.value = false
-                Log.d("ChoresViewModel", "========================================")
-            }
-        )
+                Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
 
-        Log.d("ChoresViewModel", "loadHouseholdData() exiting (async operation started)")
+            } catch (e: Exception) {
+                Log.e("ChoresViewModel", "Failed to load household data", e)
+                _isLoading.value = false
+            }
+        }
     }
 
     /**
