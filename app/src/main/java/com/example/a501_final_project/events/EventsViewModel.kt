@@ -75,8 +75,11 @@ class EventsViewModel(
     val leftDayForThreeDay: StateFlow<Calendar> = _leftDayForThreeDay.asStateFlow()
 
     private val _householdCalendarName = MutableStateFlow<String?>(null)
-    val householdCalendarName: StateFlow<String?> = _householdCalendarName.asStateFlow() // TODO: when to use this version?
+    val householdCalendarName: StateFlow<String?> = _householdCalendarName.asStateFlow()
 
+    init {
+        loadHouseholdCalendarName()
+    }
 
     /**
      * Load and cache the household calendar name
@@ -153,8 +156,8 @@ class EventsViewModel(
         }
 
         // Set the correctly adjusted left day and switch the view.
-        Log.d("MainViewModel","Last day of range is $potentialRightDay and range end is $endRange")
-        Log.d("MainViewModel", "Clicked day was $clickedDay but setting left day to $potentialLeftDay")
+        Log.d("EventsViewModel","Last day of range is $potentialRightDay and range end is $endRange")
+        Log.d("EventsViewModel", "Clicked day was $clickedDay but setting left day to $potentialLeftDay")
         setLeftDayForThreeDay(potentialLeftDay)
         setCalendarView(CalendarViewType.THREE_DAY)
     }
@@ -173,7 +176,7 @@ class EventsViewModel(
             val calendarList = calendarService.calendarList().list().execute()
             calendarList.items.find { it.summary.equals(calendarName, ignoreCase = true) }?.id
         } catch (e: Exception) {
-            Log.e("MainViewModel", "Failed to get calendar list", e)
+            Log.e("EventsViewModel", "Failed to get calendar list", e)
             null
         }
     }
@@ -182,6 +185,7 @@ class EventsViewModel(
         context: Context,
         days: Int = numCalendarDataDays,
     ) {
+        Log.d("EventsViewModel", "fetchCalendarEvents called")
         viewModelScope.launch(Dispatchers.IO) {
             val googleAccount = GoogleSignIn.getLastSignedInAccount(context)
 
@@ -196,6 +200,7 @@ class EventsViewModel(
 
             _isLoadingCalendar.value = true
             _calendarError.value = null
+            Log.d("EventsViewModel", "Calendar name is $calendarName before entering try block")
             try {
                 val credential = GoogleAccountCredential.usingOAuth2(
                     context,
@@ -276,7 +281,7 @@ class EventsViewModel(
 
                             val endDateTime = DateTime(localEndCal.time)
 
-                            Log.d("MainViewModel", "Summary: ${event.summary}, Start date time: $startDateTime, End date time: $endDateTime")
+                            Log.d("EventsViewModel", "Summary: ${event.summary}, Start date time: $startDateTime, End date time: $endDateTime")
                             CalendarEventInfo(
                                 id = event.id,
                                 summary = event.summary,

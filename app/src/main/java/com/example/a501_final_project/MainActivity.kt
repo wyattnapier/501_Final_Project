@@ -146,8 +146,7 @@ fun MainScreen() {
         val isHouseholdLoaded = mainViewModel.isHouseholdDataLoaded.value
 
         if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
-            Log.d("MainScreen", "Household loaded, now fetching calendar events")
-            eventsViewModel.loadHouseholdCalendarName()
+            Log.d("MainScreen", "Household loaded, now fetching calendar events and household data")
             eventsViewModel.fetchCalendarEvents(context)
             choresViewModel.loadHouseholdData()
         }

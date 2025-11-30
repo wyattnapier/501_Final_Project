@@ -49,8 +49,6 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
-const val householdID = 1
-
 @Composable
 fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
     val chores by choresViewModel.choresList.collectAsState()
