@@ -11,6 +11,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -31,6 +32,34 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
+    // if the user is logged in
+    // --- SIGNED-IN VIEW ---
+    LaunchedEffect(uiState.isLoggedIn) {
+        if (uiState.isLoggedIn) {
+            navController.navigate("Home") {
+                popUpTo("Login") { inclusive = true }
+            }
+        }
+    }
+
+    // if firebase is actively checking if a user is logged in, do not show the login or sign up
+    if (uiState.isChecking) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = modifier.fillMaxSize()
+        ) {
+            CircularProgressIndicator()
+            return
+        }
+    }
+
+    // if firebase done checking and finds that the user is logged in, then just return since laucnhedeffect is handled
+    if (uiState.isLoggedIn) {
+        return
+    }
+
+    // at this point firebase is done checking and the user is not logged in, so continue with the regular sign in process
     val signInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -43,21 +72,8 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         modifier = modifier.fillMaxSize()
     ) {
-        if (uiState.isLoggedIn) {
-            // --- SIGNED-IN VIEW ---
-            Text(
-                text = "Logged in as ${uiState.userEmail}",
-                modifier = Modifier.padding(bottom = 10.dp)
-            )
-            Button(onClick = { viewModel.signOut(context) }) {
-                Text(text = "Logout")
-            }
-            Button(onClick={
-                navController.navigate("Home")
-            }) {
-                Text(text="Go Home")
-            }
-        } else if (uiState.isLoginInProgress) {
+
+        if (uiState.isLoginInProgress) {
             CircularProgressIndicator()
         } else {
             // --- SIGNED-OUT VIEW ---

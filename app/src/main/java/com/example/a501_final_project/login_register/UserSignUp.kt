@@ -232,7 +232,7 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             loginViewModel.saveUserToDb()
             navController.navigate("HouseholdSetup")
         }) {
-            Text("Join a household!")
+            Text("Set up a household!")
         }
     }
 }
