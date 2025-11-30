@@ -83,6 +83,12 @@ dependencies {
         exclude(group = "org.apache.httpcomponents")
     }
 
+    // Supabase for photo storage
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:2.1.2")
+    implementation("io.github.jan-tennert.supabase:storage-kt:2.1.2")
+    implementation("io.github.jan-tennert.supabase:gotrue-kt:2.1.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
     implementation("io.coil-kt:coil-compose:2.6.0") // coil for image loading
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
