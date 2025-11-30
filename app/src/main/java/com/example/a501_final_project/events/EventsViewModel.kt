@@ -77,24 +77,30 @@ class EventsViewModel(
     private val _householdCalendarName = MutableStateFlow<String?>(null)
     val householdCalendarName: StateFlow<String?> = _householdCalendarName.asStateFlow()
 
-    init {
-        loadHouseholdCalendarName()
-    }
+    private val _isCalendarNameLoaded = MutableStateFlow(false)
+    val isCalendarNameLoaded: StateFlow<Boolean> = _isCalendarNameLoaded.asStateFlow()
 
     /**
      * Load and cache the household calendar name
      */
     fun loadHouseholdCalendarName() {
-        firestoreRepository.getHouseholdCalendarNameWithoutId(
-            onSuccess = { calendarName ->
+        // Prevent duplicate loads
+        if (_isCalendarNameLoaded.value) {
+            Log.d("EventsViewModel", "Calendar name already loaded")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                val calendarName = firestoreRepository.getHouseholdCalendarNameWithoutIdSuspend()
                 _householdCalendarName.value = calendarName
+                _isCalendarNameLoaded.value = true
                 Log.d("EventsViewModel", "Loaded calendar name: $calendarName")
-            },
-            onFailure = { exception ->
-                Log.e("EventsViewModel", "Failed to load calendar name", exception)
-                _calendarError.value = "Could not load calendar name: ${exception.message}"
+            } catch (e: Exception) {
+                Log.e("EventsViewModel", "Failed to load calendar name", e)
+                _calendarError.value = "Could not load calendar name: ${e.message}"
             }
-        )
+        }
     }
 
     fun setLeftDayForThreeDay(day: Calendar) {

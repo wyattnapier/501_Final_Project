@@ -145,12 +145,23 @@ fun MainScreen() {
         val account = GoogleSignIn.getLastSignedInAccount(context)
         val isHouseholdLoaded = mainViewModel.isHouseholdDataLoaded.value
         val isChoresLoaded = choresViewModel.isChoresDataLoaded.value
+        val isCalendarNameLoaded = eventsViewModel.isCalendarNameLoaded.value
 
 
-        if (loginState.isLoggedIn && account != null && isHouseholdLoaded && !isChoresLoaded) {
+        if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
             Log.d("MainScreen", "Household loaded, now fetching calendar events and household data")
-            eventsViewModel.fetchCalendarEvents(context)
-            choresViewModel.loadHouseholdData()
+
+            if (!isCalendarNameLoaded) {
+                eventsViewModel.loadHouseholdCalendarName()
+            }
+
+            if (!isChoresLoaded) {
+                choresViewModel.loadHouseholdData()
+            }
+
+            if (isCalendarNameLoaded) {
+                eventsViewModel.fetchCalendarEvents(context)
+            }
         }
     }
 
