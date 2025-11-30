@@ -2,9 +2,11 @@ package com.example.a501_final_project
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class MainViewModel(
     private val firestoreRepository: FirestoreRepository = FirestoreRepository()
@@ -28,46 +30,58 @@ class MainViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     fun loadUserData() {
-        _isLoading.value = true
-        _errorMessage.value = null
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
 
-        firestoreRepository.getUserWithoutId(
-            onSuccess = { userId, data ->
+            try {
+                // Call the new suspend function from the repository
+                val (userId, data) = firestoreRepository.getUserWithoutIdSuspend()
+
+                // Update state on success
                 _userId.value = userId
                 _userData.value = data
-                _isLoading.value = false
                 Log.d("MainViewModel", "User information loaded: $userId - ${data["name"]}")
-            },
-            onFailure = { exception ->
+
+            } catch (exception: Exception) {
+                // Update state on failure
                 _errorMessage.value = "Failed to load user information: ${exception.message}"
-                _isLoading.value = false
                 Log.e("MainViewModel", "Error loading user", exception)
+            } finally {
+                // This will run whether the try block succeeded or failed
+                _isLoading.value = false
             }
-        )
+        }
     }
 
     /**
-     * Load the current user's household data
+     * Load the current user's household data using suspend functions
      */
     fun loadHouseholdData() {
-        _isLoading.value = true
-        _errorMessage.value = null
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            _isHouseholdDataLoaded.value = false
 
-        firestoreRepository.getHouseholdWithoutId(
-            onSuccess = { householdId, data ->
+            try {
+                // Call the suspend function from the repository
+                val (householdId, data) = firestoreRepository.getHouseholdWithoutIdSuspend()
+
+                // Update state on success
                 _householdId.value = householdId
                 _householdData.value = data
-                _isLoading.value = false
                 _isHouseholdDataLoaded.value = true
                 Log.d("MainViewModel", "Household loaded: $householdId - ${data["name"]}")
-            },
-            onFailure = { exception ->
+
+            } catch (exception: Exception) {
+                // Update state on failure
                 _errorMessage.value = "Failed to load household: ${exception.message}"
-                _isLoading.value = false
-                _isHouseholdDataLoaded.value = false
                 Log.e("MainViewModel", "Error loading household", exception)
+            } finally {
+                // This will run whether the try block succeeded or failed
+                _isLoading.value = false
             }
-        )
+        }
     }
 
     /**
