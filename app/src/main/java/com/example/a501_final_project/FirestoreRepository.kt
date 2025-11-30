@@ -165,6 +165,7 @@ class FirestoreRepository {
         )
     }
 
+    // used to get and add events to shared calendar
     fun getHouseholdCalendarNameWithoutId(
         onSuccess: (String) -> Unit,
         onFailure: (Exception) -> Unit
@@ -176,6 +177,24 @@ class FirestoreRepository {
                     onSuccess(calendarName)
                 } else {
                     onFailure(Exception("Household has no calendar name"))
+                }
+            },
+            onFailure = onFailure
+        )
+    }
+
+    // used to get list of residents in apartment
+    fun getHouseholdResidentsWithoutId(
+        onSuccess: (List<Any?>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        getHouseholdWithoutId(
+            onSuccess = { _, householdData ->
+                val residents = householdData["residents"] as? List<Any?>
+                if (residents != null && residents.isNotEmpty()) {
+                    onSuccess(residents)
+                } else {
+                    onFailure(Exception("Household has no residents"))
                 }
             },
             onFailure = onFailure

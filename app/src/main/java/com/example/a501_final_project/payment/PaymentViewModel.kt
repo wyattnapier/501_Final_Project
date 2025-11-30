@@ -1,6 +1,7 @@
 package com.example.a501_final_project.payment
 
 import androidx.lifecycle.ViewModel
+import com.example.a501_final_project.FirestoreRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,7 +32,11 @@ data class Payment(
     val recurring: Boolean
 )
 
-class PaymentViewModel : ViewModel() {
+class PaymentViewModel(
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
+) : ViewModel() {
+
+    // TODO: GET FROM DB AND ADD BETTER NAME TO VARIABLE
     val users = listOf(
         PaymentUser("alice_username", "william.henry.harrison@example-pet-store.com", "alice_venmo"),
         PaymentUser("tiffany_username", "william.henry.harrison@example-pet-store.com", "tiffany_venmo"),
@@ -39,6 +44,7 @@ class PaymentViewModel : ViewModel() {
     )
 
     // pay viewmodel portion
+    // TODO: GET FROM DATABASE
     private val _paymentsList = MutableStateFlow<List<Payment>>(listOf(
         Payment(
             0,
@@ -57,7 +63,6 @@ class PaymentViewModel : ViewModel() {
     )
     )
 
-    // TODO: get this from the viewmodel instead of dummy data
     var paymentsList: StateFlow<List<Payment>> = _paymentsList.asStateFlow()
 
     // forcing a past payment, otherwise empty

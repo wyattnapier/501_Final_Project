@@ -75,7 +75,7 @@ class EventsViewModel(
     val leftDayForThreeDay: StateFlow<Calendar> = _leftDayForThreeDay.asStateFlow()
 
     private val _householdCalendarName = MutableStateFlow<String?>(null)
-    val householdCalendarName: StateFlow<String?> = _householdCalendarName.asStateFlow()
+    val householdCalendarName: StateFlow<String?> = _householdCalendarName.asStateFlow() // TODO: when to use this version?
 
     init {
         loadHouseholdCalendarName()

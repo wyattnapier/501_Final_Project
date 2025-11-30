@@ -1,11 +1,14 @@
 package com.example.a501_final_project.chores
 
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.example.a501_final_project.FirestoreRepository
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.toList
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -31,8 +34,15 @@ data class Chore(
     var priority: Boolean,
 )
 
-class ChoresViewModel : ViewModel() {
-    val roommates = listOf("Alice", "Wyatt", "Tiffany")
+class ChoresViewModel(
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
+) : ViewModel() {
+    private val _roommates = MutableStateFlow<List<String>>(emptyList())
+    val roommates: StateFlow<List<String>> = _roommates.asStateFlow()
+    // TODO: GET FROM DB
+    //val roommates = listOf("Alice", "Wyatt", "Tiffany") // TODO: replace with actual names from db
+
+    // TODO: GET FROM DB
     private val _choresList = MutableStateFlow<List<Chore>>(
         listOf(
             Chore(
@@ -104,6 +114,24 @@ class ChoresViewModel : ViewModel() {
     private val _tempImageUri = MutableStateFlow<Uri?>(null)
     val tempImageUri: StateFlow<Uri?> = _tempImageUri.asStateFlow()
 
+    init {
+        loadResidentsList()
+    }
+
+    fun loadResidentsList() {
+        firestoreRepository.getHouseholdResidentsWithoutId(
+            onSuccess = { residents ->
+                Log.d("ChoresViewModel", "Loaded residents: $residents")
+                _roommates.value = emptyList()
+                _roommates.value = (residents.map { it.toString() })
+            },
+            onFailure = { exception ->
+                // Handle failure
+                Log.d("ChoresViewModel", "Failed to load residents: $exception")
+            }
+        )
+    }
+
     /**
      * function to be used when first initializing/creating the list of chores for the household
      */
@@ -116,8 +144,14 @@ class ChoresViewModel : ViewModel() {
      * eventually we should do this based on time?
      */
     fun assignChores() {
+        val currentRoommates = roommates.value
+        if (currentRoommates.isEmpty()) {
+            Log.w("ChoresViewModel", "Cannot assign chores, the roommates list is empty.")
+            return
+        }
+
         _choresList.value = _choresList.value.mapIndexed { index, chore ->
-            chore.copy(assignedTo = roommates[index % roommates.size])
+            chore.copy(assignedTo = currentRoommates[index % currentRoommates.size])
         }
     }
 
