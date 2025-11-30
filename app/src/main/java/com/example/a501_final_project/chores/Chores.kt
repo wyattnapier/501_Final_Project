@@ -93,7 +93,7 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
 
 @Composable
 fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val chore = chores.find { it.assignedTo == userID && it.householdID == householdID }
+    val chore = chores.find { it.assignedToId == userID && it.householdID == householdID }
     val context = LocalContext.current
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
@@ -263,7 +263,7 @@ private fun createImageUri(context: Context): Uri {
 
 @Composable
 fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val roommateChores = chores.filter { it.assignedTo != userID && it.householdID == householdID }
+    val roommateChores = chores.filter { it.assignedToId != userID && it.householdID == householdID }
 
     Column(modifier =  modifier
         .fillMaxHeight()
@@ -274,7 +274,7 @@ fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, ch
         LazyColumn(){
             for(chore in roommateChores) {
                 item {
-                    Text(chore.assignedTo + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                    Text(chore.assignedToId + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                     Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                     HorizontalDivider(
                         color = Color.LightGray,
@@ -306,7 +306,7 @@ fun PrevChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: 
         LazyColumn(){
             for(chore in chores) {
                 item {
-                    Text(chore.assignedTo + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                    Text(chore.assignedToId + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                     Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                     HorizontalDivider(
                         color = Color.LightGray,

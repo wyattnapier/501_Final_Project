@@ -30,7 +30,7 @@ data class Chore(
     val description: String?,
     var dueDate: String,
     var dateCompleted: String?,
-    var assignedTo: String,
+    var assignedToId: String,
     var completed: Boolean,
 )
 
@@ -241,27 +241,27 @@ class ChoresViewModel(
                         }
                         Log.d("ChoresViewModel", "Chore $index - dateCompleted: $dateCompleted")
 
-                        // Parse assignedTo
-                        val assignedToValue = itemAsMap["assignedTo"] ?: itemAsMap["assigned_to"]
-                        Log.d("ChoresViewModel", "Chore $index - assignedToValue type: ${assignedToValue?.javaClass?.simpleName}")
-                        val assignedTo = when (assignedToValue) {
+                        // Parse assignedToId
+                        val assignedToIdValue = itemAsMap["assignedToId"] ?: itemAsMap["assigned_to_id"]
+                        Log.d("ChoresViewModel", "Chore $index - assignedToValue type: ${assignedToIdValue?.javaClass?.simpleName}")
+                        val assignedToId = when (assignedToIdValue) {
                             is String -> {
-                                Log.d("ChoresViewModel", "Chore $index - assignedTo is String: $assignedToValue")
-                                assignedToValue
+                                Log.d("ChoresViewModel", "Chore $index - assignedTo is String: $assignedToIdValue")
+                                assignedToIdValue
                             }
                             is com.google.firebase.firestore.DocumentReference -> {
-                                val id = assignedToValue.id
+                                val id = assignedToIdValue.id
                                 Log.d("ChoresViewModel", "Chore $index - assignedTo from DocumentReference: $id")
                                 id
                             }
                             else -> {
-                                val converted = assignedToValue.toStringOrNull()
+                                val converted = assignedToIdValue.toStringOrNull()
                                 Log.d("ChoresViewModel", "Chore $index - assignedTo converted: $converted")
                                 converted
                             }
                         }
 
-                        if (assignedTo == null) {
+                        if (assignedToId == null) {
                             Log.w("ChoresViewModel", "Chore $index SKIPPED - no assignedTo")
                             return@mapIndexedNotNull null
                         }
@@ -274,10 +274,10 @@ class ChoresViewModel(
                             description = currentRecurringChore?.description,
                             dueDate = dueDate,
                             dateCompleted = dateCompleted,
-                            assignedTo = assignedTo,
+                            assignedToId = assignedToId,
                         )
 
-                        Log.d("ChoresViewModel", "✓✓✓ Chore $index SUCCESSFULLY PARSED: ${chore.name} - ${chore.assignedTo}")
+                        Log.d("ChoresViewModel", "✓✓✓ Chore $index SUCCESSFULLY PARSED: ${chore.name} - ${chore.assignedToId}")
                         chore
                     }
 
@@ -327,7 +327,7 @@ class ChoresViewModel(
         }
 
         _choresList.value = _choresList.value.mapIndexed { index, chore ->
-            chore.copy(assignedTo = currentRoommates[index % currentRoommates.size])
+            chore.copy(assignedToId = currentRoommates[index % currentRoommates.size])
         }
     }
 
@@ -346,7 +346,7 @@ class ChoresViewModel(
      * function to get the chore(s) assigned to the specified person
      */
     fun getChoresFor(person: String): List<Chore> {
-        return _choresList.value.filter { it.assignedTo == person }
+        return _choresList.value.filter { it.assignedToId == person }
     }
 
     /**
