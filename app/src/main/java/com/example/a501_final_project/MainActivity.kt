@@ -146,19 +146,19 @@ fun MainScreen() {
         val isHouseholdLoaded = mainViewModel.isHouseholdDataLoaded.value
         val isChoresLoaded = choresViewModel.isChoresDataLoaded.value
         val isCalendarNameLoaded = eventsViewModel.isCalendarNameLoaded.value
-
+        val isPaymentsLoaded = paymentViewModel.isPaymentsDataLoaded.value
 
         if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
-            Log.d("MainScreen", "Household loaded, now fetching calendar events and household data")
-
+            Log.d("MainScreen", "Household loaded, now fetching data for widgets")
             if (!isCalendarNameLoaded) {
                 eventsViewModel.loadHouseholdCalendarName()
             }
-
             if (!isChoresLoaded) {
                 choresViewModel.loadHouseholdData()
             }
-
+            if (!isPaymentsLoaded) {
+                paymentViewModel.loadPaymentsData()
+            }
             if (isCalendarNameLoaded) {
                 eventsViewModel.fetchCalendarEvents(context)
             }
