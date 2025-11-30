@@ -151,16 +151,13 @@ fun MainScreen() {
         if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
             Log.d("MainScreen", "Household loaded, now fetching data for widgets")
             if (!isCalendarNameLoaded) {
-                eventsViewModel.loadHouseholdCalendarName()
+                eventsViewModel.loadHouseholdCalendarName(context) // chains call to fetch calendar events too
             }
             if (!isChoresLoaded) {
                 choresViewModel.loadHouseholdData()
             }
             if (!isPaymentsLoaded) {
                 paymentViewModel.loadPaymentsData()
-            }
-            if (isCalendarNameLoaded) {
-                eventsViewModel.fetchCalendarEvents(context)
             }
         }
     }

@@ -83,19 +83,14 @@ class EventsViewModel(
     /**
      * Load and cache the household calendar name
      */
-    fun loadHouseholdCalendarName() {
-        // Prevent duplicate loads
-        if (_isCalendarNameLoaded.value) {
-            Log.d("EventsViewModel", "Calendar name already loaded")
-            return
-        }
-
+    fun loadHouseholdCalendarName(context: Context) {
         viewModelScope.launch {
             try {
                 val calendarName = firestoreRepository.getHouseholdCalendarNameWithoutIdSuspend()
                 _householdCalendarName.value = calendarName
-                _isCalendarNameLoaded.value = true
                 Log.d("EventsViewModel", "Loaded calendar name: $calendarName")
+
+                fetchCalendarEvents(context)
             } catch (e: Exception) {
                 Log.e("EventsViewModel", "Failed to load calendar name", e)
                 _calendarError.value = "Could not load calendar name: ${e.message}"
@@ -232,7 +227,6 @@ class EventsViewModel(
                     _isLoadingCalendar.value = false
                     return@launch
                 }
-
 
                 // set time range for fetching events
                 val now = DateTime(System.currentTimeMillis())
