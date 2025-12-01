@@ -54,7 +54,8 @@ class LoginViewModel() : ViewModel() {
                         isLoginInProgress = false,
                         isLoggedIn = true,
                         userAccount = firebaseUser.email?.let { Account(it, "com.google") },
-                        userAlreadyExists = userExists  // This is now set at the same time
+                        userAlreadyExists = userExists,  // This is now set at the same time,
+                        isChecking = false // at this point done checking if user is logged in
                     )
                 }
                 Log.d("LoginViewModel", "Firebase user signed in: ${firebaseUser.email}")
@@ -66,7 +67,8 @@ class LoginViewModel() : ViewModel() {
                     userEmail = null,
                     userName = null,
                     profilePictureUrl = null,
-                    userAccount = null
+                    userAccount = null,
+                    isChecking = false
                 )
                 Log.d("LoginViewModel", "Firebase user signed out.")
             }
@@ -213,7 +215,8 @@ data class LoginUiState(
     val isLoginInProgress: Boolean = false,
     val error: String? = null,
     val isLoggedIn: Boolean = false, // flag for firebase state
-    val userAlreadyExists: Boolean? = null
+    val userAlreadyExists: Boolean? = null,
+    val isChecking : Boolean = true // flag for if login status is actively being checked, since we dont want login or signup to appear right off the bat, this has to be true
 )
 
 // data class for a user
