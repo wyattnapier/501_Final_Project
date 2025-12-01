@@ -13,11 +13,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -66,7 +68,7 @@ fun ChoresScreen(choresViewModel: ChoresViewModel, modifier: Modifier = Modifier
         .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)){
         if (showPrevChores) {
-            PrevChores(chores, choresViewModel)
+            PrevChores(chores, context, choresViewModel)
         } else {
             MyChoreWidget(chores, context, choresViewModel)
             RoommateChores(chores, context, choresViewModel)
@@ -323,6 +325,7 @@ fun RoommateChoreItem(
 @Composable
 fun PrevChores(
     chores: List<Chore>,
+    context: Context,
     choresViewModel: ChoresViewModel,
     modifier: Modifier = Modifier
 ) {
@@ -334,39 +337,68 @@ fun PrevChores(
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(10.dp)
     ) {
-        Text("Previous Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Previous Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
+            Spacer(modifier = Modifier.width(12.dp))
+            Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
+                Text("Back to Current")
+            }
+        }
         LazyColumn() {
             for (chore in chores) {
                 item {
-                    Text(
-                        chore.assignedTo + ": " + chore.name,
-                        fontSize = MaterialTheme.typography.bodyLarge.fontSize
-                    )
-                    Text(
-                        text = if (chore.completed) {
-                            "Status: Completed"
-                        } else {
-                            "Status: Pending"
-                        }, fontSize = MaterialTheme.typography.bodySmall.fontSize
-                    )
-                    HorizontalDivider(
-                        color = Color.LightGray,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                    PrevChoreItem(chore, context, choresViewModel, modifier)
+                    HorizontalDivider()
                 }
             }
-            item {
-                Row(
-                    modifier = Modifier.fillParentMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
-                        Text("Back to Current Chores")
-                    }
-                }
+        }
+    }
+}
 
-            }
+@Composable
+fun PrevChoreItem(
+    chore: Chore,
+    context: Context,
+    viewModel: ChoresViewModel,
+    modifier: Modifier = Modifier
+) {
+    //the fetched image url
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    LaunchedEffect(key1 = chore.choreID) {
+        if (chore.completed) {
+            imageUri = viewModel.getChoreImageUri(chore.choreID)
+        }
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier.weight(3f)) {
+            Text(
+                chore.assignedTo + ": " + chore.name,
+                fontSize = MaterialTheme.typography.bodyLarge.fontSize
+            )
+            Text(
+                text = if (chore.completed) {
+                    "Status: Completed"
+                } else {
+                    "Status: Overdue"
+                }, fontSize = MaterialTheme.typography.bodySmall.fontSize
+            )
+        }
+
+        imageUri?.let {
+            AsyncImage(
+                model = ImageRequest.Builder(context).data(it).crossfade(true).build(),
+                contentDescription = "Proof for ${chore.name}",
+                modifier = Modifier.weight(1f).size(64.dp).clip(MaterialTheme.shapes.small),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }
