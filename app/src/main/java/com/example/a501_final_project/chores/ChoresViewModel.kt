@@ -190,23 +190,34 @@ class ChoresViewModel : ViewModel() {
                     return@launch
                 }
 
-                // TODO: get the actual householdID instead of this placeholder
-                val path = "chore/householdID/${choreId}"
+                val buckets = supabaseClient.storage.retrieveBuckets()
+                if (buckets.isNotEmpty()) {
+                    println("Supabase Storage Buckets:")
+                    buckets.forEach { bucket ->
+                        println("- ${bucket.name}")
+                    }
+                } else {
+                    println("No storage buckets found.")
+                }
 
-                supabaseClient.storage.from("chore_photos").upload(path, imageBytes)
+                // TODO: get the actual householdID instead of this placeholder
+                val path = "householdid/${choreId}.jpg"
+
+                supabaseClient.storage.from("chore_photos").upload(path, imageBytes, upsert = true)
 
                 val storedUrl =
                     supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
 
                 //store the uri for this chore so it can be accessed and displayed
-                _choreImageUris.value += (choreId to storedUrl.toUri())
+                launch(Dispatchers.Main) {
+                    _choreImageUris.value += (choreId to storedUrl.toUri())
+                    _tempImageUri.value = null
+                }
             } catch (e: Exception) {
                 Log.e("ChoresViewModel", "Error uploading image: ${e.message}", e)
             }
         }
 
-        // Clear the temp URI
-        _tempImageUri.value = null
     }
 
     fun clearTempImageUri() {
@@ -216,7 +227,7 @@ class ChoresViewModel : ViewModel() {
     // return uri for the chore image if it exists
     suspend fun getChoreImageUri(choreId: Int): Uri? {
         // TODO: Get the actual household ID in here
-        val path = "chore/householdID/${choreId}"
+        val path = "householdid/${choreId}.jpg"
 
         return try {
             val supabaseClient = SupabaseClientProvider.client

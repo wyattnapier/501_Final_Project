@@ -261,14 +261,14 @@ fun RoommateChores(chores: List<Chore>, context: Context, choresViewModel: Chore
                     RoommateChoreItem(chore, context, choresViewModel)
                     HorizontalDivider()
                 }
-                item {
-                    Row(
-                        modifier = Modifier.fillParentMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
-                            Text("See Previous Chores")
-                        }
+            }
+            item {
+                Row(
+                    modifier = Modifier.fillParentMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
+                        Text("See Previous Chores")
                     }
                 }
             }
@@ -294,7 +294,10 @@ fun RoommateChoreItem(
         }
     }
 
-    Row {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Column(modifier.weight(3f)) {
             Text(
                 chore.assignedTo + ": " + chore.name,
@@ -311,9 +314,9 @@ fun RoommateChoreItem(
 
         imageUri?.let {
             AsyncImage(
-                model = ImageRequest.Builder(context).data(imageUri).crossfade(true).build(),
+                model = ImageRequest.Builder(context).data(it).crossfade(true).build(),
                 contentDescription = "Proof for ${chore.name}",
-                modifier = Modifier.weight(1f).fillMaxWidth(),
+                modifier = Modifier.weight(1f).size(64.dp).clip(MaterialTheme.shapes.small),
                 contentScale = ContentScale.Crop
             )
         }
