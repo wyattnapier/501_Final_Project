@@ -182,6 +182,7 @@ fun MyChoreWidget(chores: List<Chore>, context: Context, choresViewModel: Chores
 
         // Second Row: Captured photo (only shown if photo exists)
         capturedImageUri?.let { uri ->
+            Log.d("MyChoreWidget", "Captured image URI: $uri")
             Box(
                 modifier = Modifier
                     .fillMaxWidth()

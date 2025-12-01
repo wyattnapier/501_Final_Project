@@ -20,6 +20,7 @@ import io.github.jan.supabase.storage.storage
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import androidx.core.net.toUri
+import com.example.a501_final_project.BuildConfig
 
 
 /**
@@ -190,28 +191,22 @@ class ChoresViewModel : ViewModel() {
                     return@launch
                 }
 
-                val buckets = supabaseClient.storage.retrieveBuckets()
-                if (buckets.isNotEmpty()) {
-                    println("Supabase Storage Buckets:")
-                    buckets.forEach { bucket ->
-                        println("- ${bucket.name}")
-                    }
-                } else {
-                    println("No storage buckets found.")
-                }
-
                 // TODO: get the actual householdID instead of this placeholder
                 val path = "householdid/${choreId}.jpg"
 
                 supabaseClient.storage.from("chore_photos").upload(path, imageBytes, upsert = true)
 
-                val storedUrl =
+                var storedUrl =
                     supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
+
+                storedUrl = BuildConfig.SUPABASE_URL + "/storage/v1/" + storedUrl
 
                 //store the uri for this chore so it can be accessed and displayed
                 launch(Dispatchers.Main) {
                     _choreImageUris.value += (choreId to storedUrl.toUri())
                     _tempImageUri.value = null
+
+                    Log.d("ChoresViewModel", "Stored image at: $storedUrl")
                 }
             } catch (e: Exception) {
                 Log.e("ChoresViewModel", "Error uploading image: ${e.message}", e)
@@ -231,8 +226,9 @@ class ChoresViewModel : ViewModel() {
 
         return try {
             val supabaseClient = SupabaseClientProvider.client
-            val signedUrl = supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
+            var signedUrl = supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
             Log.d("ChoresViewModel", "Signed URL for $choreId: $signedUrl")
+            signedUrl = BuildConfig.SUPABASE_URL + "/storage/v1/" + signedUrl
             signedUrl.toUri()
         }catch (e: Exception){
             Log.e("ChoresViewModel", "Error getting image URI: ${e.message}", e)
