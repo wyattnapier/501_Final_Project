@@ -1,3 +1,4 @@
+import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.exclude
 import java.util.Properties
 
 plugins {
@@ -103,12 +104,12 @@ dependencies {
     }
 
     // Supabase for photo storage
-    implementation(platform("io.github.jan-tennert.supabase:bom:3.2.6"))
+    implementation(platform("io.github.jan-tennert.supabase:bom:2.1.2"))
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:storage-kt")
 
 
-    implementation("io.coil-kt:coil-compose:2.5.0") // coil for image loading
+    implementation("io.coil-kt:coil-compose:2.6.0") // coil for image loading
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -120,9 +121,11 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.foundation.layout)
+    implementation(libs.androidx.navigation.compose)
     implementation(libs.places)
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     implementation(libs.androidx.ui)
+    implementation("com.google.firebase:firebase-firestore-ktx")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
