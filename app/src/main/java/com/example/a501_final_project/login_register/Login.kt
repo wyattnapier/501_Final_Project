@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -84,12 +86,11 @@ fun LoginScreen(
         }
 
         // Optionally display errors
-        uiState.error?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
-            )
+        LaunchedEffect(uiState.error) {
+            uiState.error?.let { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                viewModel.clearError() // Optionally, clear the error after showing it
+            }
         }
     }
 }

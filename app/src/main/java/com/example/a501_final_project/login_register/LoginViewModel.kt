@@ -193,6 +193,10 @@ class LoginViewModel() : ViewModel() {
             false
         }
     }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
 }
 
 // A data class to hold all UI state in one object.
