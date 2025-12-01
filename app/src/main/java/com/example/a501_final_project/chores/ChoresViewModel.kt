@@ -184,6 +184,7 @@ class ChoresViewModel : ViewModel() {
         //launch coroutine to store the image in supabase
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                //get byte array for the image in order to store it
                 val imageBytes = context.contentResolver.openInputStream(uri)?.readBytes()
                 if (imageBytes == null) {
                     Log.e("ChoresViewModel", "Could not read image bytes from Uri.")
@@ -194,19 +195,18 @@ class ChoresViewModel : ViewModel() {
                 // TODO: get the actual householdID instead of this placeholder
                 val path = "householdid/${choreId}.jpg"
 
+                //write the byte to supabase database
                 supabaseClient.storage.from("chore_photos").upload(path, imageBytes, upsert = true)
 
+                //get signed url to display the image
                 var storedUrl =
                     supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
-
                 storedUrl = BuildConfig.SUPABASE_URL + "/storage/v1/" + storedUrl
 
                 //store the uri for this chore so it can be accessed and displayed
                 launch(Dispatchers.Main) {
                     _choreImageUris.value += (choreId to storedUrl.toUri())
                     _tempImageUri.value = null
-
-                    Log.d("ChoresViewModel", "Stored image at: $storedUrl")
                 }
             } catch (e: Exception) {
                 Log.e("ChoresViewModel", "Error uploading image: ${e.message}", e)
@@ -221,13 +221,12 @@ class ChoresViewModel : ViewModel() {
 
     // return uri for the chore image if it exists
     suspend fun getChoreImageUri(choreId: Int): Uri? {
+        val supabaseClient = SupabaseClientProvider.client
         // TODO: Get the actual household ID in here
         val path = "householdid/${choreId}.jpg"
 
         return try {
-            val supabaseClient = SupabaseClientProvider.client
             var signedUrl = supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
-            Log.d("ChoresViewModel", "Signed URL for $choreId: $signedUrl")
             signedUrl = BuildConfig.SUPABASE_URL + "/storage/v1/" + signedUrl
             signedUrl.toUri()
         }catch (e: Exception){

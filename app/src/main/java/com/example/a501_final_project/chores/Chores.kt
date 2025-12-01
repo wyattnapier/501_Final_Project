@@ -90,7 +90,6 @@ fun MyChoreWidget(chores: List<Chore>, context: Context, choresViewModel: Chores
                 dueDate != null && dueDate.before(today)
             } catch (e: ParseException) {
                 // If parsing fails, it's not considered overdue
-                Log.d("MyChoreWidget", "Error parsing due date: ${e.message}")
                 false
             }
         } ?: false // If dueDate is null, it's not overdue
@@ -182,7 +181,6 @@ fun MyChoreWidget(chores: List<Chore>, context: Context, choresViewModel: Chores
 
         // Second Row: Captured photo (only shown if photo exists)
         capturedImageUri?.let { uri ->
-            Log.d("MyChoreWidget", "Captured image URI: $uri")
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -288,8 +286,6 @@ fun RoommateChoreItem(
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
     LaunchedEffect(key1 = chore.choreID) {
-        // input please: we also added like an "imageuri" field, which we cold use instead except we dont really need it
-        // because the images are private so we need to generate a new url every time so im not entirely sure what to do
         if (chore.completed) {
             imageUri = viewModel.getChoreImageUri(chore.choreID)
         }
