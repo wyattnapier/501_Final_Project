@@ -124,6 +124,7 @@ fun MainScreen() {
         Screen.HouseholdSetup.route,
     )
     // view models
+    val mainViewModel: MainViewModel = viewModel()
     val loginViewModel: LoginViewModel = viewModel()
     val paymentViewModel: PaymentViewModel = viewModel()
     val choresViewModel: ChoresViewModel = viewModel()
@@ -137,10 +138,33 @@ fun MainScreen() {
     LaunchedEffect(Unit, loginState) {
         val account = GoogleSignIn.getLastSignedInAccount(context)
         if (loginState.isLoggedIn && account != null) {
-            Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
-            eventsViewModel.fetchCalendarEvents(
-                context,
-            )
+            Log.d("MainScreen", "Loading user data")
+            mainViewModel.loadUserData()
+            Log.d("MainScreen", "Loading household data for user")
+            mainViewModel.loadHouseholdData()
+            Log.d("MainScreen", "Loading current user id for signup-household data")
+            householdViewModel.loadCurrentUserId()
+        }
+    }
+    // Separate effect that watches for household data to be loaded to handle race conditions
+    LaunchedEffect(loginState.isLoggedIn, mainViewModel.isHouseholdDataLoaded.collectAsState().value) {
+        val account = GoogleSignIn.getLastSignedInAccount(context)
+        val isHouseholdLoaded = mainViewModel.isHouseholdDataLoaded.value
+        val isChoresLoaded = choresViewModel.isChoresDataLoaded.value
+        val isCalendarNameLoaded = eventsViewModel.isCalendarNameLoaded.value
+        val isPaymentsLoaded = paymentViewModel.isPaymentsDataLoaded.value
+
+        if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
+            Log.d("MainScreen", "Household loaded, now fetching data for widgets")
+            if (!isCalendarNameLoaded) {
+                eventsViewModel.loadHouseholdCalendarName(context) // chains call to fetch calendar events too
+            }
+            if (!isChoresLoaded) {
+                choresViewModel.loadHouseholdData()
+            }
+            if (!isPaymentsLoaded) {
+                paymentViewModel.loadPaymentsData()
+            }
         }
     }
 
@@ -160,6 +184,7 @@ fun MainScreen() {
         AppNavGraph(
             modifier = Modifier.padding(innerPadding),
             navController = navController,
+            mainViewModel = mainViewModel,
             loginViewModel = loginViewModel,
             paymentViewModel = paymentViewModel,
             choresViewModel = choresViewModel,

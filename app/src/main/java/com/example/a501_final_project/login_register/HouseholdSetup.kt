@@ -599,6 +599,13 @@ fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navContr
 @Composable
 fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier){
     var householdID by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    LaunchedEffect(viewModel.errorMessage) {
+        viewModel.errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+        }
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -619,7 +626,8 @@ fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier){
             modifier = Modifier.fillMaxWidth()
         )
         Button(
-            onClick = { viewModel.getHousehold(householdID) },
+            onClick = { viewModel.getHouseholdForJoining(householdID) },
+            enabled = !viewModel.isLoading,
             modifier = Modifier.fillMaxWidth()
         ){
             Text("Search for Household")
@@ -666,12 +674,13 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier) {
         }
 
         Button(
-            onClick = { viewModel.addToHousehold() },
+            onClick = { viewModel.confirmJoinHousehold() },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp)
+                .padding(top = 16.dp),
+            enabled = !viewModel.isLoading
         ) {
-            Text("Confirm")
+            Text("Confirm & Join Household")
         }
 
         val context = LocalContext.current
@@ -730,7 +739,7 @@ fun PaymentItem(
         Spacer(Modifier.height(10.dp))
 
         // SWITCH — YOU PAY?
-        if(payment.payee == "") {
+        if(payment.paid_by == "") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("You pay this bill:")
                 Spacer(modifier = Modifier.weight(1f))

@@ -43,19 +43,41 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.a501_final_project.MainViewModel
 import java.io.File
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
-// TODO: fetch actual value for these constants from database and use below
-const val userID = 2
-const val householdID = 1
-
 @Composable
-fun ChoresScreen(choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
     val chores by choresViewModel.choresList.collectAsState()
     val showPrevChores by choresViewModel.showPrevChores.collectAsState()
+    val userId by mainViewModel.userId.collectAsState()
+    val sharedHouseholdID by mainViewModel.householdId.collectAsState()
+
+    Log.d("ChoresScreen", "userId: $userId")
+    Log.d("ChoresScreen", "sharedHouseholdID: $sharedHouseholdID")
+
+    // Capture values in local variables for smart casting
+    val currentUserId = userId
+    val currentHouseholdId = sharedHouseholdID
+
+    // Now you can smart cast the local variables
+    if (currentUserId == null || currentHouseholdId == null) {
+        Box(
+            modifier = modifier.fillMaxHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Loading chores data...",
+                style = MaterialTheme.typography.headlineMedium
+            )
+        }
+        return
+    }
+
+    // At this point, Kotlin knows currentUserId and currentHouseholdId are non-null
     Column(modifier = modifier
         .fillMaxHeight()
         .padding(10.dp),
@@ -63,15 +85,15 @@ fun ChoresScreen(choresViewModel: ChoresViewModel, modifier: Modifier = Modifier
         if (showPrevChores) {
             PrevChores(chores, choresViewModel)
         } else {
-            MyChoreWidget(chores, choresViewModel)
-            RoommateChores(chores, choresViewModel)
+            MyChoreWidget(currentUserId, currentHouseholdId, chores, choresViewModel)
+            RoommateChores(currentUserId, currentHouseholdId, chores, choresViewModel)
         }
     }
 }
 
 @Composable
-fun MyChoreWidget(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val chore = chores.find { it.userID == userID && it.householdID == householdID }
+fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val chore = chores.find { it.assignedToId == userID && it.householdID == householdID }
     val context = LocalContext.current
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
@@ -94,7 +116,7 @@ fun MyChoreWidget(chores: List<Chore>, choresViewModel: ChoresViewModel, modifie
 
     // Get URIs from ViewModel
     val tempImageUri by choresViewModel.tempImageUri.collectAsState()
-    val choreImageUris by choresViewModel.choreImageUris.collectAsState()
+    val choreImageUris by choresViewModel.choreImageUris.collectAsState<Map<String, Uri>>()
     val capturedImageUri = chore?.let { choreImageUris[it.choreID] }
 
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -240,8 +262,8 @@ private fun createImageUri(context: Context): Uri {
 
 
 @Composable
-fun RoommateChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
-    val roommateChores = chores.filter { it.userID != userID && it.householdID == householdID }
+fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val roommateChores = chores.filter { it.assignedToId != userID && it.householdID == householdID }
 
     Column(modifier =  modifier
         .fillMaxHeight()
@@ -252,7 +274,7 @@ fun RoommateChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifi
         LazyColumn(){
             for(chore in roommateChores) {
                 item {
-                    Text(chore.assignedTo + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                    Text(chore.assignedToName + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                     Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                     HorizontalDivider(
                         color = Color.LightGray,
@@ -284,7 +306,7 @@ fun PrevChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: 
         LazyColumn(){
             for(chore in chores) {
                 item {
-                    Text(chore.assignedTo + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+                    Text(chore.assignedToName + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
                     Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
                     HorizontalDivider(
                         color = Color.LightGray,
