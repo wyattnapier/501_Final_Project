@@ -26,6 +26,8 @@ import com.example.a501_final_project.events.CalendarViewType
 import com.example.a501_final_project.events.EventsViewModel
 import com.example.a501_final_project.events.UpcomingEventsWidget
 import com.example.a501_final_project.login_register.UserPreferences
+import com.example.a501_final_project.payment.PaymentViewModel
+import com.example.a501_final_project.payment.UpcomingPaymentsWidget
 
 /**
  * composable for the home screen
@@ -36,6 +38,8 @@ import com.example.a501_final_project.login_register.UserPreferences
 fun HomeScreen(
     navController: NavController,
     eventsViewModel: EventsViewModel,
+    mainViewModel: MainViewModel,
+    paymentViewModel: PaymentViewModel,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -45,6 +49,11 @@ fun HomeScreen(
     val showChores by prefs.showChores.collectAsState(initial = true)
     val showEvents by prefs.showEvents.collectAsState(initial = true)
 
+    val currentUserId by mainViewModel.userId.collectAsState()
+    val currentPaymentsForUser = (
+            paymentViewModel.getPaymentsFor(currentUserId ?: "") +
+                    paymentViewModel.getPaymentsFrom(currentUserId ?: "")
+            ).filter { !it.paid }
     val events by eventsViewModel.events.collectAsState()
 
     Column(
@@ -71,10 +80,11 @@ fun HomeScreen(
                     .weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                BoxItem(
-                    "Payment",
-                    MaterialTheme.colorScheme.secondaryContainer,
-                    onClick = { navigateToScreen(navController, Screen.Pay) }
+                UpcomingPaymentsWidget(
+                    onCardClick = { navigateToScreen(navController, Screen.Pay) },
+                    currentPaymentsForUser = currentPaymentsForUser,
+                    currentUserId = currentUserId,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
