@@ -40,12 +40,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
 
 
 @Composable
-fun HouseholdLanding(viewModel: HouseholdViewModel){
+fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavController){
     if (viewModel.existingHousehold == null) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -95,18 +96,19 @@ fun HouseholdLanding(viewModel: HouseholdViewModel){
         }
         if(viewModel.householdCreated){
             // TODO: navigate them to the home page
-            Text("Joined Household")
+//            Text("Joined Household")
+            navController.navigate("Home")
         }
 
     }
     else if (viewModel.existingHousehold == false){
-        NewHousehold(viewModel)
+        NewHousehold(viewModel, navController)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewHousehold(viewModel: HouseholdViewModel){
+fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel.errorMessage) {
@@ -165,7 +167,7 @@ fun NewHousehold(viewModel: HouseholdViewModel){
         },
         content = { innerPadding ->
             if (viewModel.householdCreated) {
-                HouseholdCreated(viewModel, Modifier.padding(innerPadding))
+                HouseholdCreated(viewModel, Modifier.padding(innerPadding), navController)
             }
             else {
                 AnimatedContent(targetState = viewModel.setupStep) { step ->
@@ -562,7 +564,7 @@ fun ReviewHouseholdDetails(viewModel: HouseholdViewModel, modifier: Modifier){
 }
 
 @Composable
-fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier){
+fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navController : NavController){
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -586,7 +588,7 @@ fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier){
             color = MaterialTheme.colorScheme.secondary
         )
         Button(
-            onClick = { /*TODO: navigate back to home screen*/ },
+            onClick = { /*TODO: navigate back to home screen*/ navController.navigate("Home")},
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Proceed to App")
@@ -754,12 +756,12 @@ fun PaymentItem(
 }
 
 
-
-@Preview(showBackground = true)
-@Composable
-fun HouseholdPreview() {
-    _501_Final_ProjectTheme {
-        val viewModel = remember { HouseholdViewModel() }
-        NewHousehold(viewModel)
-    }
-}
+//
+//@Preview(showBackground = true)
+//@Composable
+//fun HouseholdPreview() {
+//    _501_Final_ProjectTheme {
+//        val viewModel = remember { HouseholdViewModel() }
+//        NewHousehold(viewModel)
+//    }
+//}
