@@ -95,7 +95,11 @@ fun VenmoPaymentScreen(
                     Log.d("VenmoPaymentScreen", "Skipping payment with null currentUserId")
                     return@items
                 }
-                PaymentListItem(payment, currentUserId!!, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                PaymentListItem(
+                    paymentViewModel = paymentViewModel,
+                    payment = payment,
+                    currentUserId = currentUserId!!,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
             }
         }
     }
@@ -103,8 +107,9 @@ fun VenmoPaymentScreen(
 
 @Composable
 fun PaymentListItem(
+    paymentViewModel: PaymentViewModel,
     payment: Payment,
-    currentUser: String,
+    currentUserId: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -114,13 +119,18 @@ fun PaymentListItem(
         if (payment.paid) {
             PaidPaymentListItem(payment)
         } else {
-            UnpaidPaymentListItem(payment, currentUser)
+            UnpaidPaymentListItem(
+                paymentViewModel =paymentViewModel,
+                payment = payment,
+                currentUserId = currentUserId
+            )
         }
     }
 }
 
 @Composable
 fun UnpaidPaymentListItem(
+    paymentViewModel: PaymentViewModel,
     payment: Payment,
     currentUserId: String
 ) {
@@ -159,9 +169,8 @@ fun UnpaidPaymentListItem(
             )
         } else {
             PayButton(
-                payToVenmoUsername = payment.payToVenmoUsername,
-                amount = payment.amount,
-                note = payment.memo,
+                paymentViewModel = paymentViewModel,
+                payment = payment,
                 modifier = Modifier
                     .weight(5f)
                     .padding(start = 8.dp),
@@ -206,12 +215,14 @@ fun PaidPaymentListItem(
 
 @Composable
 fun PayButton(
-    payToVenmoUsername: String?,
-    amount: Double,
-    note: String,
+    paymentViewModel: PaymentViewModel,
+    payment: Payment,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val payToVenmoUsername: String? = payment.payToVenmoUsername
+    val amount: Double = payment.amount
+    val note: String = payment.memo
 
     Button(
         onClick = {
@@ -229,6 +240,7 @@ fun PayButton(
 
             try {
                 context.startActivity(intent)
+                paymentViewModel.completePayment(payment)
             } catch (e: ActivityNotFoundException) {
                 // Venmo not installed → open Play Store
                 val playStoreUri = "https://play.google.com/store/apps/details?id=com.venmo".toUri()
