@@ -5,11 +5,14 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.a501_final_project.FirestoreRepository
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -31,89 +34,195 @@ import com.example.a501_final_project.BuildConfig
  * completed to indicate if chore is completed
  */
 data class Chore(
-    val choreID: Int,
-    val userID: Number,
-    val householdID: Number,
+    val choreID: String,
+    val householdID: String,
     val name: String,
-    val description: String,
+    val description: String?,
     var dueDate: String,
-    var assignedTo: String,
+    var dateCompleted: String?,
+    var assignedToId: String,
+    var assignedToName: String?,
     var completed: Boolean,
-    var priority: Boolean,
 )
 
-class ChoresViewModel : ViewModel() {
-    val roommates = listOf("Alice", "Wyatt", "Tiffany")
-    private val _choresList = MutableStateFlow<List<Chore>>(
-        listOf(
-            Chore(
-                choreID = 1,
-                name = "Wash Dishes",
-                description = "Clean all dishes, utensils, and pots used during dinner.",
-                assignedTo = "Alice",
-                householdID = 1,
-                userID = 1,
-                dueDate = "November 15, 2025",
-                completed = true,
-                priority = true
-            ),
-            Chore(
-                choreID = 2,
-                name = "Vacuum Living Room",
-                description = "Vacuum the carpet and under the furniture in the living room.",
-                assignedTo = "Bob",
-                householdID = 1,
-                userID = 2,
-                dueDate = "November 15, 2025",
-                completed = false,
-                priority = true
-            ),
-            Chore(
-                choreID = 3,
-                name = "Laundry",
-                description = "Wash, dry, and fold all the clothes from the laundry basket.",
-                assignedTo = "Charlie",
-                householdID = 1,
-                userID = 3,
-                dueDate = "November 15, 2025",
-                completed = true,
-                priority = true,
-            ),
-            Chore(
-                choreID = 4,
-                name = "Take Out Trash",
-                description = "Empty all trash bins and take the garbage out to the curb.",
-                assignedTo = "Dana",
-                householdID = 1,
-                userID = 4,
-                dueDate = "November 15, 2025",
-                completed = false,
-                priority = true,
-            ),
-            Chore(
-                choreID = 5,
-                name = "Clean Bathroom",
-                description = "Scrub the sink, toilet, and shower, and mop the bathroom floor.",
-                assignedTo = "Eve",
-                householdID = 1,
-                userID = 5,
-                dueDate = "November 15, 2025",
-                completed = false,
-                priority = true,
-            )
-        )
-    )
+data class RecurringChore(
+    val name: String,
+    val description: String,
+    val recurringChoreId: String,
+    val cycleFrequency: Int
+)
 
+class ChoresViewModel(
+    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
+) : ViewModel() {
+    private val _roommates = MutableStateFlow<List<String>>(emptyList())
+    val roommates: StateFlow<List<String>> = _roommates.asStateFlow()
+
+    private val _choresList = MutableStateFlow<List<Chore>>(emptyList())
     var choresList: StateFlow<List<Chore>> = _choresList.asStateFlow()
+
+    var recurringChoresList: List<RecurringChore>? = null
     private val _showPrevChores = MutableStateFlow(false)
     val showPrevChores: StateFlow<Boolean> = _showPrevChores.asStateFlow()
     // Map to store image URIs for each chore by choreId
-    private val _choreImageUris = MutableStateFlow<Map<Int, Uri>>(emptyMap())
-    val choreImageUris: StateFlow<Map<Int, Uri>> = _choreImageUris.asStateFlow()
+    private val _choreImageUris = MutableStateFlow<Map<String, Uri>>(emptyMap())
+    val choreImageUris: StateFlow<Map<String, Uri>> = _choreImageUris.asStateFlow()
 
     // Temporary URI for camera capture
     private val _tempImageUri = MutableStateFlow<Uri?>(null)
     val tempImageUri: StateFlow<Uri?> = _tempImageUri.asStateFlow()
+
+    private val _isChoresDataLoaded = MutableStateFlow(false)
+    val isChoresDataLoaded: StateFlow<Boolean> = _isChoresDataLoaded.asStateFlow()
+    private val _isLoading = MutableStateFlow(false)
+
+    // helper for converting data from database to local data classes
+    private fun Any?.toStringOrNull(): String? {
+        return when (this) {
+            is String -> this
+            is Number -> this.toString()
+            else -> null
+        }
+    }
+
+    fun loadHouseholdData() {
+        if (_isLoading.value) {
+            Log.w("ChoresViewModel", "Already loading, skipping duplicate call")
+            return
+        }
+        if (_isChoresDataLoaded.value) {
+            Log.w("ChoresViewModel", "Chores data already loaded, skipping")
+            return
+        }
+
+        _isLoading.value = true
+        Log.d("ChoresViewModel", "Starting to load household data...")
+
+        // Launch a coroutine in the ViewModel scope to prevent failed results from async
+        viewModelScope.launch {
+            try {
+                // Use the suspend version
+                val (householdId, data) = firestoreRepository.getHouseholdWithoutIdSuspend()
+
+                Log.d("ChoresViewModel", "Loaded household data: $householdId")
+
+                // Parse residents
+                val residentsAnyList = data["residents"] as? List<*>
+                if (residentsAnyList == null) {
+                    Log.w("ChoresViewModel", "'residents' field is null")
+                    _roommates.value = emptyList()
+                } else {
+                    val residentIds = residentsAnyList.mapNotNull { item ->
+                        val residentMap = item as? Map<*, *>
+                        residentMap?.get("id")?.toString()
+                    }
+                    _roommates.value = residentIds
+                    Log.d("ChoresViewModel", "Loaded ${residentIds.size} residents")
+                }
+
+                // Parse recurring chores
+                val recurringChoresListFromDB = data["recurring_chores"] as? List<*>
+                val recurringChoresListTemp: List<RecurringChore>? = recurringChoresListFromDB?.mapIndexedNotNull { index, item ->
+                    val itemAsMap = item as? Map<*, *> ?: return@mapIndexedNotNull null
+                    RecurringChore(
+                        name = itemAsMap["name"] as? String ?: return@mapIndexedNotNull null,
+                        description = itemAsMap["description"] as? String ?: return@mapIndexedNotNull null,
+                        recurringChoreId = index.toString(),
+                        cycleFrequency = ((itemAsMap["cycle"] ?: itemAsMap["cycle_frequency"]) as? Number)?.toInt() ?: return@mapIndexedNotNull null
+                    )
+                }
+                recurringChoresList = recurringChoresListTemp
+                Log.d("ChoresViewModel", "Loaded ${recurringChoresListTemp?.size ?: 0} recurring chores")
+
+                // Parse chores
+                val choresListFromDB = data["chores"] as? List<*>
+                if (choresListFromDB == null) {
+                    Log.w("ChoresViewModel", "'chores' field is null")
+                    _choresList.value = emptyList()
+                } else {
+                    Log.d("ChoresViewModel", "Processing ${choresListFromDB.size} chores")
+
+                    val parsedChores = choresListFromDB.mapIndexedNotNull { index, item ->
+                        val itemAsMap = item as? Map<*, *> ?: return@mapIndexedNotNull null
+
+                        // Get chore_id
+                        val choreId = (itemAsMap["chore_id"] ?: itemAsMap["choreID"]).toStringOrNull()
+                            ?: return@mapIndexedNotNull null
+
+                        // Get recurring chore info
+                        val recurringChoreIdNum = itemAsMap["recurring_chore_id"] as? Number
+                        val currentRecurringChore: RecurringChore? = recurringChoreIdNum?.let { id ->
+                            recurringChoresList?.find { it.recurringChoreId == id.toString() }
+                        }
+
+                        // Parse due date
+                        val dueDateValue = itemAsMap["dueDate"] ?: itemAsMap["due_date"]
+                        val dueDate = when (dueDateValue) {
+                            is String -> dueDateValue
+                            is com.google.firebase.Timestamp -> {
+                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                                sdf.format(dueDateValue.toDate())
+                            }
+                            else -> null
+                        } ?: return@mapIndexedNotNull null
+
+                        // Parse date completed
+                        val dateCompletedValue = itemAsMap["dateCompleted"] ?: itemAsMap["date_completed"]
+                        val dateCompleted = when (dateCompletedValue) {
+                            is String -> dateCompletedValue
+                            is com.google.firebase.Timestamp -> {
+                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                                sdf.format(dateCompletedValue.toDate())
+                            }
+                            null -> null
+                            else -> null
+                        }
+
+                        // Parse assignedTo ID
+                        val assignedToId = when (val assignedToIdValue = itemAsMap["assignedToId"] ?: itemAsMap["assigned_to_id"]) {
+                            is String -> assignedToIdValue
+                            is com.google.firebase.firestore.DocumentReference -> assignedToIdValue.id
+                            else -> assignedToIdValue.toStringOrNull()
+                        } ?: return@mapIndexedNotNull null
+
+                        // NOW fetch the user's name using suspend function
+                        val assignedToName = try {
+                            val userData = firestoreRepository.getUserSuspend(assignedToId)
+                            userData["name"] as? String ?: assignedToId
+                        } catch (e: Exception) {
+                            Log.w("ChoresViewModel", "Failed to get name for user $assignedToId: $e")
+                            assignedToId  // Fall back to ID if name fetch fails
+                        }
+
+                        Log.d("ChoresViewModel", "Chore $index: ${currentRecurringChore?.name} assigned to $assignedToName")
+
+                        Chore(
+                            choreID = choreId,
+                            householdID = householdId,
+                            completed = itemAsMap["completed"] as? Boolean ?: false,
+                            name = currentRecurringChore?.name ?: "Unnamed Chore",
+                            description = currentRecurringChore?.description,
+                            dueDate = dueDate,
+                            dateCompleted = dateCompleted,
+                            assignedToId = assignedToId,
+                            assignedToName = assignedToName,
+                        )
+                    }
+
+                    _choresList.value = parsedChores
+                    Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
+                }
+
+                _isChoresDataLoaded.value = true
+                _isLoading.value = false
+                Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
+
+            } catch (e: Exception) {
+                Log.e("ChoresViewModel", "Failed to load household data", e)
+                _isLoading.value = false
+            }
+        }
+    }
 
     /**
      * function to be used when first initializing/creating the list of chores for the household
@@ -127,8 +236,14 @@ class ChoresViewModel : ViewModel() {
      * eventually we should do this based on time?
      */
     fun assignChores() {
+        val currentRoommates = roommates.value
+        if (currentRoommates.isEmpty()) {
+            Log.w("ChoresViewModel", "Cannot assign chores, the roommates list is empty.")
+            return
+        }
+
         _choresList.value = _choresList.value.mapIndexed { index, chore ->
-            chore.copy(assignedTo = roommates[index % roommates.size])
+            chore.copy(assignedToId = currentRoommates[index % currentRoommates.size])
         }
     }
 
@@ -147,24 +262,7 @@ class ChoresViewModel : ViewModel() {
      * function to get the chore(s) assigned to the specified person
      */
     fun getChoresFor(person: String): List<Chore> {
-        return _choresList.value.filter { it.assignedTo == person }
-    }
-
-    /**
-     * function to change priority fo a chore.
-     * currently making chores that are due sooner higher priority
-     * Should call this function when we load in chores/onResume()?
-     */
-    fun changePriority(chore : Chore) {
-        val dateFormat =
-            SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH) // e.g. "November 15, 2024"
-        val today = Calendar.getInstance() // Use fully qualified name
-        val due = Calendar.getInstance() // Use fully qualified name
-        val dueDate: Date = dateFormat.parse(chore.dueDate) ?: return
-        due.time = dueDate
-        val diffMillis = due.timeInMillis - today.timeInMillis
-        val daysUntilDue = (diffMillis / (1000 * 60 * 60 * 24)).toInt()
-        chore.priority = daysUntilDue in 0..5
+        return _choresList.value.filter { it.assignedToId == person }
     }
 
     /**
@@ -205,7 +303,7 @@ class ChoresViewModel : ViewModel() {
 
                 //store the uri for this chore so it can be accessed and displayed
                 launch(Dispatchers.Main) {
-                    _choreImageUris.value += (choreId to storedUrl.toUri())
+                    _choreImageUris.value.plus(choreId to storedUrl.toUri())
                     _tempImageUri.value = null
                 }
             } catch (e: Exception) {

@@ -1,0 +1,197 @@
+package com.example.a501_final_project
+
+import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
+
+class FirestoreRepository {
+    private val db = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+
+    /**
+     * Get the current authenticated user's ID
+     * @return String? the user ID, or null if not logged in
+     */
+    fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
+    }
+
+
+    /**
+     * Get household information from Firestore (SUSPEND VERSION - new)
+     */
+    suspend fun getHouseholdSuspend(householdID: String): Map<String, Any> {
+        return try {
+            val document = db.collection("households").document(householdID).get().await()
+            if (document != null && document.exists()) {
+                document.data ?: emptyMap()
+            } else {
+                throw Exception("Household not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting household", e)
+            throw e
+        }
+    }
+
+
+    /**
+     * Get user information from Firestore (SUSPEND VERSION - new)
+     */
+    suspend fun getUserSuspend(userId: String): Map<String, Any> {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            if (document != null && document.exists()) {
+                document.data ?: emptyMap()
+            } else {
+                throw Exception("User not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting user", e)
+            throw e
+        }
+    }
+
+    /**
+     * Get user data for the current logged-in user (SUSPEND VERSION)
+     */
+    suspend fun getUserWithoutIdSuspend(): Pair<String, Map<String, Any>> {
+        val currentUserId = getCurrentUserId() ?: throw Exception("No current user logged in")
+        Log.d("FirestoreRepository", "Current user ID: $currentUserId")
+
+        val userData = getUserSuspend(currentUserId)
+
+        Log.d("FirestoreRepository", "Successfully loaded user without ID")
+        return Pair(currentUserId, userData)
+    }
+
+    /**
+     * Get the household ID for a user (SUSPEND VERSION)
+     */
+    suspend fun getHouseholdIdForUserSuspend(userId: String): String {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            if (document != null && document.exists()) {
+                document.getString("household_id") ?: throw Exception("User has no household")
+            } else {
+                throw Exception("User not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting household ID for user", e)
+            throw e
+        }
+    }
+
+    /**
+     * Get household data for the current logged-in user (SUSPEND VERSION)
+     */
+    suspend fun getHouseholdWithoutIdSuspend(): Pair<String, Map<String, Any>> {
+        val currentUserId = getCurrentUserId() ?: throw Exception("No current user logged in")
+        Log.d("FirestoreRepository", "Current user ID: $currentUserId")
+
+        val householdId = getHouseholdIdForUserSuspend(currentUserId)
+        val householdData = getHouseholdSuspend(householdId)
+
+        Log.d("FirestoreRepository", "Successfully loaded household without ID")
+        return Pair(householdId, householdData)
+    }
+
+    /**
+     * Get household calendar name (SUSPEND VERSION)
+     */
+    suspend fun getHouseholdCalendarNameWithoutIdSuspend(): String {
+        val (_, householdData) = getHouseholdWithoutIdSuspend()
+        return householdData["calendar"] as? String
+            ?: throw Exception("Household has no calendar name")
+    }
+
+    /**
+     * Get household information from Firestore
+     * @param householdID: String, the ID of the household to fetch
+     * @param onSuccess: (Map<String, Any>) -> Unit, a function to call on success
+     * @param onFailure: (Exception) -> Unit, a function to call on failure
+     */
+    fun getHousehold(
+        householdID: String,
+        onSuccess: (Map<String, Any>) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        db.collection("households").document(householdID)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    onSuccess(document.data ?: emptyMap())
+                } else {
+                    onFailure(Exception("Household not found"))
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.e("FirestoreRepository", "Error getting household", exception)
+                onFailure(exception)
+            }
+    }
+
+    /**
+     * Create a new household
+     * @param householdData: Map<String, Any>, the household data
+     * @param onSuccess: (String) -> Unit, callback with the new household ID
+     * @param onFailure: (Exception) -> Unit, callback on failure
+     */
+    /**
+     * Create a new household (SUSPEND VERSION)
+     * @param householdData: Map<String, Any>, the household data
+     * @return String: The ID of the newly created household
+     */
+    suspend fun createHouseholdSuspend(householdData: Map<String, Any>): String {
+        return try {
+            val documentReference = db.collection("households")
+                .add(householdData)
+                .await() // Use .await() to wait for the result
+            Log.d("FirestoreRepository", "Created household ${documentReference.id}")
+            documentReference.id // Return the new ID
+        } catch (exception: Exception) {
+            Log.e("FirestoreRepository", "Error creating household", exception)
+            throw exception // Re-throw the exception to be caught by the ViewModel
+        }
+    }
+
+    /**
+     * Update household with new resident and payment information (SUSPEND VERSION)
+     * @param householdId: String, the household ID
+     * @param residentData: Map<String, Any>, the new resident data
+     * @param paymentsData: List<Map<String, Any>>, updated payments list
+     */
+    suspend fun addResidentToHouseholdSuspend(
+        householdId: String,
+        residentData: Map<String, Any>,
+        paymentsData: List<Map<String, Any>>,
+    ) {
+        try {
+            val householdRef = db.collection("households").document(householdId)
+
+            val updateMap = mapOf(
+                "recurring_payments" to paymentsData,
+                "residents" to FieldValue.arrayUnion(residentData)
+            )
+
+            householdRef.update(updateMap).await()
+            Log.d("FirestoreRepository", "Successfully added resident to household")
+        } catch(exception: Exception) {
+            Log.e("FirestoreRepository", "Failed to add resident to household", exception)
+            throw exception // Re-throw exception for the ViewModel to catch
+        }
+    }
+
+    suspend fun updateUserHouseholdIdSuspend(userId: String, householdId: String) {
+        try {
+            val userRef = db.collection("users").document(userId)
+            userRef.update("household_id", householdId).await()
+            Log.d("FirestoreRepository", "Successfully updated user's household ID")
+        } catch (exception: Exception) {
+            Log.e("FirestoreRepository", "Failed to update user's household ID", exception)
+            throw exception
+        }
+    }
+}

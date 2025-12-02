@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.a501_final_project.FirestoreRepository
 import com.example.a501_final_project.R
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -27,8 +28,6 @@ import kotlinx.coroutines.tasks.await
 import com.google.api.services.calendar.CalendarScopes
 
 class LoginViewModel() : ViewModel() {
-
-    // to send to firestore..?
     var displayName by mutableStateOf("")
     var username by mutableStateOf("")
 
@@ -54,7 +53,8 @@ class LoginViewModel() : ViewModel() {
                         isLoginInProgress = false,
                         isLoggedIn = true,
                         userAccount = firebaseUser.email?.let { Account(it, "com.google") },
-                        userAlreadyExists = userExists  // This is now set at the same time
+                        userAlreadyExists = userExists,  // This is now set at the same time,
+                        isChecking = false // at this point done checking if user is logged in
                     )
                 }
                 Log.d("LoginViewModel", "Firebase user signed in: ${firebaseUser.email}")
@@ -66,7 +66,8 @@ class LoginViewModel() : ViewModel() {
                     userEmail = null,
                     userName = null,
                     profilePictureUrl = null,
-                    userAccount = null
+                    userAccount = null,
+                    isChecking = false
                 )
                 Log.d("LoginViewModel", "Firebase user signed out.")
             }
@@ -95,7 +96,6 @@ class LoginViewModel() : ViewModel() {
 
                 if (googleAccount?.idToken != null) {
                     firebaseAuthWithGoogle(googleAccount.idToken!!)
-                    // TODO: add call to fetch gcal data here
                 } else {
                     _uiState.value = _uiState.value.copy(
                         error = "Google Sign-In failed: No ID token.",
@@ -116,13 +116,6 @@ class LoginViewModel() : ViewModel() {
         try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
-
-//            // Check if user already exists in Firestore
-//            val userExists = checkExistingUser()
-//            _uiState.value = _uiState.value.copy(
-//                isLoginInProgress = false,
-//                userAlreadyExists = userExists  // Add this new field
-//            )
 
             // AuthStateListener will handle updating the UI state.
         } catch (e: Exception) {
@@ -202,6 +195,10 @@ class LoginViewModel() : ViewModel() {
             false
         }
     }
+
+    fun clearError() {
+        _uiState.value = _uiState.value.copy(error = null)
+    }
 }
 
 // A data class to hold all UI state in one object.
@@ -213,7 +210,8 @@ data class LoginUiState(
     val isLoginInProgress: Boolean = false,
     val error: String? = null,
     val isLoggedIn: Boolean = false, // flag for firebase state
-    val userAlreadyExists: Boolean? = null
+    val userAlreadyExists: Boolean? = null,
+    val isChecking : Boolean = true // flag for if login status is actively being checked, since we dont want login or signup to appear right off the bat, this has to be true
 )
 
 // data class for a user

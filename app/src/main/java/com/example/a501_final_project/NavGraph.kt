@@ -9,6 +9,8 @@ import com.example.a501_final_project.chores.ChoresScreen
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
 import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.HouseholdLanding
+import com.example.a501_final_project.login_register.HouseholdViewModel
 import com.example.a501_final_project.login_register.LoginScreen
 import com.example.a501_final_project.login_register.LoginViewModel
 import com.example.a501_final_project.login_register.ProfileScreen
@@ -21,10 +23,12 @@ import com.example.a501_final_project.payment.VenmoPaymentScreen
 fun AppNavGraph(
     modifier: Modifier = Modifier,
     navController: NavHostController,
+    mainViewModel: MainViewModel,
     paymentViewModel: PaymentViewModel,
     loginViewModel: LoginViewModel,
     choresViewModel: ChoresViewModel,
-    eventsViewModel: EventsViewModel
+    eventsViewModel: EventsViewModel,
+    householdViewModel : HouseholdViewModel
 ) {
     NavHost(
         navController = navController,
@@ -37,6 +41,7 @@ fun AppNavGraph(
         // Chores
         composable(Screen.Chores.route) {
             ChoresScreen(
+                mainViewModel = mainViewModel,
                 choresViewModel = choresViewModel,
                 modifier = modifier
             )
@@ -45,8 +50,9 @@ fun AppNavGraph(
         composable(Screen.Pay.route) {
             VenmoPaymentScreen(
                 modifier = modifier,
-                paymentViewModel
-            ) // do I need to pass the viewmodel into it?
+                paymentViewModel = paymentViewModel,
+                mainViewModel = mainViewModel
+            )
         }
         // Calendar
         composable(Screen.Calendar.route) {
@@ -95,6 +101,13 @@ fun AppNavGraph(
                         popUpTo("signup") { inclusive = true }
                     }
                 })
+        }
+
+        // to make householdsetup page navigable
+        composable(Screen.HouseholdSetup.route) {
+            HouseholdLanding(
+                viewModel = householdViewModel, navController = navController
+            )
         }
     }
 }

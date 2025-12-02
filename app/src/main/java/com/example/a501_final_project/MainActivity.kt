@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
@@ -48,6 +49,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.HouseholdViewModel
 import com.example.a501_final_project.login_register.LoginViewModel
 import com.example.a501_final_project.payment.PaymentViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -76,7 +78,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     object Error : Screen("Error", "Error", Icons.Default.Settings)
     object UserSignUp : Screen("UserSignUp", "UserSignUp", Icons.Default.AccountBox)
-
+    object HouseholdSetup : Screen("HouseholdSetup", "HouseholdSetup", Icons.Default.Create)
 }
 
 // list of all screens used in the bottom bar
@@ -118,13 +120,16 @@ fun MainScreen() {
     // Screens where the bars should NOT appear
     val noBars = setOf(
         Screen.Login.route,
-        Screen.UserSignUp.route
+        Screen.UserSignUp.route,
+        Screen.HouseholdSetup.route,
     )
     // view models
+    val mainViewModel: MainViewModel = viewModel()
     val loginViewModel: LoginViewModel = viewModel()
     val paymentViewModel: PaymentViewModel = viewModel()
     val choresViewModel: ChoresViewModel = viewModel()
     val eventsViewModel: EventsViewModel = viewModel()
+    val householdViewModel : HouseholdViewModel = viewModel()
 
     val loginState by loginViewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -133,10 +138,33 @@ fun MainScreen() {
     LaunchedEffect(Unit, loginState) {
         val account = GoogleSignIn.getLastSignedInAccount(context)
         if (loginState.isLoggedIn && account != null) {
-            Log.d("MainScreen", "Fetching calendar events for account: ${account.email}")
-            eventsViewModel.fetchCalendarEvents(
-                context,
-            )
+            Log.d("MainScreen", "Loading user data")
+            mainViewModel.loadUserData()
+            Log.d("MainScreen", "Loading household data for user")
+            mainViewModel.loadHouseholdData()
+            Log.d("MainScreen", "Loading current user id for signup-household data")
+            householdViewModel.loadCurrentUserId()
+        }
+    }
+    // Separate effect that watches for household data to be loaded to handle race conditions
+    LaunchedEffect(loginState.isLoggedIn, mainViewModel.isHouseholdDataLoaded.collectAsState().value) {
+        val account = GoogleSignIn.getLastSignedInAccount(context)
+        val isHouseholdLoaded = mainViewModel.isHouseholdDataLoaded.value
+        val isChoresLoaded = choresViewModel.isChoresDataLoaded.value
+        val isCalendarNameLoaded = eventsViewModel.isCalendarNameLoaded.value
+        val isPaymentsLoaded = paymentViewModel.isPaymentsDataLoaded.value
+
+        if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
+            Log.d("MainScreen", "Household loaded, now fetching data for widgets")
+            if (!isCalendarNameLoaded) {
+                eventsViewModel.loadHouseholdCalendarName(context) // chains call to fetch calendar events too
+            }
+            if (!isChoresLoaded) {
+                choresViewModel.loadHouseholdData()
+            }
+            if (!isPaymentsLoaded) {
+                paymentViewModel.loadPaymentsData()
+            }
         }
     }
 
@@ -156,10 +184,12 @@ fun MainScreen() {
         AppNavGraph(
             modifier = Modifier.padding(innerPadding),
             navController = navController,
+            mainViewModel = mainViewModel,
             loginViewModel = loginViewModel,
             paymentViewModel = paymentViewModel,
             choresViewModel = choresViewModel,
             eventsViewModel = eventsViewModel,
+            householdViewModel = householdViewModel
         )
     }
 }
