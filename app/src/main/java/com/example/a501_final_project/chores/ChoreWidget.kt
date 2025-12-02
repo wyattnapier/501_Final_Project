@@ -72,21 +72,34 @@ fun ChoreWidget(
             Text(
                 "Chores",
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
             )
 
             Spacer(Modifier.height(12.dp))
 
             Text(
-                chore?.name ?: "No chore assigned",
-                fontSize = MaterialTheme.typography.bodyLarge.fontSize
+                "Your chore: ${chore?.name ?: "No chore assigned"}",
+                fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
             )
-            Text(
-                "Due Date: ${chore?.dueDate}",
-                fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-//                color = if (isOverdue && chore?.completed != true) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
-            )
-
+            if (chore?.name != null) {
+                Text(
+                    "Due: ${chore.dueDate}",
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    chore.description ?: "",
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    if (chore.completed) "Chore Completed :)" else "Not Completed",
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    color = if (chore.completed) Color.Black else Color.Red
+                )
+            }
         }
     }
 }
