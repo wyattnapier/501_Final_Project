@@ -194,4 +194,35 @@ class FirestoreRepository {
             throw exception
         }
     }
+
+    suspend fun markChoreAsCompletedSuspend(choreId: String, householdId: String) {
+        try {
+            val choreRef = db.collection("households").document(householdId)
+            val document = choreRef.get().await()
+            if (!document.exists()) {
+                throw Exception("Household document not found")
+            }
+
+            // Get the current list of chores as a mutable list of maps
+            val choresList = document.get("chores") as? List<Map<String, Any>> ?: emptyList()
+            val mutableChores = choresList.map { it.toMutableMap() }.toMutableList()
+
+            val choreIndex = mutableChores.indexOfFirst { it["choreID"] == choreId } // Note: "choreID" must match the case in your Firestore document
+            if (choreIndex != -1) {
+                // Found the chore, now update its 'completed' field
+                mutableChores[choreIndex]["completed"] = true
+            } else {
+                // Chore not found in the array, log it and maybe throw an error
+                Log.w("FirestoreRepository", "Chore with ID '$choreId' not found in the array.")
+                return // Or throw Exception("Chore not found")
+            }
+
+            choreRef.update("chores", mutableChores).await()
+
+            Log.d("FirestoreRepository", "Successfully marked chore as completed")
+        } catch (exception: Exception){
+            Log.e("FirestoreRepository", "Failed to mark chore as completed", exception)
+            throw exception
+        }
+    }
 }

@@ -1,4 +1,5 @@
 import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.exclude
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -19,6 +20,24 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        //get api keys for supabase
+        val localProperties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            localProperties.load(localPropertiesFile.inputStream())
+        }
+
+        buildConfigField(
+            type = "String",
+            name = "SUPABASE_URL",
+            value = "\"${localProperties.getProperty("SUPABASE_URL")}\""
+        )
+        buildConfigField(
+            type = "String",
+            name = "SUPABASE_KEY",
+            value = "\"${localProperties.getProperty("SUPABASE_KEY")}\""
+        )
     }
 
     buildTypes {
@@ -39,6 +58,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -82,6 +102,13 @@ dependencies {
     implementation(libs.google.api.services.calendar) {
         exclude(group = "org.apache.httpcomponents")
     }
+
+    // Supabase for photo storage
+    implementation(platform("io.github.jan-tennert.supabase:bom:2.1.2"))
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:storage-kt")
+    implementation("io.ktor:ktor-client-okhttp:2.3.7")
+
 
     implementation("io.coil-kt:coil-compose:2.6.0") // coil for image loading
     implementation(libs.androidx.core.ktx)

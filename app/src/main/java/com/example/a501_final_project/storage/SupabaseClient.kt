@@ -1,0 +1,21 @@
+package com.example.a501_final_project.storage
+
+import com.example.a501_final_project.BuildConfig
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.createSupabaseClient
+
+import io.github.jan.supabase.storage.Storage
+import io.github.jan.supabase.postgrest.Postgrest
+
+
+object SupabaseClientProvider {
+    val client: SupabaseClient by lazy {
+        createSupabaseClient(
+            supabaseUrl = BuildConfig.SUPABASE_URL,
+            supabaseKey = BuildConfig.SUPABASE_KEY
+        ) {
+            install(Storage)  // Storage module
+            install(Postgrest)
+        }
+    }
+}

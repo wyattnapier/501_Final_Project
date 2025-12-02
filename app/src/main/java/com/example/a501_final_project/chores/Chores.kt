@@ -13,10 +13,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -28,9 +31,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +61,8 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
     val showPrevChores by choresViewModel.showPrevChores.collectAsState()
     val userId by mainViewModel.userId.collectAsState()
     val sharedHouseholdID by mainViewModel.householdId.collectAsState()
+
+    val context = LocalContext.current
 
     Log.d("ChoresScreen", "userId: $userId")
     Log.d("ChoresScreen", "sharedHouseholdID: $sharedHouseholdID")
@@ -83,18 +91,17 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
         .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)){
         if (showPrevChores) {
-            PrevChores(chores, choresViewModel)
+            PrevChores(chores, context, choresViewModel)
         } else {
-            MyChoreWidget(currentUserId, currentHouseholdId, chores, choresViewModel)
-            RoommateChores(currentUserId, currentHouseholdId, chores, choresViewModel)
+            MyChoreWidget(currentUserId, currentHouseholdId, chores, choresViewModel, context)
+            RoommateChores(currentUserId, currentHouseholdId, chores, choresViewModel, context)
         }
     }
 }
 
 @Composable
-fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
     val chore = chores.find { it.assignedToId == userID && it.householdID == householdID }
-    val context = LocalContext.current
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
             try {
@@ -125,7 +132,7 @@ fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, chor
             if (success && tempImageUri != null && chore != null) {
                 // Photo captured successfully
                 Toast.makeText(context, "Photo captured! Chore marked as complete.", Toast.LENGTH_SHORT).show()
-                choresViewModel.completeChoreWithPhoto(chore, tempImageUri!!)
+                choresViewModel.completeChoreWithPhoto(chore, tempImageUri!!, context)
             } else {
                 Toast.makeText(context, "Photo capture cancelled.", Toast.LENGTH_SHORT).show()
                 choresViewModel.clearTempImageUri()
@@ -262,29 +269,29 @@ private fun createImageUri(context: Context): Uri {
 
 
 @Composable
-fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
     val roommateChores = chores.filter { it.assignedToId != userID && it.householdID == householdID }
 
-    Column(modifier =  modifier
-        .fillMaxHeight()
-        .clip(MaterialTheme.shapes.medium)
-        .background(MaterialTheme.colorScheme.secondaryContainer)
-        .padding(10.dp)){
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(10.dp)
+    ) {
         Text("Roommate Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
-        LazyColumn(){
-            for(chore in roommateChores) {
+        LazyColumn() {
+            for (chore in roommateChores) {
                 item {
-                    Text(chore.assignedToName + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
-                    Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                    HorizontalDivider(
-                        color = Color.LightGray,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                    RoommateChoreItem(chore, context, choresViewModel)
+                    HorizontalDivider()
                 }
             }
             item {
-                Row( modifier = Modifier.fillParentMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                Row(
+                    modifier = Modifier.fillParentMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
                     Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
                         Text("See Previous Chores")
                     }
@@ -295,34 +302,127 @@ fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, ch
 }
 
 @Composable
-fun PrevChores(chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier) {
-    // if due date < today, display on prev tasks
-    Column(modifier =  Modifier
-        .fillMaxHeight()
-        .clip(MaterialTheme.shapes.medium)
-        .background(MaterialTheme.colorScheme.secondaryContainer)
-        .padding(10.dp)){
-        Text("Previous Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
-        LazyColumn(){
-            for(chore in chores) {
-                item {
-                    Text(chore.assignedToName + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
-                    Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                    HorizontalDivider(
-                        color = Color.LightGray,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-            }
-            item {
-                Row( modifier = Modifier.fillParentMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                    Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
-                        Text("Back to Current Chores")
-                    }
-                }
+fun RoommateChoreItem(
+    chore: Chore,
+    context: Context,
+    viewModel: ChoresViewModel,
+    modifier: Modifier = Modifier
+) {
+    //the fetched image url
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
 
+    LaunchedEffect(key1 = chore.choreID) {
+        if (chore.completed) {
+            imageUri = viewModel.getChoreImageUri(chore.choreID, chore.householdID)
+        }
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier.weight(3f)) {
+            Text(
+                chore.assignedToName + ": " + chore.name,
+                fontSize = MaterialTheme.typography.bodyLarge.fontSize
+            )
+            Text(
+                text = if (chore.completed) {
+                    "Status: Completed"
+                } else {
+                    "Status: Pending"
+                }, fontSize = MaterialTheme.typography.bodySmall.fontSize
+            )
+        }
+
+        imageUri?.let {
+            AsyncImage(
+                model = ImageRequest.Builder(context).data(it).crossfade(true).build(),
+                contentDescription = "Proof for ${chore.name}",
+                modifier = Modifier.weight(1f).size(64.dp).clip(MaterialTheme.shapes.small),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+
+@Composable
+fun PrevChores(
+    chores: List<Chore>,
+    context: Context,
+    choresViewModel: ChoresViewModel,
+    modifier: Modifier = Modifier
+) {
+    // if due date < today, display on prev tasks
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Previous Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
+            Spacer(modifier = Modifier.width(12.dp))
+            Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
+                Text("Back to Current")
             }
+        }
+        LazyColumn() {
+            for (chore in chores) {
+                item {
+                    PrevChoreItem(chore, context, choresViewModel, modifier)
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PrevChoreItem(
+    chore: Chore,
+    context: Context,
+    viewModel: ChoresViewModel,
+    modifier: Modifier = Modifier
+) {
+    //the fetched image url
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+
+    LaunchedEffect(key1 = chore.choreID) {
+        if (chore.completed) {
+            imageUri = viewModel.getChoreImageUri(chore.choreID, chore.householdID)
+        }
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier.weight(3f)) {
+            Text(
+                chore.assignedToName + ": " + chore.name,
+                fontSize = MaterialTheme.typography.bodyLarge.fontSize
+            )
+            Text(
+                text = if (chore.completed) {
+                    "Status: Completed"
+                } else {
+                    "Status: Overdue"
+                }, fontSize = MaterialTheme.typography.bodySmall.fontSize
+            )
+        }
+
+        imageUri?.let {
+            AsyncImage(
+                model = ImageRequest.Builder(context).data(it).crossfade(true).build(),
+                contentDescription = "Proof for ${chore.name}",
+                modifier = Modifier.weight(1f).size(64.dp).clip(MaterialTheme.shapes.small),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }

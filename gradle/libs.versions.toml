@@ -18,6 +18,7 @@ googleApiServicesCalendar = "v3-rev20220715-2.0.0"
 ui = "1.9.4"
 firebaseFirestoreKtx = "26.0.2"
 foundation = "1.9.4"
+roomCompiler = "2.8.4"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -44,6 +45,7 @@ google-api-services-calendar = { group = "com.google.apis", name = "google-api-s
 androidx-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "ui" }
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "foundation" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "roomCompiler" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
