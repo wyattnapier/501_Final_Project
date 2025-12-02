@@ -102,6 +102,21 @@ fun HomeScreen(
                 )
             }
         }
+
+        // default message if no widgets are enabled
+        if (!showPayments && !showChores && !showEvents) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Text(
+                    text = "Welcome home :)\nYou've disabled all home screen widgets. Go to settings if you'd like to enable them!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
     }
 }
 
