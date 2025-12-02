@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -102,12 +103,11 @@ fun LoginScreen(
         }
 
         // Optionally display errors
-        uiState.error?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
-            )
+        LaunchedEffect(uiState.error) {
+            uiState.error?.let { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+                viewModel.clearError() // Optionally, clear the error after showing it
+            }
         }
     }
 }

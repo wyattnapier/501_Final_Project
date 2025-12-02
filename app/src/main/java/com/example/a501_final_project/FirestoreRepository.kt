@@ -2,7 +2,9 @@ package com.example.a501_final_project
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.tasks.await
 
 class FirestoreRepository {
     private val db = FirebaseFirestore.getInstance()
@@ -14,6 +16,95 @@ class FirestoreRepository {
      */
     fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
+    }
+
+
+    /**
+     * Get household information from Firestore (SUSPEND VERSION - new)
+     */
+    suspend fun getHouseholdSuspend(householdID: String): Map<String, Any> {
+        return try {
+            val document = db.collection("households").document(householdID).get().await()
+            if (document != null && document.exists()) {
+                document.data ?: emptyMap()
+            } else {
+                throw Exception("Household not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting household", e)
+            throw e
+        }
+    }
+
+
+    /**
+     * Get user information from Firestore (SUSPEND VERSION - new)
+     */
+    suspend fun getUserSuspend(userId: String): Map<String, Any> {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            if (document != null && document.exists()) {
+                document.data ?: emptyMap()
+            } else {
+                throw Exception("User not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting user", e)
+            throw e
+        }
+    }
+
+    /**
+     * Get user data for the current logged-in user (SUSPEND VERSION)
+     */
+    suspend fun getUserWithoutIdSuspend(): Pair<String, Map<String, Any>> {
+        val currentUserId = getCurrentUserId() ?: throw Exception("No current user logged in")
+        Log.d("FirestoreRepository", "Current user ID: $currentUserId")
+
+        val userData = getUserSuspend(currentUserId)
+
+        Log.d("FirestoreRepository", "Successfully loaded user without ID")
+        return Pair(currentUserId, userData)
+    }
+
+    /**
+     * Get the household ID for a user (SUSPEND VERSION)
+     */
+    suspend fun getHouseholdIdForUserSuspend(userId: String): String {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            if (document != null && document.exists()) {
+                document.getString("household_id") ?: throw Exception("User has no household")
+            } else {
+                throw Exception("User not found")
+            }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error getting household ID for user", e)
+            throw e
+        }
+    }
+
+    /**
+     * Get household data for the current logged-in user (SUSPEND VERSION)
+     */
+    suspend fun getHouseholdWithoutIdSuspend(): Pair<String, Map<String, Any>> {
+        val currentUserId = getCurrentUserId() ?: throw Exception("No current user logged in")
+        Log.d("FirestoreRepository", "Current user ID: $currentUserId")
+
+        val householdId = getHouseholdIdForUserSuspend(currentUserId)
+        val householdData = getHouseholdSuspend(householdId)
+
+        Log.d("FirestoreRepository", "Successfully loaded household without ID")
+        return Pair(householdId, householdData)
+    }
+
+    /**
+     * Get household calendar name (SUSPEND VERSION)
+     */
+    suspend fun getHouseholdCalendarNameWithoutIdSuspend(): String {
+        val (_, householdData) = getHouseholdWithoutIdSuspend()
+        return householdData["calendar"] as? String
+            ?: throw Exception("Household has no calendar name")
     }
 
     /**
@@ -43,142 +134,64 @@ class FirestoreRepository {
     }
 
     /**
-     * Get user information from Firestore
-     * @param userId: String, the ID of the user to fetch
-     * @param onSuccess: (Map<String, Any>) -> Unit, a function to call on success
-     * @param onFailure: (Exception) -> Unit, a function to call on failure
+     * Create a new household
+     * @param householdData: Map<String, Any>, the household data
+     * @param onSuccess: (String) -> Unit, callback with the new household ID
+     * @param onFailure: (Exception) -> Unit, callback on failure
      */
-    fun getUser(
-        userId: String,
-        onSuccess: (Map<String, Any>) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        db.collection("users").document(userId)
-            .get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    onSuccess(document.data ?: emptyMap())
-                } else {
-                    onFailure(Exception("User not found"))
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.e("FirestoreRepository", "Error getting user", exception)
-                onFailure(exception)
-            }
-    }
-
-    fun getUserWithoutId(
-        onSuccess: (userId: String, userData: Map<String, Any>) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        val currentUserId = getCurrentUserId()
-        if (currentUserId == null) {
-            onFailure(Exception("No current user"))
-            return
+    /**
+     * Create a new household (SUSPEND VERSION)
+     * @param householdData: Map<String, Any>, the household data
+     * @return String: The ID of the newly created household
+     */
+    suspend fun createHouseholdSuspend(householdData: Map<String, Any>): String {
+        return try {
+            val documentReference = db.collection("households")
+                .add(householdData)
+                .await() // Use .await() to wait for the result
+            Log.d("FirestoreRepository", "Created household ${documentReference.id}")
+            documentReference.id // Return the new ID
+        } catch (exception: Exception) {
+            Log.e("FirestoreRepository", "Error creating household", exception)
+            throw exception // Re-throw the exception to be caught by the ViewModel
         }
-
-        getUser(
-            userId = currentUserId,
-            onSuccess = { userData ->
-                Log.d("FirestoreRepository", "Successfully loaded user without ID $userData")
-                onSuccess(currentUserId, userData)
-            },
-            onFailure = {exception ->
-                Log.e("FirestoreRepository", "Error loading user", exception)
-                onFailure(exception)
-            }
-        )
     }
 
     /**
-     * Get the household ID for a user
-     * @param userId: String, the user's ID
-     * @param onSuccess: (String) -> Unit, callback with household ID
-     * @param onFailure: (Exception) -> Unit, callback on failure
+     * Update household with new resident and payment information (SUSPEND VERSION)
+     * @param householdId: String, the household ID
+     * @param residentData: Map<String, Any>, the new resident data
+     * @param paymentsData: List<Map<String, Any>>, updated payments list
      */
-    fun getHouseholdIdForUser(
-        userId: String,
-        onSuccess: (String) -> Unit,
-        onFailure: (Exception) -> Unit
+    suspend fun addResidentToHouseholdSuspend(
+        householdId: String,
+        residentData: Map<String, Any>,
+        paymentsData: List<Map<String, Any>>,
     ) {
-        db.collection("users")
-            .document(userId)
-            .get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    val householdId = document.getString("household_id")
-                    if (householdId != null) {
-                        onSuccess(householdId)
-                    } else {
-                        onFailure(Exception("User has no household"))
-                    }
-                } else {
-                    onFailure(Exception("User not found"))
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.e("FirestoreRepository", "Error getting household ID for user", exception)
-                onFailure(exception)
-            }
-    }
+        try {
+            val householdRef = db.collection("households").document(householdId)
 
-    /**
-     * Get household data for the current logged-in user
-     * Chains: getCurrentUserId -> getHouseholdIdForUser -> getHousehold
-     * @param onSuccess: (Map<String, Any>) -> Unit, callback with household data
-     * @param onFailure: (Exception) -> Unit, callback on failure
-     */
-    fun getHouseholdWithoutId(
-        onSuccess: (householdId: String, householdData: Map<String, Any>) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        // Step 1: Get current user ID
-        val currentUserId = getCurrentUserId()
-        if (currentUserId == null) {
-            onFailure(Exception("No current user logged in"))
-            return
+            val updateMap = mapOf(
+                "recurring_payments" to paymentsData,
+                "residents" to FieldValue.arrayUnion(residentData)
+            )
+
+            householdRef.update(updateMap).await()
+            Log.d("FirestoreRepository", "Successfully added resident to household")
+        } catch(exception: Exception) {
+            Log.e("FirestoreRepository", "Failed to add resident to household", exception)
+            throw exception // Re-throw exception for the ViewModel to catch
         }
-        Log.d("FirestoreRepository", "Current user ID: $currentUserId")
-
-        // Step 2: Get household ID for this user
-        getHouseholdIdForUser(
-            userId = currentUserId,
-            onSuccess = { householdId ->
-                // Step 3: Get household data using the household ID
-                getHousehold(
-                    householdID = householdId,
-                    onSuccess = { householdData ->
-                        Log.d("FirestoreRepository", "Successfully loaded household without ID")
-                        onSuccess(householdId, householdData)
-                    },
-                    onFailure = { exception ->
-                        Log.e("FirestoreRepository", "Error loading household", exception)
-                        onFailure(exception)
-                    }
-                )
-            },
-            onFailure = { exception ->
-                Log.e("FirestoreRepository", "Error getting household ID", exception)
-                onFailure(exception)
-            }
-        )
     }
 
-    fun getHouseholdCalendarNameWithoutId(
-        onSuccess: (String) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        getHouseholdWithoutId(
-            onSuccess = { _, householdData ->
-                val calendarName = householdData["calendar"] as? String
-                if (calendarName != null) {
-                    onSuccess(calendarName)
-                } else {
-                    onFailure(Exception("Household has no calendar name"))
-                }
-            },
-            onFailure = onFailure
-        )
+    suspend fun updateUserHouseholdIdSuspend(userId: String, householdId: String) {
+        try {
+            val userRef = db.collection("users").document(userId)
+            userRef.update("household_id", householdId).await()
+            Log.d("FirestoreRepository", "Successfully updated user's household ID")
+        } catch (exception: Exception) {
+            Log.e("FirestoreRepository", "Failed to update user's household ID", exception)
+            throw exception
+        }
     }
 }

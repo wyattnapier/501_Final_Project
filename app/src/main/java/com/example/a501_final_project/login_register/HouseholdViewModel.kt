@@ -2,12 +2,16 @@ package com.example.a501_final_project.login_register
 
 import android.util.Log
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.a501_final_project.FirestoreRepository
+import com.example.a501_final_project.chores.RecurringChore
 import com.google.firebase.firestore.FieldValue
-import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.launch
 
 data class ChoreInput(
     var name: String = "",
@@ -27,7 +31,7 @@ data class PaymentDB(
     var name: String = "",
     var amount: Number = 0,
     var cycle: Number = 0,
-    var payee: String = "",
+    var paid_by: String = "",
     var occupiedSplit: Number = 0,
     var split: Number = 0,
     var youPay: Boolean = false
@@ -38,14 +42,17 @@ data class ResidentDB(
     var payment_percents: List<Number> = listOf()
 )
 
-class HouseholdViewModel : ViewModel() {
-    val db = FirebaseFirestore.getInstance()
+class HouseholdViewModel(
+    private val repository: FirestoreRepository = FirestoreRepository()
+) : ViewModel() {
 
     var existingHousehold by mutableStateOf<Boolean?>(null)
 
-    //TODO: properly fetch the uid of the active user
-    var uid = "wyatt"
-    var setupStep by mutableStateOf(0)
+    // Get current user ID from repository
+    var uid by mutableStateOf("")
+        private set
+
+    var setupStep by mutableIntStateOf(0)
     var householdName by mutableStateOf("")
     var choreInputs = mutableStateListOf(ChoreInput())
         private set
@@ -66,13 +73,16 @@ class HouseholdViewModel : ViewModel() {
     var isLoading by mutableStateOf(false)
         private set
 
-
     val paymentsFromDB = mutableStateListOf<PaymentDB>()
 
     val residentsFromDB = mutableStateListOf<ResidentDB>()
     var gotHousehold by mutableStateOf(false)
 
-
+    fun loadCurrentUserId() {
+        // Load current user ID when ViewModel is created
+        uid = repository.getCurrentUserId() ?: ""
+        Log.d("HouseholdViewModel", "Initialized with user ID: $uid")
+    }
 
     fun incrementStep(){
         setupStep++
@@ -118,24 +128,24 @@ class HouseholdViewModel : ViewModel() {
         errorMessage = null
         isLoading = true
 
-        val recurring_chores = choreInputs.mapIndexed { index, chore ->
+        val recurring_chores = choreInputs.map { chore ->
             mapOf(
                 "name" to chore.name,
                 "description" to chore.description,
-                "cycle" to chore.cycle
+                "cycle" to chore.cycle,
             )
         }
 
-        val recurring_payments = paymentInputs.mapIndexed { index, payment ->
+        val recurring_payments = paymentInputs.map { payment ->
             mapOf(
                 "name" to payment.name,
                 "amount" to payment.amount,
                 "cycle" to payment.cycle,
-                if(payment.youPay) "payee" to uid else "payee" to null
+                "paid_by" to if(payment.youPay) uid else null
             )
         }
 
-        val payment_split = paymentInputs.map{it.split}
+        val payment_split = paymentInputs.map { it.split }
 
         val residents = listOf(
             mapOf(
@@ -149,130 +159,172 @@ class HouseholdViewModel : ViewModel() {
             "recurring_chores" to recurring_chores,
             "recurring_payments" to recurring_payments,
             "calendar" to calendarName,
-            "residents" to residents
+            "residents" to residents,
+            "chores" to emptyList<Map<String, Any>>()  // Initialize empty chores array
         )
 
+        Log.d("HouseholdViewModel", "Creating household with name: $householdName")
 
-        Log.d("HouseholdViewModel", "Household created with name: $householdName")
+        viewModelScope.launch {
+            try {
+                // 1. Call the suspend function and directly assign the returned ID
+                val newHouseholdId = repository.createHouseholdSuspend(fullHouseholdObject)
 
-        db.collection("households")
-            .add(fullHouseholdObject)
-            .addOnSuccessListener { doc ->
-                Log.d("HouseholdViewModel", "Created household ${doc.id}")
-                householdID = doc.id
+                Log.d("HouseholdViewModel", "Created household $newHouseholdId")
+                householdID = newHouseholdId // Assign the ID to the ViewModel's state
+
+                // 2. Update user document with the new household_id
+                repository.updateUserHouseholdIdSuspend(uid, newHouseholdId)
+
                 householdCreated = true
-                isLoading = false
-            }
-            .addOnFailureListener { e ->
+
+            } catch (e: Exception) {
                 Log.e("HouseholdViewModel", "Error creating household", e)
                 errorMessage = "Failed to create household: ${e.message}"
+            } finally {
+                isLoading = false // Ensure loading is always turned off
+            }
+        }
+    }
+
+    // This was the first addToHousehold()
+    fun getHouseholdForJoining(householdId: String) {
+        updateID(householdID)
+
+        viewModelScope.launch {
+            try {
+                isLoading = true
+                // This will throw an exception if householdID is not found
+                val householdData = repository.getHouseholdSuspend(householdID)
+
+                householdName = householdData["name"] as? String ?: "Household Not Found"
+                Log.d("HouseholdViewModel", "Household data: $householdData")
+
+                // Parse payments
+                val paymentsList = householdData["recurring_payments"] as? List<Map<String, Any>>
+                paymentsList?.let { list ->
+                    paymentsFromDB.clear()
+                    paymentsFromDB.addAll(
+                        list.map { map ->
+                            PaymentDB(
+                                name = map["name"] as? String ?: "",
+                                amount = (map["amount"] as? Number)?.toDouble() ?: 0.0,
+                                cycle = (map["cycle"] as? Number)?.toDouble() ?: 0.0,
+                                paid_by = (map["paid_by"] as? String) ?: ""
+                            )
+                        }
+                    )
+                }
+
+                // Parse residents
+                val residentsList = householdData["residents"] as? List<Map<String, Any>>
+                residentsList?.let { list ->
+                    residentsFromDB.clear()
+                    residentsFromDB.addAll(
+                        list.map { map ->
+                            ResidentDB(
+                                id = map["id"] as? String ?: "",
+                                payment_percents = (map["payment_percents"] as? List<Number>) ?: listOf()
+                            )
+                        }
+                    )
+                }
+
+                // Calculate occupied splits
+                for (paymentIndex in paymentsFromDB.indices) {
+                    val totalTaken = residentsFromDB.sumOf { resident ->
+                        resident.payment_percents.getOrNull(paymentIndex)?.toDouble() ?: 0.0
+                    }
+                    paymentsFromDB[paymentIndex] = paymentsFromDB[paymentIndex].copy(
+                        occupiedSplit = totalTaken
+                    )
+                }
+
+                updateID(householdID)
+                gotHousehold = true
+            } catch(e: Exception) {
+                errorMessage = "Failed to find household: ${e.message}"
+                Log.e("HouseholdViewModel", "Error fetching household for joining", e)
+            } finally {
                 isLoading = false
             }
+        }
     }
 
-    fun getHousehold(householdID: String){
-        val doc = db.collection("households").document(householdID)
-        doc.get()
-            .addOnSuccessListener { document ->
-                if (document != null) {
-                    householdName = document.getString("name") ?: "Household Not Found"
-                    Log.d("HouseholdViewModel", "DocumentSnapshot data: ${document.data}")
-                    val paymentsList = document.get("recurring_payments") as? List<Map<String, Any>>
+    fun confirmJoinHousehold() {
+        errorMessage = null
+        isLoading = true
 
-                    paymentsList?.let { list ->
-                        paymentsFromDB.clear()
-                        paymentsFromDB.addAll(
-                            list.map { map ->
-                                PaymentDB(
-                                    name = map["name"] as? String ?: "",
-                                    amount = (map["amount"] as? Number)?.toDouble() ?: 0.0,
-                                    cycle = (map["cycle"] as? Number)?.toDouble() ?: 0.0,
-                                    payee = (map["payee"] as? String) ?: ""
-                                )
-                            }
-                        )
-                    }
-
-                    val residentsList = document.get("residents") as? List<Map<String, Any>>
-
-                    residentsList?.let { list ->
-                        residentsFromDB.clear()
-                        residentsFromDB.addAll(
-                            list.map { map ->
-                                ResidentDB(
-                                    id = map["id"] as? String ?: "",
-                                    payment_percents = (map["payment_percents"] as? List<Number>) ?: listOf()
-                                )
-                            }
-                        )
-                    }
-
-                    for (paymentIndex in paymentsFromDB.indices) {
-
-                        // Sum all residents' percentages for this payment index
-                        val totalTaken = residentsFromDB.sumOf { resident ->
-                            resident.payment_percents.getOrNull(paymentIndex)?.toDouble() ?: 0.0
-                        }
-
-                        paymentsFromDB[paymentIndex] = paymentsFromDB[paymentIndex].copy(
-                            occupiedSplit = totalTaken
-                        )
-                    }
-
-                    updateID(householdID)
-                    gotHousehold = true
-                }
-            }
-    }
-
-    fun addToHousehold(){
         val userPaymentPercents: List<Number> = paymentsFromDB.map { payment -> payment.split }
-        val newResident = ResidentDB(
-            id = uid,
-            payment_percents = userPaymentPercents
+        val newResident = mapOf(
+            "id" to uid,
+            "payment_percents" to userPaymentPercents
         )
 
-        val residentMap = mapOf(
-            "id" to newResident.id,
-            "payment_percents" to newResident.payment_percents
-        )
-
-        val paymentsMap = paymentsFromDB.mapIndexed { index, payment ->
-            val payeeValue = when {
+        val paymentsMap = paymentsFromDB.map { payment ->
+            val paid_by_value = when {
                 payment.youPay -> uid
-                payment.payee.isNullOrEmpty() -> null
-                else -> payment.payee
+                payment.paid_by.isEmpty() -> null
+                else -> payment.paid_by
             }
             mapOf(
                 "name" to payment.name,
                 "amount" to payment.amount,
                 "cycle" to payment.cycle,
-                "payee" to payeeValue
+                "paid_by" to paid_by_value
             )
         }
 
-        Log.d("HouseholdViewModel", "Resident to add: $residentMap")
+        Log.d("HouseholdViewModel", "Resident to add: $newResident")
         Log.d("HouseholdViewModel", "Household ID: $householdID")
 
+        viewModelScope.launch {
+            try {
+                // Call the refactored suspend function
+                repository.addResidentToHouseholdSuspend(
+                    householdId = householdID,
+                    residentData = newResident,
+                    paymentsData = paymentsMap as List<Map<String, Any>>,
+                )
 
-        val householdRef = db.collection("households").document(householdID)
+                // Update user document with household_id
+                repository.updateUserHouseholdIdSuspend(uid, householdID)
 
-        val updateMap = mapOf(
-            "recurring_payments" to paymentsMap,
-            "residents" to FieldValue.arrayUnion(residentMap)
-        )
-
-        householdRef.update(updateMap)
-            .addOnSuccessListener {
-                Log.d("HouseholdViewModel", "Successfully updated household.")
-                // Do something like navigate or show Toast/Snackbar
+                Log.d("HouseholdViewModel", "Successfully joined household and updated user profile")
                 householdCreated = true
-            }
-            .addOnFailureListener { e ->
-                Log.e("HouseholdViewModel", "Failed to update household", e)
-                // Show error to user
-                errorMessage = "Failed to create household: ${e.message}"
+
+            } catch (e: Exception) {
+                Log.e("HouseholdViewModel", "Failed to join household", e)
+                errorMessage = "Failed to join household: ${e.message}"
+            } finally {
                 isLoading = false
             }
+        }
+    }
+
+
+    /**
+     * Load household data using the repository (for when user is already in a household)
+     */
+    fun loadCurrentUserHousehold() {
+        viewModelScope.launch {
+            try {
+                isLoading = true
+                val (householdId, householdData) = repository.getHouseholdWithoutIdSuspend()
+
+                householdID = householdId
+                householdName = householdData["name"] as? String ?: "Unknown Household"
+
+                Log.d("HouseholdViewModel", "Loaded household: $householdName ($householdId)")
+
+                gotHousehold = true
+                isLoading = false
+
+            } catch (e: Exception) {
+                Log.e("HouseholdViewModel", "Error loading current household", e)
+                errorMessage = "Failed to load household: ${e.message}"
+                isLoading = false
+            }
+        }
     }
 }
