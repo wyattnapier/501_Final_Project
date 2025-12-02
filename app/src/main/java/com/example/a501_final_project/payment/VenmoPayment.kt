@@ -1,5 +1,6 @@
 package com.example.a501_final_project.payment
 
+import android.R
 import androidx.compose.runtime.Composable
 
 import android.content.ActivityNotFoundException
@@ -7,15 +8,19 @@ import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.example.a501_final_project.MainViewModel
@@ -247,5 +252,144 @@ fun PaymentReminderButton(
         modifier = modifier
     ) {
         Text(text = "Remind ${payment.payFromName}")
+    }
+}
+
+@Composable
+fun UpcomingPaymentsWidget(
+    onCardClick: () -> Unit,
+    currentPaymentsForUser: List<Payment>,
+    currentUserId: String?,
+    modifier: Modifier = Modifier
+) {
+    if (currentUserId == null) {
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .clickable(onClick = { onCardClick() }),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            ),
+        ) {
+            Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+                Text(
+                    "Upcoming Payments",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Login to see payment information!",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        Log.d("UpcomingPaymentsWidget", "Skipping payment with null currentUserId")
+        return
+    }
+    val oweOthers = currentPaymentsForUser
+        .filter { it.payToId == currentUserId }
+        .sortedBy{ it.dueDate }
+    val othersOwe = currentPaymentsForUser
+        .filter { it.payFromId == currentUserId }
+        .sortedBy{ it.dueDate }
+
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = { onCardClick() }),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+            Text(
+                "Upcoming Payments",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "You owe others",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (oweOthers.isEmpty()) {
+                        Text(
+                            text = "You're all caught up!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    } else {
+                        oweOthers.forEach { payment ->
+                            UpcomingPaymentItem(false, payment)
+                        }
+                    }
+                }
+
+                VerticalDivider(
+                    thickness = 2.dp,
+                    color = androidx.compose.ui.graphics.Color.Black,
+                    modifier = Modifier.alpha(0.5f)
+                )
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Others owe you",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (othersOwe.isEmpty()) {
+                        Text(
+                            text = "Everybody has paid you!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    } else {
+                        othersOwe.forEach { payment ->
+                            UpcomingPaymentItem(true, payment)
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+}
+
+@Composable
+fun UpcomingPaymentItem(
+    payToCurrentUser: Boolean,
+    payment: Payment
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        Column {
+            Text (
+                text =
+                    if (payToCurrentUser) {
+                        "${payment.payFromName} owes you for ${payment.memo}"
+                    } else {
+                        "You owe ${payment.payToName} for ${payment.memo}"
+                    },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
