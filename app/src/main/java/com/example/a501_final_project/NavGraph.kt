@@ -36,13 +36,7 @@ fun AppNavGraph(
     ) {
         // Home
         composable(Screen.Home.route) {
-            HomeScreen(
-                navController = navController,
-                eventsViewModel = eventsViewModel,
-                mainViewModel = mainViewModel,
-                paymentViewModel = paymentViewModel,
-                modifier = modifier
-            )
+            HomeScreen(navController, mainViewModel, eventsViewModel, paymentViewModel, choresViewModel, modifier = modifier)
         }
         // Chores
         composable(Screen.Chores.route) {
