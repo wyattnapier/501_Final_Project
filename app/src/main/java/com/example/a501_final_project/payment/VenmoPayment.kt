@@ -289,10 +289,10 @@ fun UpcomingPaymentsWidget(
         return
     }
     val oweOthers = currentPaymentsForUser
-        .filter { it.payToId == currentUserId }
+        .filter { it.payFromId == currentUserId }
         .sortedBy{ it.dueDate }
     val othersOwe = currentPaymentsForUser
-        .filter { it.payFromId == currentUserId }
+        .filter { it.payToId == currentUserId }
         .sortedBy{ it.dueDate }
 
     Card(
