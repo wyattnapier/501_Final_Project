@@ -62,6 +62,8 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
     val userId by mainViewModel.userId.collectAsState()
     val sharedHouseholdID by mainViewModel.householdId.collectAsState()
 
+    val context = LocalContext.current
+
     Log.d("ChoresScreen", "userId: $userId")
     Log.d("ChoresScreen", "sharedHouseholdID: $sharedHouseholdID")
 
@@ -91,16 +93,15 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
         if (showPrevChores) {
             PrevChores(chores, context, choresViewModel)
         } else {
-            MyChoreWidget(currentUserId, currentHouseholdId, chores, choresViewModel)
-            RoommateChores(currentUserId, currentHouseholdId, chores, choresViewModel)
+            MyChoreWidget(currentUserId, currentHouseholdId, chores, choresViewModel, context)
+            RoommateChores(currentUserId, currentHouseholdId, chores, choresViewModel, context)
         }
     }
 }
 
 @Composable
-fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
     val chore = chores.find { it.assignedToId == userID && it.householdID == householdID }
-    val context = LocalContext.current
     val isOverdue = remember(chore?.dueDate) {
         chore?.dueDate?.let { dueDateString ->
             try {
@@ -268,7 +269,7 @@ private fun createImageUri(context: Context): Uri {
 
 
 @Composable
-fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
     val roommateChores = chores.filter { it.assignedToId != userID && it.householdID == householdID }
 
     Column(
@@ -284,13 +285,6 @@ fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, ch
                 item {
                     RoommateChoreItem(chore, context, choresViewModel)
                     HorizontalDivider()
-                    Text(chore.assignedToName + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
-                    Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                    HorizontalDivider(
-                        color = Color.LightGray,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
                 }
             }
             item {
@@ -319,7 +313,7 @@ fun RoommateChoreItem(
 
     LaunchedEffect(key1 = chore.choreID) {
         if (chore.completed) {
-            imageUri = viewModel.getChoreImageUri(chore.choreID)
+            imageUri = viewModel.getChoreImageUri(chore.choreID, chore.householdID)
         }
     }
 
@@ -329,7 +323,7 @@ fun RoommateChoreItem(
     ) {
         Column(modifier.weight(3f)) {
             Text(
-                chore.assignedTo + ": " + chore.name,
+                chore.assignedToName + ": " + chore.name,
                 fontSize = MaterialTheme.typography.bodyLarge.fontSize
             )
             Text(
@@ -382,13 +376,6 @@ fun PrevChores(
                 item {
                     PrevChoreItem(chore, context, choresViewModel, modifier)
                     HorizontalDivider()
-                    Text(chore.assignedToName + ": " + chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
-                    Text(text = if (chore.completed) {"Status: Completed"} else {"Status: Pending"}, fontSize = MaterialTheme.typography.bodySmall.fontSize)
-                    HorizontalDivider(
-                        color = Color.LightGray,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
                 }
             }
         }
@@ -407,7 +394,7 @@ fun PrevChoreItem(
 
     LaunchedEffect(key1 = chore.choreID) {
         if (chore.completed) {
-            imageUri = viewModel.getChoreImageUri(chore.choreID)
+            imageUri = viewModel.getChoreImageUri(chore.choreID, chore.householdID)
         }
     }
 
@@ -417,7 +404,7 @@ fun PrevChoreItem(
     ) {
         Column(modifier.weight(3f)) {
             Text(
-                chore.assignedTo + ": " + chore.name,
+                chore.assignedToName + ": " + chore.name,
                 fontSize = MaterialTheme.typography.bodyLarge.fontSize
             )
             Text(

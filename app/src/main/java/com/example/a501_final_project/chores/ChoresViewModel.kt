@@ -257,6 +257,12 @@ class ChoresViewModel(
         _choresList.value = _choresList.value.map { chore ->
             if (chore.choreID == completedChore.choreID) chore.copy(completed = true) else chore
         }
+        viewModelScope.launch {
+            firestoreRepository.markChoreAsCompletedSuspend(
+                completedChore.choreID,
+                completedChore.householdID
+            )
+        }
     }
     /**
      * function to get the chore(s) assigned to the specified person
@@ -276,7 +282,7 @@ class ChoresViewModel(
         _tempImageUri.value = uri
     }
 
-    fun onPhotoCaptured(choreId: Int, uri: Uri, context: Context) {
+    fun onPhotoCaptured(choreId: String, householdID: String, uri: Uri, context: Context) {
         val supabaseClient = SupabaseClientProvider.client
 
         //launch coroutine to store the image in supabase
@@ -291,7 +297,7 @@ class ChoresViewModel(
                 }
 
                 // TODO: get the actual householdID instead of this placeholder
-                val path = "householdid/${choreId}.jpg"
+                val path = "${householdID}/${choreId}.jpg"
 
                 //write the byte to supabase database
                 supabaseClient.storage.from("chore_photos").upload(path, imageBytes, upsert = true)
@@ -303,7 +309,7 @@ class ChoresViewModel(
 
                 //store the uri for this chore so it can be accessed and displayed
                 launch(Dispatchers.Main) {
-                    _choreImageUris.value.plus(choreId to storedUrl.toUri())
+                    _choreImageUris.value = _choreImageUris.value.plus(choreId to storedUrl.toUri())
                     _tempImageUri.value = null
                 }
             } catch (e: Exception) {
@@ -318,10 +324,10 @@ class ChoresViewModel(
     }
 
     // return uri for the chore image if it exists
-    suspend fun getChoreImageUri(choreId: Int): Uri? {
+    suspend fun getChoreImageUri(choreId: String, householdID: String): Uri? {
         val supabaseClient = SupabaseClientProvider.client
         // TODO: Get the actual household ID in here
-        val path = "householdid/${choreId}.jpg"
+        val path = "${householdID}/${choreId}.jpg"
 
         return try {
             var signedUrl = supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
@@ -336,6 +342,6 @@ class ChoresViewModel(
     // Update your existing completeChore method to accept an optional imageUri
     fun completeChoreWithPhoto(chore: Chore, imageUri: Uri, context: Context) {
         completeChore(chore)
-        onPhotoCaptured(chore.choreID, imageUri, context)
+        onPhotoCaptured(chore.choreID, chore.householdID, imageUri, context)
     }
 }
