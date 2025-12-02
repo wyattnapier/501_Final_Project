@@ -3,7 +3,10 @@
 A mobile application to serve as a hub for all roommate related needs such as transactions, anonymous complaints, chores, and more!
 
 ### Build/Run instructions: 
-Clone repo, start emulator, build and run app
+- Clone repo
+- If you want photo upload, create a supabase project with storage bucket named chore_photos. Get the API key and link for the project and put them in your local.properties file.
+- Start emulator
+- Build and run app
 
 ### Team:
 - Alice Han (Tech Lead)

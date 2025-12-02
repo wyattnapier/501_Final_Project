@@ -52,7 +52,7 @@ fun UpcomingEventsWidget(
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
                 "Upcoming Events",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
 

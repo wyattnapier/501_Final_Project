@@ -22,11 +22,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.CalendarViewType
 import com.example.a501_final_project.events.EventsViewModel
 import com.example.a501_final_project.events.UpcomingEventsWidget
 import com.example.a501_final_project.login_register.UserPreferences
 import com.example.a501_final_project.payment.PaymentViewModel
+import com.example.a501_final_project.chores.ChoreWidget
 import com.example.a501_final_project.payment.UpcomingPaymentsWidget
 
 /**
@@ -37,9 +39,10 @@ import com.example.a501_final_project.payment.UpcomingPaymentsWidget
 @Composable
 fun HomeScreen(
     navController: NavController,
-    eventsViewModel: EventsViewModel,
     mainViewModel: MainViewModel,
+    eventsViewModel: EventsViewModel,
     paymentViewModel: PaymentViewModel,
+    choresViewModel: ChoresViewModel,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -95,10 +98,16 @@ fun HomeScreen(
                     .weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                BoxItem(
-                    "Chores",
-                    MaterialTheme.colorScheme.tertiaryContainer,
-                    onClick = { navigateToScreen(navController, Screen.Chores) }
+//                BoxItem(
+//                    "Chores",
+//                    MaterialTheme.colorScheme.tertiaryContainer,
+//                    onClick = { navigateToScreen(navController, Screen.Chores) }
+//                )
+                ChoreWidget(
+                    mainViewModel = mainViewModel,
+                    choresViewModel = choresViewModel,
+                    onCardClick = { navigateToScreen(navController, Screen.Chores)},
+                    Modifier.fillMaxSize()
                 )
             }
         }
