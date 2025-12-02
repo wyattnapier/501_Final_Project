@@ -189,7 +189,7 @@ class HouseholdViewModel(
 
     // This was the first addToHousehold()
     fun getHouseholdForJoining(householdId: String) {
-        updateID(householdID)
+        updateID(householdId)
 
         viewModelScope.launch {
             try {
