@@ -142,6 +142,8 @@ fun MainScreen() {
             mainViewModel.loadUserData()
             Log.d("MainScreen", "Loading household data for user")
             mainViewModel.loadHouseholdData()
+            Log.d("MainScreen", "Loading current user id for signup-household data")
+            householdViewModel.loadCurrentUserId()
         }
     }
     // Separate effect that watches for household data to be loaded to handle race conditions

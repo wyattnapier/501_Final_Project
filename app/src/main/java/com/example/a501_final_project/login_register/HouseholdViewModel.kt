@@ -78,7 +78,7 @@ class HouseholdViewModel(
     val residentsFromDB = mutableStateListOf<ResidentDB>()
     var gotHousehold by mutableStateOf(false)
 
-    init { // TODO: this shouldn't be init, it should be triggered when user changes or something
+    fun loadCurrentUserId() {
         // Load current user ID when ViewModel is created
         uid = repository.getCurrentUserId() ?: ""
         Log.d("HouseholdViewModel", "Initialized with user ID: $uid")
