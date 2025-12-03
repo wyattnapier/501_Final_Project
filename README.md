@@ -41,8 +41,21 @@ A mobile application to serve as a hub for all roommate related needs such as tr
 - Overall has been very successful with no merge conflicts!
 
 ### Documentation and Diagrams
+<img width="873" height="491" alt="Screenshot 2025-12-02 at 7 23 42 PM" src="https://github.com/user-attachments/assets/bdf57ae2-40c0-43a5-8247-701053d99bf8" />
+
+Model Layer  
+- We primarily store our data in Google Firebase and we fetch the data through the single FirestoreRepository, which allows us to have a more centralized way of accessing the data.
+- Firebase is also used for authentication, which is connected directly to the login ViewModel
+- We call the Google Calendar API, which is only accessed in events page, so the calls are made directly through that ViewModel
+- We use a separate Supabase database to store images, which is accessed onlyin the chores page, so the calls are made through that ViewModel
+  
+ViewModel Layer
+- Each of the pages has a separate ViewModel which takes care of the logic and data parsing needed for that page
+
+View Layer
+- Each view takes in the state from the ViewModel and displays the reactive UI for the users
 <img width="873" height="491" alt="Screenshot 2025-12-02 at 3 51 17 PM" src="https://github.com/user-attachments/assets/7bc0d73e-6293-4ef4-8941-86456c58a16e" />
-<img width="873" height="491" alt="Screenshot 2025-12-02 at 3 53 51 PM" src="https://github.com/user-attachments/assets/6bdce3a0-225a-4915-817a-aebaafa14f79" />
+
 <img width="189" height="525" alt="PNG image" src="https://github.com/user-attachments/assets/533fa4ef-8b87-4300-a32b-28ec0c70c682" />
 
 ### AI Usage Statement
