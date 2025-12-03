@@ -51,7 +51,7 @@ fun UpcomingEventsWidget(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(100.dp) // minimum height
+            .height(50.dp) // minimum height
             .clickable(onClick = { onCardClick() }),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -65,8 +65,6 @@ fun UpcomingEventsWidget(
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(Modifier.height(12.dp))
-
             if (isLoadingCalendar.value || !isCalendarNameLoaded.value) {
                 Box(
                     modifier = Modifier.fillMaxWidth().fillMaxHeight(),
@@ -74,15 +72,18 @@ fun UpcomingEventsWidget(
                 ) {
                     CircularProgressIndicator()
                 }
-            } else if (nextThreeEvents.isEmpty()) {
-                Text(
-                    "No upcoming events",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             } else {
-                nextThreeEvents.forEach { event ->
-                    UpcomingEventItem(event, onClick = { onEventClick(event) })
+                Spacer(Modifier.height(4.dp))
+                if (nextThreeEvents.isEmpty()) {
+                    Text(
+                        "No upcoming events",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    nextThreeEvents.forEach { event ->
+                        UpcomingEventItem(event, onClick = { onEventClick(event) })
+                    }
                 }
             }
         }
@@ -105,10 +106,9 @@ fun UpcomingEventItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
+            .padding(vertical = 6.dp, horizontal = 4.dp)
             .clip(RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(8.dp),
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {

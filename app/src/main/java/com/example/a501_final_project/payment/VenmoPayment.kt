@@ -319,7 +319,7 @@ fun UpcomingPaymentsWidget(
         Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
             Text(
                 "Upcoming Payments",
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
 
