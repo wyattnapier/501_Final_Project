@@ -44,6 +44,7 @@ class PaymentViewModel(
     val isPaymentsDataLoaded: StateFlow<Boolean> = _isPaymentsDataLoaded.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     // Helper function for type conversion
     private fun Any?.toStringOrNull(): String? {

@@ -85,6 +85,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 UpcomingPaymentsWidget(
+                    paymentViewModel = paymentViewModel,
                     onCardClick = { navigateToScreen(navController, Screen.Pay) },
                     currentPaymentsForUser = currentPaymentsForUser,
                     currentUserId = currentUserId,
