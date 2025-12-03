@@ -225,4 +225,43 @@ class FirestoreRepository {
             throw exception
         }
     }
+
+    suspend fun markPaymentAsCompletedSuspend(paymentId: String, householdId: String) {
+        try {
+            val paymentRef = db.collection("households").document(householdId)
+            val document = paymentRef.get().await()
+            if (!document.exists()) {
+                throw Exception("Household document not found")
+            }
+
+            // Get the current list of chores as a mutable list of maps
+            val paymentsList = document.get("payments") as? List<Map<String, Any>> ?: emptyList()
+            val mutablePayments = paymentsList.map { it.toMutableMap() }.toMutableList()
+            Log.d("FirestoreRepository", "Mutable payments: $mutablePayments")
+            val paymentIdAsLong = paymentId.toLongOrNull()
+            if (paymentIdAsLong == null) {
+                Log.e("FirestoreRepository", "Invalid paymentId format, cannot convert to Long: '$paymentId'")
+                throw Exception("Invalid paymentId (null or incorrect format)")
+            }
+
+            val paymentIndex = mutablePayments.indexOfFirst {
+                (it["id"] as? Long) == paymentIdAsLong
+            }
+            if (paymentIndex != -1) {
+                // Found the chore, now update its 'completed' field
+                mutablePayments[paymentIndex]["paid"] = true
+            } else {
+                // Chore not found in the array, log it and maybe throw an error
+                Log.w("FirestoreRepository", "Payment with ID '$paymentIndex' not found in the array.")
+                return // Or throw Exception("Chore not found")
+            }
+
+            paymentRef.update("payments", mutablePayments).await()
+
+            Log.d("FirestoreRepository", "Successfully marked payment as completed")
+        } catch (exception: Exception){
+            Log.e("FirestoreRepository", "Failed to mark payment as completed", exception)
+            throw exception
+        }
+    }
 }
