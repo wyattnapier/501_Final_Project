@@ -102,24 +102,7 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
 @Composable
 fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
     val chore = chores.find { it.assignedToId == userID && it.householdID == householdID }
-    val isOverdue = remember(chore?.dueDate) {
-        chore?.dueDate?.let { dueDateString ->
-            try {
-                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
-
-                dateFormat.isLenient = false // Good practice: disallow invalid dates
-                val dueDate = dateFormat.parse(dueDateString)
-                val today = Calendar.getInstance().time
-
-                // A due date is overdue if it's strictly before today
-                dueDate != null && dueDate.before(today)
-            } catch (e: ParseException) {
-                // If parsing fails, it's not considered overdue
-                Log.d("MyChoreWidget", "Error parsing due date: ${e.message}")
-                false
-            }
-        } ?: false // If dueDate is null, it's not overdue
-    }
+    val isOverdue = isChoreOverdue(chore)
 
     // Get URIs from ViewModel
     val tempImageUri by choresViewModel.tempImageUri.collectAsState()
@@ -330,8 +313,10 @@ fun RoommateChoreItem(
                 text = if (chore.completed) {
                     "Status: Completed"
                 } else {
-                    "Status: Pending"
-                }, fontSize = MaterialTheme.typography.bodySmall.fontSize
+                    "Status: Incomplete"
+                },
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                color = if (isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 
@@ -411,8 +396,10 @@ fun PrevChoreItem(
                 text = if (chore.completed) {
                     "Status: Completed"
                 } else {
-                    "Status: Overdue"
-                }, fontSize = MaterialTheme.typography.bodySmall.fontSize
+                    "Status: Incomplete"
+                },
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                color = if (isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 
@@ -425,4 +412,42 @@ fun PrevChoreItem(
             )
         }
     }
+}
+
+@Composable
+fun isChoreOverdue(chore: Chore?): Boolean {
+    val isOverdue = remember(chore?.dueDate) {
+        chore?.dueDate?.let { dueString ->
+            try {
+                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+                dateFormat.isLenient = false
+
+                val dueDate = dateFormat.parse(dueString) ?: return@remember false
+
+                val todayCal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                val dueCal = Calendar.getInstance().apply {
+                    time = dueDate
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                // overdue if due date < today (yesterday or earlier)
+                dueCal.before(todayCal)
+
+            } catch (e: Exception) {
+                Log.d("MyChoreWidget", "Failed to parse date: ${e.message}")
+                false
+            }
+        } ?: false
+    }
+    Log.d("MyChoreWidget", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
+    return isOverdue
 }
