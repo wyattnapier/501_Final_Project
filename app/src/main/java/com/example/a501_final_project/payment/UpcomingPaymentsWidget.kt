@@ -29,11 +29,12 @@ import androidx.compose.ui.unit.dp
 fun UpcomingPaymentsWidget(
     paymentViewModel: PaymentViewModel,
     onCardClick: () -> Unit,
-    currentPaymentsForUser: List<Payment>,
     currentUserId: String?,
     modifier: Modifier = Modifier
 ) {
     val isPaymentLoading = paymentViewModel.isLoading.collectAsState()
+    val allPayments = paymentViewModel.paymentsList.collectAsState()
+    val allPaymentsList = allPayments.value
 
     if (currentUserId == null) {
         Card(
@@ -61,10 +62,10 @@ fun UpcomingPaymentsWidget(
         Log.d("UpcomingPaymentsWidget", "Skipping payment with null currentUserId")
         return
     }
-    val oweOthers = currentPaymentsForUser
+    val oweOthers = allPaymentsList
         .filter { it.payFromId == currentUserId }
         .sortedBy{ it.dueDate }
-    val othersOwe = currentPaymentsForUser
+    val othersOwe = allPaymentsList
         .filter { it.payToId == currentUserId }
         .sortedBy{ it.dueDate }
 

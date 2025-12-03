@@ -87,7 +87,6 @@ fun HomeScreen(
                 UpcomingPaymentsWidget(
                     paymentViewModel = paymentViewModel,
                     onCardClick = { navigateToScreen(navController, Screen.Pay) },
-                    currentPaymentsForUser = currentPaymentsForUser,
                     currentUserId = currentUserId,
                     modifier = Modifier.fillMaxSize()
                 )
