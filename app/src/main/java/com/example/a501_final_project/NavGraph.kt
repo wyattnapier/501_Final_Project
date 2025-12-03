@@ -67,7 +67,8 @@ fun AppNavGraph(
             ProfileScreen(
                 modifier = modifier,
                 navController = navController,
-                loginViewModel = loginViewModel
+                loginViewModel = loginViewModel,
+                mainViewModel = mainViewModel
             )
         }
         // Login
