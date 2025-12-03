@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +32,7 @@ fun ChoreWidget(
     onCardClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ){
+    val isLoadingChores by choresViewModel.isLoading.collectAsState()
     val chores by choresViewModel.choresList.collectAsState()
     val userId by mainViewModel.userId.collectAsState()
     val sharedHouseholdID by mainViewModel.householdId.collectAsState()
@@ -38,7 +40,7 @@ fun ChoreWidget(
     val currentUserId = userId
     val currentHouseholdId = sharedHouseholdID
 
-    // Now you can smart cast the local variables
+    // Now you can smart cast the local variables -- this should never run
     if (currentUserId == null || currentHouseholdId == null) {
         Card(
             modifier = modifier
@@ -62,6 +64,7 @@ fun ChoreWidget(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .height(50.dp) // minimum height
             .clickable(onClick = { onCardClick() }),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -76,29 +79,38 @@ fun ChoreWidget(
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
 
-            Spacer(Modifier.height(12.dp))
+            if (isLoadingChores) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                Spacer(Modifier.height(4.dp))
 
-            Text(
-                "Your chore: ${chore?.name ?: "No chore assigned"}",
-                fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-                color = MaterialTheme.colorScheme.onSecondaryContainer
-            )
-            if (chore?.name != null) {
                 Text(
-                    "Due: ${chore.dueDate}",
-                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    "Your chore: ${chore?.name ?: "No chore assigned"}",
+                    fontSize = MaterialTheme.typography.bodyLarge.fontSize,
                     color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
-                Text(
-                    chore.description ?: "",
-                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                Text(
-                    if (chore.completed) "Chore Completed :)" else "Not Completed",
-                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                    color = if (chore.completed) Color.Black else Color.Red
-                )
+                if (chore?.name != null) {
+                    Text(
+                        "Due: ${chore.dueDate}",
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        chore.description ?: "",
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        if (chore.completed) "Chore Completed :)" else "Not Completed",
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                        color = if (chore.completed) Color.Black else Color.Red
+                    )
+                }
             }
         }
     }

@@ -75,6 +75,7 @@ class ChoresViewModel(
     private val _isChoresDataLoaded = MutableStateFlow(false)
     val isChoresDataLoaded: StateFlow<Boolean> = _isChoresDataLoaded.asStateFlow()
     private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     // helper for converting data from database to local data classes
     private fun Any?.toStringOrNull(): String? {

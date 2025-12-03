@@ -72,6 +72,7 @@ fun HomeScreen(
                     events = events.sortedBy { it.startDateTime?.value },
                     onCardClick = { eventsWidgetCardOnClick(navController, eventsViewModel) },
                     onEventClick = { eventsWidgetEventOnClick(navController, eventsViewModel) },
+                    eventsViewModel = eventsViewModel,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -84,8 +85,8 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 UpcomingPaymentsWidget(
+                    paymentViewModel = paymentViewModel,
                     onCardClick = { navigateToScreen(navController, Screen.Pay) },
-                    currentPaymentsForUser = currentPaymentsForUser,
                     currentUserId = currentUserId,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -98,11 +99,6 @@ fun HomeScreen(
                     .weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-//                BoxItem(
-//                    "Chores",
-//                    MaterialTheme.colorScheme.tertiaryContainer,
-//                    onClick = { navigateToScreen(navController, Screen.Chores) }
-//                )
                 ChoreWidget(
                     mainViewModel = mainViewModel,
                     choresViewModel = choresViewModel,
