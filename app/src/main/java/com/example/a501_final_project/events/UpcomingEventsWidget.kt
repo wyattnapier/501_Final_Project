@@ -1,18 +1,22 @@
 package com.example.a501_final_project.events
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,7 +35,11 @@ fun UpcomingEventsWidget(
     modifier: Modifier = Modifier,
     onCardClick: () -> Unit = {},
     onEventClick: (CalendarEventInfo) -> Unit = {},
+    eventsViewModel: EventsViewModel
 ) {
+    val isCalendarNameLoaded = eventsViewModel.isCalendarNameLoaded.collectAsState()
+    val isLoadingCalendar = eventsViewModel.isLoadingCalendar.collectAsState()
+
     val now = remember { Calendar.getInstance().timeInMillis }
 
     // Filter events after "now" and sort ascending
@@ -43,6 +51,7 @@ fun UpcomingEventsWidget(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .height(100.dp) // minimum height
             .clickable(onClick = { onCardClick() }),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -58,7 +67,14 @@ fun UpcomingEventsWidget(
 
             Spacer(Modifier.height(12.dp))
 
-            if (nextThreeEvents.isEmpty()) {
+            if (isLoadingCalendar.value || !isCalendarNameLoaded.value) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (nextThreeEvents.isEmpty()) {
                 Text(
                     "No upcoming events",
                     style = MaterialTheme.typography.bodyMedium,
