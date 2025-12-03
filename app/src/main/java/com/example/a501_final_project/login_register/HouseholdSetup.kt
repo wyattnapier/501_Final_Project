@@ -284,7 +284,7 @@ fun ChoreSection(
             onValueChange = { newValue ->
                 // Allow empty input OR digits only
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onChoreChanged(chore.copy(cycle = newValue.toInt()))
+                    onChoreChanged(chore.copy(cycle = newValue.toIntOrNull() ?: 0))
                 }
             },
             label = { Text("Cycle (in days)") },
@@ -370,7 +370,7 @@ fun PaymentSection(
             value = payment.amount.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(amount = newValue.toInt()))
+                    onPaymentChanged(payment.copy(amount = newValue.toIntOrNull() ?: 0))
                 }
             },
             label = { Text("Amount ($)") },
@@ -389,7 +389,7 @@ fun PaymentSection(
             value = payment.split.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(split = newValue.toInt()))
+                    onPaymentChanged(payment.copy(split = newValue.toIntOrNull() ?: 0))
                 }
             },
             label = { Text("Your split (%)") },
@@ -408,7 +408,7 @@ fun PaymentSection(
             value = payment.cycle.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(cycle = newValue.toInt()))
+                    onPaymentChanged(payment.copy(cycle = newValue.toIntOrNull() ?: 0))
                 }
             },
             label = { Text("Cycle (in days)") },
