@@ -124,7 +124,13 @@ fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, chor
     // Get URIs from ViewModel
     val tempImageUri by choresViewModel.tempImageUri.collectAsState()
     val choreImageUris by choresViewModel.choreImageUris.collectAsState<Map<String, Uri>>()
-    val capturedImageUri = chore?.let { choreImageUris[it.choreID] }
+    var capturedImageUri = chore?.let { choreImageUris[it.choreID] }
+
+    if(chore?.completed ?: false) {
+        LaunchedEffect(chore.choreID) {
+            choresViewModel.getChoreImageUri(chore.choreID, chore.householdID)
+        }
+    }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture(),

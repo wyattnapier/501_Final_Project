@@ -332,6 +332,7 @@ class ChoresViewModel(
         return try {
             var signedUrl = supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
             signedUrl = BuildConfig.SUPABASE_URL + "/storage/v1/" + signedUrl
+            _choreImageUris.value = _choreImageUris.value.plus(choreId to signedUrl.toUri())
             signedUrl.toUri()
         }catch (e: Exception){
             Log.e("ChoresViewModel", "Error getting image URI: ${e.message}", e)
