@@ -103,8 +103,7 @@ fun SignUpScreen(
             }
 
             SignUpSteps.USER_INFO -> {
-                GetUserInfo(onNext = { username, name, venmoUsername ->
-                    loginViewModel.username = username
+                GetUserInfo(onNext = {name, venmoUsername ->
                     loginViewModel.displayName = name
                     loginViewModel.venmoUsername = venmoUsername
                     currentStep = SignUpSteps.REVIEW
@@ -121,21 +120,15 @@ fun SignUpScreen(
 }
 
 // composable for entering other user info
-
-//@Preview(
-//    showBackground=true
-//)
 @Composable
-fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String) -> Unit) {
+fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
 
     // temp values, will eventually do with view model
     var name by rememberSaveable { mutableStateOf("")}
     var venmoUsername by rememberSaveable { mutableStateOf("")}
-    var username by rememberSaveable { mutableStateOf("")}
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 32.dp, start = 16.dp, end = 16.dp)
@@ -144,18 +137,6 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom=16.dp)
-        )
-
-        Text(text="Choose a username",
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(8.dp))
-        TextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.padding(bottom=32.dp),
-            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
         )
 
         Text(text="What should we call you?",
@@ -183,7 +164,7 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
         )
         // TODO: this button should route to household set up (or review info)?
         Button(onClick = {
-            onNext(username, name, venmoUsername)
+            onNext(name, venmoUsername)
         }) {
             Text(text = "Next")
         }
@@ -194,7 +175,6 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
 fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 32.dp, start = 16.dp, end = 16.dp)
@@ -205,13 +185,6 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             modifier = Modifier.padding(bottom=16.dp)
         )
 
-        // Editable name
-        OutlinedTextField(
-            value = loginViewModel.username,
-            onValueChange = { loginViewModel.username = it },
-            label = { Text("Username") },
-            modifier = Modifier.padding(bottom=12.dp)
-        )
         OutlinedTextField(
             value = loginViewModel.displayName,
             onValueChange = { loginViewModel.displayName = it },
