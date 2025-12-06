@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -223,7 +224,8 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             .fillMaxSize()
             .padding(top = 32.dp, start = 16.dp, end = 16.dp)
     ) {
-        Text(text = "Review your information",
+        Text(
+            text = "Review your information",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom=16.dp)
@@ -262,19 +264,45 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             )
         }
 
-        Text(text = "Looks good?",
+        Text(
+            text = "Looks good?",
+            style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(8.dp))
-        Button(onClick = {
-            hasAttemptedSubmit = true
+            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+        )
 
-            // Only proceed if both fields are valid
-            if (loginViewModel.displayName.isNotBlank() && loginViewModel.venmoUsername.isNotBlank()) {
-                loginViewModel.saveUserToDb()
-                navController.navigate("HouseholdSetup")
-            }
-        }) {
-            Text("Set up a household!")
+        // Save user info and navigate to household setup with create option
+        Button(
+            onClick = {
+                hasAttemptedSubmit = true
+                if (loginViewModel.displayName.isNotBlank() && loginViewModel.venmoUsername.isNotBlank()) {
+                    loginViewModel.saveUserToDb()
+                    navController.navigate("HouseholdSetup/create")
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Text("Create New Household")
+        }
+
+        // Save user info and navigate to household setup with join option
+        Button(
+            onClick = {
+                hasAttemptedSubmit = true
+                if (loginViewModel.displayName.isNotBlank() && loginViewModel.venmoUsername.isNotBlank()) {
+                    loginViewModel.saveUserToDb()
+                    navController.navigate("HouseholdSetup/join")
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary
+            )
+        ) {
+            Text("Join Existing Household")
         }
     }
 }

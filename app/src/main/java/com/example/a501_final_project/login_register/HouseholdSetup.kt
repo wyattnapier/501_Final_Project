@@ -54,56 +54,16 @@ import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
 @Composable
 fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavController){
-    if (viewModel.existingHousehold == null) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top),
-            modifier = Modifier
-                .fillMaxHeight()
-                .padding(10.dp)
-        ) {
-            Text(
-                "Welcome to apt",
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Button(
-                onClick = { viewModel.existingHousehold = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text(
-                    "Join Existing Household",
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-            }
-
-            Button(
-                onClick = { viewModel.existingHousehold = false },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                )
-            ) {
-                Text(
-                    "Create New Household",
-                    color = MaterialTheme.colorScheme.onSecondary
-                )
-            }
-
-        }
-    }
-    else if (viewModel.existingHousehold == true){
-        if(!viewModel.gotHousehold and !viewModel.householdCreated) {
-            FindHousehold(viewModel, Modifier)
-        }else{
-            JoinHousehold(viewModel, Modifier)
+    if (viewModel.existingHousehold == true){
+        if(!viewModel.gotHousehold && !viewModel.householdCreated) {
+            FindHousehold(viewModel, Modifier, onBack = { navController.popBackStack() })
+        } else {
+            JoinHousehold(viewModel, Modifier, onBack = {
+                viewModel.gotHousehold = false
+                navController.popBackStack()
+            })
         }
         if(viewModel.householdCreated){
-            // TODO: navigate them to the home page
-//            Text("Joined Household")
             navController.navigate("Home")
         }
 
@@ -126,14 +86,23 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
 
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        topBar = { TopAppBar(
-            title = { Text("Household Set Up", modifier=Modifier.fillMaxWidth(), textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary) },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                titleContentColor = MaterialTheme.colorScheme.primary,
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) },
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Household Set Up",
+                        style = MaterialTheme.typography.headlineLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary,
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
         bottomBar = {
             BottomAppBar(
                 containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -149,8 +118,14 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
                         return@Row // no need for bottom bar buttons if household already created
                     }
                     Button(
-                        onClick = { viewModel.decrementStep() },
-                        enabled = viewModel.setupStep > 0
+                        onClick = {
+                            if (viewModel.setupStep == 0) {
+                                navController.popBackStack()
+                            } else {
+                                viewModel.decrementStep()
+                            }
+                        },
+                        enabled = true
                     ) {
                         Text("Previous")
                     }
@@ -193,7 +168,6 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
         }
     )
 }
-
 
 @Composable
 fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
@@ -695,7 +669,7 @@ fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navContr
 }
 
 @Composable
-fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier){
+fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () -> Unit){
     var householdID by remember { mutableStateOf("") }
     val context = LocalContext.current
 
@@ -706,47 +680,86 @@ fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier){
     }
 
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier
-            .fillMaxHeight()
-            .padding(10.dp)
-    ){
-        Text(
-            "Join Household",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        OutlinedTextField(
-            value = householdID,
-            onValueChange = { householdID = it },
-            label = { Text("Household ID") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Button(
-            onClick = { viewModel.getHouseholdForJoining(householdID) },
-            enabled = !viewModel.isLoading,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Back button at the top
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    painter = painterResource(id = android.R.drawable.ic_menu_revert),
+                    contentDescription = "Back"
+                )
+            }
+            Text(
+                "Join Household",
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth()
         ){
-            Text("Search for Household")
+            OutlinedTextField(
+                value = householdID,
+                onValueChange = { householdID = it },
+                label = { Text("Household ID") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Button(
+                onClick = { viewModel.getHouseholdForJoining(householdID) },
+                enabled = !viewModel.isLoading,
+                modifier = Modifier.fillMaxWidth()
+            ){
+                Text("Search for Household")
+            }
         }
     }
 }
 
 @Composable
-fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier) {
+fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val error = viewModel.errorMessage
+
+    LaunchedEffect(error) {
+        error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_LONG).show()
+            viewModel.errorMessage = null // clear after showing
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp)
+            .padding(16.dp)
     ) {
-
-        // --- Household Title ---
-        Text(
-            text = viewModel.householdName,
-            style = MaterialTheme.typography.headlineMedium,
+        // Back button and title at the top
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 16.dp)
-        )
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    painter = painterResource(id = android.R.drawable.ic_menu_revert),
+                    contentDescription = "Back"
+                )
+            }
+            Text(
+                text = viewModel.householdName,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
 
         // --- Payments List ---
         LazyColumn(
@@ -779,16 +792,6 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier) {
             enabled = !viewModel.isLoading
         ) {
             Text("Confirm & Join Household")
-        }
-
-        val context = LocalContext.current
-        val error = viewModel.errorMessage
-
-        LaunchedEffect(error) {
-            error?.let {
-                Toast.makeText(context, it, Toast.LENGTH_LONG).show()
-                viewModel.errorMessage = null // clear after showing
-            }
         }
     }
 }
