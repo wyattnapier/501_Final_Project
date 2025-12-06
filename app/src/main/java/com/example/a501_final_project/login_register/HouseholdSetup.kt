@@ -197,6 +197,7 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
 
 @Composable
 fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
+    val isNameError = viewModel.hasAttemptedSubmit && viewModel.householdName.isBlank()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -213,8 +214,18 @@ fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
             value = viewModel.householdName,
             onValueChange = { viewModel.updateName(it) },
             label = { Text("Create a Household Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Household name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp)
+            )
+        }
     }
 }
 
@@ -254,7 +265,8 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
                     chore = chore,
                     onChoreChanged = { updated ->
                         viewModel.updateChore(index, updated)
-                    }
+                    },
+                    hasAttemptedSubmit = viewModel.hasAttemptedSubmit
                 )
             }
         }
@@ -272,15 +284,28 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
 @Composable
 fun ChoreSection(
     chore: ChoreInput,
-    onChoreChanged: (ChoreInput) -> Unit
+    onChoreChanged: (ChoreInput) -> Unit,
+    hasAttemptedSubmit: Boolean
 ) {
+    val isNameError = hasAttemptedSubmit && chore.name.isBlank()
+    val isDescriptionError = hasAttemptedSubmit && chore.description.isBlank()
+
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         OutlinedTextField(
             value = chore.name,
             onValueChange = { onChoreChanged(chore.copy(name = it)) },
             label = { Text("Chore Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Chore name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
         OutlinedTextField(
             value = chore.description,
@@ -290,18 +315,18 @@ fun ChoreSection(
         )
 
         OutlinedTextField(
-            value = chore.cycle.toString(),
+            value = if (chore.cycle==0) "" else chore.cycle.toString(), // handle initial value
             onValueChange = { newValue ->
                 // Allow empty input OR digits only
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onChoreChanged(chore.copy(cycle = newValue.toInt()))
+                    onChoreChanged(chore.copy(cycle = newValue.toIntOrNull() ?: 0)) // prevent crash with null handling
                 }
             },
             label = { Text("Cycle (in days)") },
             modifier = Modifier.fillMaxWidth(),
-            isError = chore.cycle.toDouble() <= 0
+            isError = hasAttemptedSubmit && chore.cycle.toDouble() <= 0
         )
-        if (chore.cycle.toDouble() <= 0) {
+        if (hasAttemptedSubmit && chore.cycle.toDouble() <= 0) {
             Text(
                 text = "Cycle must be greater than 0",
                 color = MaterialTheme.colorScheme.error,

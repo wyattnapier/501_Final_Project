@@ -78,18 +78,41 @@ class HouseholdViewModel(
     val residentsFromDB = mutableStateListOf<ResidentDB>()
     var gotHousehold by mutableStateOf(false)
 
+    var hasAttemptedSubmit by mutableStateOf(false)
+        private set
+
     fun loadCurrentUserId() {
         // Load current user ID when ViewModel is created
         uid = repository.getCurrentUserId() ?: ""
         Log.d("HouseholdViewModel", "Initialized with user ID: $uid")
     }
 
-    fun incrementStep(){
-        setupStep++
+    fun incrementStep() {
+        // Trigger validation check when trying to go to the next step
+        hasAttemptedSubmit = true
+
+        // Add logic to check if the current step is valid before incrementing
+        val isCurrentStepValid = when (setupStep) {
+            0 -> householdName.isNotBlank() // Step 0 is valid if the name is not blank
+            1 -> choreInputs.all { it.name.isNotBlank() && it.cycle.toDouble() > 0 } // Step 1 is valid if all chores are valid
+            // Add checks for other steps if needed
+            else -> true // Assume other steps are valid for now
+        }
+
+        if (isCurrentStepValid) {
+            if (setupStep < 4) {
+                setupStep++
+                hasAttemptedSubmit = false // Reset for the next step
+            }
+        } else {
+            Log.d("HouseholdViewModel", "Validation failed for step $setupStep")
+        }
     }
 
     fun decrementStep(){
+        if (setupStep <= 0) return
         setupStep--
+        hasAttemptedSubmit = false
     }
 
     fun updateID(newID: String) {
