@@ -102,7 +102,7 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
 @Composable
 fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
     val chore = chores.find { it.assignedToId == userID && it.householdID == householdID }
-    val isOverdue = isChoreOverdue(chore)
+    val isOverdue = choresViewModel.isChoreOverdue(chore)
 
     // Get URIs from ViewModel
     val tempImageUri by choresViewModel.tempImageUri.collectAsState()
@@ -288,7 +288,7 @@ fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, ch
 fun RoommateChoreItem(
     chore: Chore,
     context: Context,
-    viewModel: ChoresViewModel,
+    choresViewModel: ChoresViewModel,
     modifier: Modifier = Modifier
 ) {
     //the fetched image url
@@ -296,7 +296,7 @@ fun RoommateChoreItem(
 
     LaunchedEffect(key1 = chore.choreID) {
         if (chore.completed) {
-            imageUri = viewModel.getChoreImageUri(chore.choreID, chore.householdID)
+            imageUri = choresViewModel.getChoreImageUri(chore.choreID, chore.householdID)
         }
     }
 
@@ -316,7 +316,7 @@ fun RoommateChoreItem(
                     "Status: Incomplete"
                 },
                 fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                color = if (isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (choresViewModel.isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 
@@ -339,6 +339,7 @@ fun PrevChores(
     modifier: Modifier = Modifier
 ) {
     // if due date < today, display on prev tasks
+    val prevChores = chores.filter { choresViewModel.isChoreOverdue(it) }
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -357,7 +358,7 @@ fun PrevChores(
             }
         }
         LazyColumn() {
-            for (chore in chores) {
+            for (chore in prevChores) {
                 item {
                     PrevChoreItem(chore, context, choresViewModel, modifier)
                     HorizontalDivider()
@@ -399,7 +400,7 @@ fun PrevChoreItem(
                     "Status: Incomplete"
                 },
                 fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                color = if (isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (viewModel.isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 
@@ -412,42 +413,4 @@ fun PrevChoreItem(
             )
         }
     }
-}
-
-@Composable
-fun isChoreOverdue(chore: Chore?): Boolean {
-    val isOverdue = remember(chore?.dueDate) {
-        chore?.dueDate?.let { dueString ->
-            try {
-                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
-                dateFormat.isLenient = false
-
-                val dueDate = dateFormat.parse(dueString) ?: return@remember false
-
-                val todayCal = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-
-                val dueCal = Calendar.getInstance().apply {
-                    time = dueDate
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                    set(Calendar.MILLISECOND, 0)
-                }
-
-                // overdue if due date < today (yesterday or earlier)
-                dueCal.before(todayCal)
-
-            } catch (e: Exception) {
-                Log.d("MyChoreWidget", "Failed to parse date: ${e.message}")
-                false
-            }
-        } ?: false
-    }
-    Log.d("MyChoreWidget", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
-    return isOverdue
 }

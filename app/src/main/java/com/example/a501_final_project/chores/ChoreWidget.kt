@@ -108,7 +108,7 @@ fun ChoreWidget(
                     Text(
                         if (chore.completed) "Chore Completed :)" else "Not Completed!",
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        color = if (isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onSecondaryContainer
+                        color = if (choresViewModel.isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
