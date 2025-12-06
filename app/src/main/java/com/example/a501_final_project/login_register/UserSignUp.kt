@@ -1,10 +1,13 @@
 package com.example.a501_final_project.login_register
 
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -74,7 +77,8 @@ fun SignUpScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
                         .padding(paddingValues)
                 ) {
                     when {
@@ -103,8 +107,7 @@ fun SignUpScreen(
             }
 
             SignUpSteps.USER_INFO -> {
-                GetUserInfo(onNext = { username, name, venmoUsername ->
-                    loginViewModel.username = username
+                GetUserInfo(onNext = {name, venmoUsername ->
                     loginViewModel.displayName = name
                     loginViewModel.venmoUsername = venmoUsername
                     currentStep = SignUpSteps.REVIEW
@@ -121,21 +124,22 @@ fun SignUpScreen(
 }
 
 // composable for entering other user info
-
-//@Preview(
-//    showBackground=true
-//)
 @Composable
-fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String) -> Unit) {
+fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
 
     // temp values, will eventually do with view model
     var name by rememberSaveable { mutableStateOf("")}
     var venmoUsername by rememberSaveable { mutableStateOf("")}
-    var username by rememberSaveable { mutableStateOf("")}
+
+    // State to track if the user has tried to submit, for validation
+    var hasAttemptedSubmit by remember { mutableStateOf(false) }
+
+    // Derived state to check if the name field is currently invalid
+    val isNameError = hasAttemptedSubmit && name.isBlank()
+    val isVenmoError = hasAttemptedSubmit && venmoUsername.isBlank()
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 32.dp, start = 16.dp, end = 16.dp)
@@ -144,18 +148,6 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom=16.dp)
-        )
-
-        Text(text="Choose a username",
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(8.dp))
-        TextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") },
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.padding(bottom=32.dp),
-            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
         )
 
         Text(text="What should we call you?",
@@ -167,8 +159,20 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
             label = { Text("Name") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
-            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
+            )
+        } else {
+            // Use a Spacer to maintain consistent layout when the error is not visible
+            Spacer(modifier = Modifier.height(32.dp))
+        }
 
         Text(text="What's is your venmo username?",
             color = MaterialTheme.colorScheme.primary,
@@ -179,11 +183,27 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
             label = { Text("Venmo") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
-            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+            isError = isVenmoError,
+            singleLine = true
         )
+        if (isVenmoError) {
+            Text(
+                text = "Venmo cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
+            )
+        } else {
+            // Use a Spacer to maintain consistent layout when the error is not visible
+            Spacer(modifier = Modifier.height(32.dp))
+        }
         // TODO: this button should route to household set up (or review info)?
         Button(onClick = {
-            onNext(username, name, venmoUsername)
+            hasAttemptedSubmit = true
+            if (name.isNotBlank() && venmoUsername.isNotBlank()) {
+                Log.d("GetUserInfo", "no errors --> name: $name, venmo: $venmoUsername")
+                onNext(name, venmoUsername)
+            }
         }) {
             Text(text = "Next")
         }
@@ -194,7 +214,6 @@ fun GetUserInfo(onNext : (username: String, name: String, venmoUsername: String)
 fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center,
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 32.dp, start = 16.dp, end = 16.dp)
@@ -205,13 +224,6 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             modifier = Modifier.padding(bottom=16.dp)
         )
 
-        // Editable name
-        OutlinedTextField(
-            value = loginViewModel.username,
-            onValueChange = { loginViewModel.username = it },
-            label = { Text("Username") },
-            modifier = Modifier.padding(bottom=12.dp)
-        )
         OutlinedTextField(
             value = loginViewModel.displayName,
             onValueChange = { loginViewModel.displayName = it },

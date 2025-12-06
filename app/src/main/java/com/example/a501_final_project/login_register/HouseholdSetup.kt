@@ -197,6 +197,7 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
 
 @Composable
 fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
+    val isNameError = viewModel.hasAttemptedSubmit && viewModel.householdName.isBlank()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -213,8 +214,18 @@ fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
             value = viewModel.householdName,
             onValueChange = { viewModel.updateName(it) },
             label = { Text("Create a Household Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Household name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp)
+            )
+        }
     }
 }
 
@@ -245,16 +256,28 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ){
             itemsIndexed(viewModel.choreInputs) { index, chore ->
-                Text(
-                    "Chore ${index + 1}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Chore ${index + 1}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (index > 0) {
+                        Button(onClick = {viewModel.removeChore(index)}) {
+                            Text("Remove")
+                        }
+                    }
+                }
                 ChoreSection(
                     chore = chore,
                     onChoreChanged = { updated ->
                         viewModel.updateChore(index, updated)
-                    }
+                    },
+                    hasAttemptedSubmit = viewModel.hasAttemptedSubmit,
                 )
             }
         }
@@ -272,15 +295,27 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
 @Composable
 fun ChoreSection(
     chore: ChoreInput,
-    onChoreChanged: (ChoreInput) -> Unit
+    onChoreChanged: (ChoreInput) -> Unit,
+    hasAttemptedSubmit: Boolean,
 ) {
+    val isNameError = hasAttemptedSubmit && chore.name.isBlank()
+
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         OutlinedTextField(
             value = chore.name,
             onValueChange = { onChoreChanged(chore.copy(name = it)) },
             label = { Text("Chore Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Chore name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
         OutlinedTextField(
             value = chore.description,
@@ -290,18 +325,18 @@ fun ChoreSection(
         )
 
         OutlinedTextField(
-            value = chore.cycle.toString(),
+            value = if (chore.cycle==0) "" else chore.cycle.toString(), // handle initial value
             onValueChange = { newValue ->
                 // Allow empty input OR digits only
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onChoreChanged(chore.copy(cycle = newValue.toInt()))
+                    onChoreChanged(chore.copy(cycle = newValue.toIntOrNull() ?: 0)) // prevent crash with null handling
                 }
             },
             label = { Text("Cycle (in days)") },
             modifier = Modifier.fillMaxWidth(),
-            isError = chore.cycle.toDouble() <= 0
+            isError = hasAttemptedSubmit && chore.cycle.toDouble() <= 0
         )
-        if (chore.cycle.toDouble() <= 0) {
+        if (hasAttemptedSubmit && chore.cycle.toDouble() <= 0) {
             Text(
                 text = "Cycle must be greater than 0",
                 color = MaterialTheme.colorScheme.error,
@@ -341,16 +376,28 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel, modifier: Modifier) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             itemsIndexed(viewModel.paymentInputs) { index, payment ->
-                Text(
-                    "Payment ${index + 1}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Payment ${index + 1}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (index > 0) {
+                        Button(onClick = {viewModel.removePayment(index)}) {
+                            Text("Remove")
+                        }
+                    }
+                }
                 PaymentSection(
                     payment = payment,
                     onPaymentChanged = { updated ->
                         viewModel.updatePayment(index, updated)
-                    }
+                    },
+                    hasAttemptedSubmit = viewModel.hasAttemptedSubmit
                 )
             }
         }
@@ -367,27 +414,39 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel, modifier: Modifier) {
 @Composable
 fun PaymentSection(
     payment: PaymentInput,
-    onPaymentChanged: (PaymentInput) -> Unit
+    onPaymentChanged: (PaymentInput) -> Unit,
+    hasAttemptedSubmit: Boolean,
 ) {
+    val isNameError = hasAttemptedSubmit && payment.name.isBlank()
+
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         OutlinedTextField(
             value = payment.name,
             onValueChange = { onPaymentChanged(payment.copy(name = it)) },
             label = { Text("Payment Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Payment name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
         OutlinedTextField(
-            value = payment.amount.toString(),
+            value = if (payment.amount == 0) "" else payment.amount.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(amount = newValue.toInt()))
+                    onPaymentChanged(payment.copy(amount = newValue.toIntOrNull() ?: 0))
                 }
             },
             label = { Text("Amount ($)") },
             modifier = Modifier.fillMaxWidth(),
-            isError = (payment.amount.toDouble() <= 0)
+            isError = hasAttemptedSubmit && payment.amount.toDouble() <= 0
         )
-        if (payment.amount.toDouble() <= 0) {
+        if (hasAttemptedSubmit && payment.amount.toDouble() <= 0) {
             Text(
                 text = "Amount must be greater than 0",
                 color = MaterialTheme.colorScheme.error,
@@ -396,17 +455,17 @@ fun PaymentSection(
         }
 
         OutlinedTextField(
-            value = payment.split.toString(),
+            value = if (payment.split == 0) "" else payment.split.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(split = newValue.toInt()))
+                    onPaymentChanged(payment.copy(split = newValue.toIntOrNull() ?: 0))
                 }
             },
             label = { Text("Your split (%)") },
             modifier = Modifier.fillMaxWidth(),
-            isError = payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100
+            isError = hasAttemptedSubmit && (payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100)
         )
-        if (payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100) {
+        if (hasAttemptedSubmit && (payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100)) {
             Text(
                 text = "Split must be between 1 and 100%",
                 color = MaterialTheme.colorScheme.error,
@@ -415,17 +474,17 @@ fun PaymentSection(
         }
 
         OutlinedTextField(
-            value = payment.cycle.toString(),
+            value = if (payment.cycle == 0) "" else payment.cycle.toString(),
             onValueChange = { newValue ->
                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                    onPaymentChanged(payment.copy(cycle = newValue.toInt()))
+                    onPaymentChanged(payment.copy(cycle = newValue.toIntOrNull() ?: 0))
                 }
             },
             label = { Text("Cycle (in days)") },
             modifier = Modifier.fillMaxWidth(),
-            isError = payment.cycle.toDouble() <= 0
+            isError = hasAttemptedSubmit && payment.cycle.toDouble() <= 0
         )
-        if (payment.cycle.toDouble() <= 0) {
+        if (hasAttemptedSubmit && payment.cycle.toDouble() <= 0) {
             Text(
                 text = "Cycle must be greater than 0",
                 color = MaterialTheme.colorScheme.error,
@@ -452,6 +511,8 @@ fun PaymentSection(
 
 @Composable
 fun NewHouseholdCalendar(viewModel: HouseholdViewModel, modifier: Modifier){
+    val isNameError = viewModel.hasAttemptedSubmit && viewModel.calendarName.isBlank()
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -473,8 +534,17 @@ fun NewHouseholdCalendar(viewModel: HouseholdViewModel, modifier: Modifier){
             value = viewModel.calendarName,
             onValueChange = { viewModel.updateCalendar(it) },
             label = { Text("Shared Calendar Name") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Calendar name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 
