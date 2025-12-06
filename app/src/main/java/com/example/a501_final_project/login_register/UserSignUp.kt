@@ -1,10 +1,13 @@
 package com.example.a501_final_project.login_register
 
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -74,7 +77,8 @@ fun SignUpScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
                         .padding(paddingValues)
                 ) {
                     when {
@@ -127,6 +131,13 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
     var name by rememberSaveable { mutableStateOf("")}
     var venmoUsername by rememberSaveable { mutableStateOf("")}
 
+    // State to track if the user has tried to submit, for validation
+    var hasAttemptedSubmit by remember { mutableStateOf(false) }
+
+    // Derived state to check if the name field is currently invalid
+    val isNameError = hasAttemptedSubmit && name.isBlank()
+    val isVenmoError = hasAttemptedSubmit && venmoUsername.isBlank()
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -148,8 +159,20 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             label = { Text("Name") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
-            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
+            )
+        } else {
+            // Use a Spacer to maintain consistent layout when the error is not visible
+            Spacer(modifier = Modifier.height(32.dp))
+        }
 
         Text(text="What's is your venmo username?",
             color = MaterialTheme.colorScheme.primary,
@@ -160,11 +183,27 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             label = { Text("Venmo") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
-            colors = TextFieldDefaults.colors( unfocusedContainerColor = MaterialTheme.colorScheme.secondaryContainer, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent)
+            isError = isVenmoError,
+            singleLine = true
         )
+        if (isVenmoError) {
+            Text(
+                text = "Venmo cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
+            )
+        } else {
+            // Use a Spacer to maintain consistent layout when the error is not visible
+            Spacer(modifier = Modifier.height(32.dp))
+        }
         // TODO: this button should route to household set up (or review info)?
         Button(onClick = {
-            onNext(name, venmoUsername)
+            hasAttemptedSubmit = true
+            if (name.isNotBlank() && venmoUsername.isNotBlank()) {
+                Log.d("GetUserInfo", "no errors --> name: $name, venmo: $venmoUsername")
+                onNext(name, venmoUsername)
+            }
         }) {
             Text(text = "Next")
         }
