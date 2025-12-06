@@ -145,6 +145,9 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    if (viewModel.householdCreated) {
+                        return@Row // no need for bottom bar buttons if household already created
+                    }
                     Button(
                         onClick = { viewModel.decrementStep() },
                         enabled = viewModel.setupStep > 0
