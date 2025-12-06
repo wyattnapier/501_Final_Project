@@ -51,10 +51,6 @@ fun SignUpScreen(
 ) {
     var currentStep by rememberSaveable { mutableStateOf(SignUpSteps.GOOGLE_LOGIN) }
     val snackbarHostState = remember { SnackbarHostState() }
-
-    // hoisted state for persistence when you go back a screen
-    var name by rememberSaveable { mutableStateOf("")}
-    var venmoUsername by rememberSaveable { mutableStateOf("")}
     // scaffold so we can have snackbar message
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -111,21 +107,15 @@ fun SignUpScreen(
             }
 
             SignUpSteps.USER_INFO -> {
-                GetUserInfo(
-                    name = name,
-                    onNameChange = { name = it },
-                    venmoUsername = venmoUsername,
-                    onVenmoUsernameChange = { venmoUsername = it },
-                    onNext = {
-                        loginViewModel.displayName = name
-                        loginViewModel.venmoUsername = venmoUsername
-                        currentStep = SignUpSteps.REVIEW
-                    }
-                )
+                GetUserInfo(onNext = {name, venmoUsername ->
+                    loginViewModel.displayName = name
+                    loginViewModel.venmoUsername = venmoUsername
+                    currentStep = SignUpSteps.REVIEW
+                })
             }
 
             SignUpSteps.REVIEW -> {
-                ReviewInfo(loginViewModel, navController, onBack = { currentStep = SignUpSteps.USER_INFO })
+                ReviewInfo(loginViewModel, navController)
             }
 
         }
@@ -135,13 +125,12 @@ fun SignUpScreen(
 
 // composable for entering other user info
 @Composable
-fun GetUserInfo(
-    name: String,
-    onNameChange: (String) -> Unit,
-    venmoUsername: String,
-    onVenmoUsernameChange: (String) -> Unit,
-    onNext : () -> Unit
-) {
+fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
+
+    // temp values, will eventually do with view model
+    var name by rememberSaveable { mutableStateOf("")}
+    var venmoUsername by rememberSaveable { mutableStateOf("")}
+
     // State to track if the user has tried to submit, for validation
     var hasAttemptedSubmit by remember { mutableStateOf(false) }
 
@@ -166,7 +155,7 @@ fun GetUserInfo(
             modifier = Modifier.padding(8.dp))
         TextField(
             value = name,
-            onValueChange = onNameChange,
+            onValueChange = { name = it },
             label = { Text("Name") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
@@ -190,7 +179,7 @@ fun GetUserInfo(
             modifier = Modifier.padding(8.dp))
         TextField(
             value = venmoUsername,
-            onValueChange = onVenmoUsernameChange,
+            onValueChange = { venmoUsername = it },
             label = { Text("Venmo") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
@@ -208,12 +197,12 @@ fun GetUserInfo(
             // Use a Spacer to maintain consistent layout when the error is not visible
             Spacer(modifier = Modifier.height(32.dp))
         }
-        // routes to ReviewInfo
+        // TODO: this button should route to household set up (or review info)?
         Button(onClick = {
             hasAttemptedSubmit = true
             if (name.isNotBlank() && venmoUsername.isNotBlank()) {
                 Log.d("GetUserInfo", "no errors --> name: $name, venmo: $venmoUsername")
-                onNext()
+                onNext(name, venmoUsername)
             }
         }) {
             Text(text = "Next")
@@ -222,11 +211,7 @@ fun GetUserInfo(
 }
 
 @Composable
-fun ReviewInfo(
-    loginViewModel: LoginViewModel,
-    navController : NavController,
-    onBack: () -> Unit
-) {
+fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -260,9 +245,6 @@ fun ReviewInfo(
             navController.navigate("HouseholdSetup")
         }) {
             Text("Set up a household!")
-        }
-        Button(onClick = onBack) {
-            Text("Go Back")
         }
     }
 }
