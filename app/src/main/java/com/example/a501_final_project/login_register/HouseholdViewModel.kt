@@ -127,6 +127,10 @@ class HouseholdViewModel(
         choreInputs.add(ChoreInput())
     }
 
+    fun removeChore(index: Int){
+        choreInputs.removeAt(index)
+    }
+
     fun updateChore(index: Int, update: ChoreInput){
         choreInputs[index] = update
     }

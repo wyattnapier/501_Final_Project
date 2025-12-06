@@ -256,17 +256,28 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ){
             itemsIndexed(viewModel.choreInputs) { index, chore ->
-                Text(
-                    "Chore ${index + 1}",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "Chore ${index + 1}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    if (index > 0) {
+                        Button(onClick = {viewModel.removeChore(index)}) {
+                            Text("Remove")
+                        }
+                    }
+                }
                 ChoreSection(
                     chore = chore,
                     onChoreChanged = { updated ->
                         viewModel.updateChore(index, updated)
                     },
-                    hasAttemptedSubmit = viewModel.hasAttemptedSubmit
+                    hasAttemptedSubmit = viewModel.hasAttemptedSubmit,
                 )
             }
         }
@@ -285,10 +296,9 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
 fun ChoreSection(
     chore: ChoreInput,
     onChoreChanged: (ChoreInput) -> Unit,
-    hasAttemptedSubmit: Boolean
+    hasAttemptedSubmit: Boolean,
 ) {
     val isNameError = hasAttemptedSubmit && chore.name.isBlank()
-    val isDescriptionError = hasAttemptedSubmit && chore.description.isBlank()
 
     Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
         OutlinedTextField(
