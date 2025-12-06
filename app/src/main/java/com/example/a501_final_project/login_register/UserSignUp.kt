@@ -51,6 +51,10 @@ fun SignUpScreen(
 ) {
     var currentStep by rememberSaveable { mutableStateOf(SignUpSteps.GOOGLE_LOGIN) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // hoisted state for persistence when you go back a screen
+    var name by rememberSaveable { mutableStateOf("")}
+    var venmoUsername by rememberSaveable { mutableStateOf("")}
     // scaffold so we can have snackbar message
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -107,15 +111,21 @@ fun SignUpScreen(
             }
 
             SignUpSteps.USER_INFO -> {
-                GetUserInfo(onNext = {name, venmoUsername ->
-                    loginViewModel.displayName = name
-                    loginViewModel.venmoUsername = venmoUsername
-                    currentStep = SignUpSteps.REVIEW
-                })
+                GetUserInfo(
+                    name = name,
+                    onNameChange = { name = it },
+                    venmoUsername = venmoUsername,
+                    onVenmoUsernameChange = { venmoUsername = it },
+                    onNext = {
+                        loginViewModel.displayName = name
+                        loginViewModel.venmoUsername = venmoUsername
+                        currentStep = SignUpSteps.REVIEW
+                    }
+                )
             }
 
             SignUpSteps.REVIEW -> {
-                ReviewInfo(loginViewModel, navController)
+                ReviewInfo(loginViewModel, navController, onBack = { currentStep = SignUpSteps.USER_INFO })
             }
 
         }
@@ -125,12 +135,13 @@ fun SignUpScreen(
 
 // composable for entering other user info
 @Composable
-fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
-
-    // temp values, will eventually do with view model
-    var name by rememberSaveable { mutableStateOf("")}
-    var venmoUsername by rememberSaveable { mutableStateOf("")}
-
+fun GetUserInfo(
+    name: String,
+    onNameChange: (String) -> Unit,
+    venmoUsername: String,
+    onVenmoUsernameChange: (String) -> Unit,
+    onNext : () -> Unit
+) {
     // State to track if the user has tried to submit, for validation
     var hasAttemptedSubmit by remember { mutableStateOf(false) }
 
@@ -155,7 +166,7 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             modifier = Modifier.padding(8.dp))
         TextField(
             value = name,
-            onValueChange = { name = it },
+            onValueChange = onNameChange,
             label = { Text("Name") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
@@ -179,7 +190,7 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             modifier = Modifier.padding(8.dp))
         TextField(
             value = venmoUsername,
-            onValueChange = { venmoUsername = it },
+            onValueChange = onVenmoUsernameChange,
             label = { Text("Venmo") },
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.padding(bottom=32.dp),
@@ -197,12 +208,12 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             // Use a Spacer to maintain consistent layout when the error is not visible
             Spacer(modifier = Modifier.height(32.dp))
         }
-        // TODO: this button should route to household set up (or review info)?
+        // routes to ReviewInfo
         Button(onClick = {
             hasAttemptedSubmit = true
             if (name.isNotBlank() && venmoUsername.isNotBlank()) {
                 Log.d("GetUserInfo", "no errors --> name: $name, venmo: $venmoUsername")
-                onNext(name, venmoUsername)
+                onNext()
             }
         }) {
             Text(text = "Next")
@@ -211,7 +222,11 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
 }
 
 @Composable
-fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
+fun ReviewInfo(
+    loginViewModel: LoginViewModel,
+    navController : NavController,
+    onBack: () -> Unit
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -245,6 +260,9 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             navController.navigate("HouseholdSetup")
         }) {
             Text("Set up a household!")
+        }
+        Button(onClick = onBack) {
+            Text("Go Back")
         }
     }
 }
