@@ -102,24 +102,7 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
 @Composable
 fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
     val chore = chores.find { it.assignedToId == userID && it.householdID == householdID }
-    val isOverdue = remember(chore?.dueDate) {
-        chore?.dueDate?.let { dueDateString ->
-            try {
-                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
-
-                dateFormat.isLenient = false // Good practice: disallow invalid dates
-                val dueDate = dateFormat.parse(dueDateString)
-                val today = Calendar.getInstance().time
-
-                // A due date is overdue if it's strictly before today
-                dueDate != null && dueDate.before(today)
-            } catch (e: ParseException) {
-                // If parsing fails, it's not considered overdue
-                Log.d("MyChoreWidget", "Error parsing due date: ${e.message}")
-                false
-            }
-        } ?: false // If dueDate is null, it's not overdue
-    }
+    val isOverdue = choresViewModel.isChoreOverdue(chore)
 
     // Get URIs from ViewModel
     val tempImageUri by choresViewModel.tempImageUri.collectAsState()
@@ -311,7 +294,7 @@ fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, ch
 fun RoommateChoreItem(
     chore: Chore,
     context: Context,
-    viewModel: ChoresViewModel,
+    choresViewModel: ChoresViewModel,
     modifier: Modifier = Modifier
 ) {
     //the fetched image url
@@ -319,7 +302,7 @@ fun RoommateChoreItem(
 
     LaunchedEffect(key1 = chore.choreID) {
         if (chore.completed) {
-            imageUri = viewModel.getChoreImageUri(chore.choreID, chore.householdID)
+            imageUri = choresViewModel.getChoreImageUri(chore.choreID, chore.householdID)
         }
     }
 
@@ -336,8 +319,10 @@ fun RoommateChoreItem(
                 text = if (chore.completed) {
                     "Status: Completed"
                 } else {
-                    "Status: Pending"
-                }, fontSize = MaterialTheme.typography.bodySmall.fontSize
+                    "Status: Incomplete"
+                },
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                color = if (choresViewModel.isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 
@@ -360,6 +345,7 @@ fun PrevChores(
     modifier: Modifier = Modifier
 ) {
     // if due date < today, display on prev tasks
+    val prevChores = chores.filter { choresViewModel.isChoreOverdue(it) }
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -378,7 +364,7 @@ fun PrevChores(
             }
         }
         LazyColumn() {
-            for (chore in chores) {
+            for (chore in prevChores) {
                 item {
                     PrevChoreItem(chore, context, choresViewModel, modifier)
                     HorizontalDivider()
@@ -417,8 +403,10 @@ fun PrevChoreItem(
                 text = if (chore.completed) {
                     "Status: Completed"
                 } else {
-                    "Status: Overdue"
-                }, fontSize = MaterialTheme.typography.bodySmall.fontSize
+                    "Status: Incomplete"
+                },
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                color = if (viewModel.isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
 

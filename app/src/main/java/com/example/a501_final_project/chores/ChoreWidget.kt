@@ -96,19 +96,19 @@ fun ChoreWidget(
                 )
                 if (chore?.name != null) {
                     Text(
-                        "Due: ${chore.dueDate}",
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Text(
                         chore.description ?: "",
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
-                        if (chore.completed) "Chore Completed :)" else "Not Completed",
+                        "Due: ${chore.dueDate}",
                         fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        color = if (chore.completed) Color.Black else Color.Red
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        if (chore.completed) "Chore Completed :)" else "Not Completed!",
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                        color = if (choresViewModel.isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onSecondaryContainer
                     )
                 }
             }
