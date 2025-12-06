@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -212,6 +213,10 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
 
 @Composable
 fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
+    var hasAttemptedSubmit by remember { mutableStateOf(false) }
+    val isNameError = hasAttemptedSubmit && loginViewModel.displayName.isBlank()
+    val isVenmoError = hasAttemptedSubmit && loginViewModel.venmoUsername.isBlank()
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -228,21 +233,46 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             value = loginViewModel.displayName,
             onValueChange = { loginViewModel.displayName = it },
             label = { Text("Name") },
-            modifier = Modifier.padding(bottom=12.dp)
+            modifier = Modifier.padding(bottom=12.dp),
+            isError = isNameError,
+            singleLine = true
         )
+        if (isNameError) {
+            Text(
+                text = "Name cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp)
+            )
+        }
         OutlinedTextField(
             value = loginViewModel.venmoUsername,
             onValueChange = { loginViewModel.venmoUsername = it },
             label = { Text("Venmo username") },
-            modifier = Modifier.padding(bottom=24.dp)
+            modifier = Modifier.padding(bottom=24.dp),
+            isError = isVenmoError,
+            singleLine = true
         )
+        if (isVenmoError) {
+            Text(
+                text = "Venmo username cannot be empty",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.fillMaxWidth().padding(start = 16.dp)
+            )
+        }
 
         Text(text = "Looks good?",
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(8.dp))
         Button(onClick = {
-            loginViewModel.saveUserToDb()
-            navController.navigate("HouseholdSetup")
+            hasAttemptedSubmit = true
+
+            // Only proceed if both fields are valid
+            if (loginViewModel.displayName.isNotBlank() && loginViewModel.venmoUsername.isNotBlank()) {
+                loginViewModel.saveUserToDb()
+                navController.navigate("HouseholdSetup")
+            }
         }) {
             Text("Set up a household!")
         }
