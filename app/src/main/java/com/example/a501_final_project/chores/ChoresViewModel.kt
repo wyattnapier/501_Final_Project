@@ -3,6 +3,8 @@ package com.example.a501_final_project.chores
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
@@ -333,6 +335,7 @@ class ChoresViewModel(
         return try {
             var signedUrl = supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
             signedUrl = BuildConfig.SUPABASE_URL + "/storage/v1/" + signedUrl
+            _choreImageUris.value = _choreImageUris.value.plus(choreId to signedUrl.toUri())
             signedUrl.toUri()
         }catch (e: Exception){
             Log.e("ChoresViewModel", "Error getting image URI: ${e.message}", e)
@@ -344,5 +347,40 @@ class ChoresViewModel(
     fun completeChoreWithPhoto(chore: Chore, imageUri: Uri, context: Context) {
         completeChore(chore)
         onPhotoCaptured(chore.choreID, chore.householdID, imageUri, context)
+    }
+
+    fun isChoreOverdue(chore: Chore?): Boolean {
+        val isOverdue = chore?.dueDate?.let { dueString ->
+            try {
+                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+                dateFormat.isLenient = false
+
+                val dueDate = dateFormat.parse(dueString) ?: return@let false
+
+                val todayCal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                val dueCal = Calendar.getInstance().apply {
+                    time = dueDate
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                // overdue if due date < today (yesterday or earlier)
+                dueCal.before(todayCal)
+
+            } catch (e: Exception) {
+                Log.d("MyChoreWidget", "Failed to parse date: ${e.message}")
+                false
+            }
+        } ?: false
+        Log.d("ChoresViewModel", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
+        return isOverdue
     }
 }
