@@ -130,8 +130,6 @@ fun SignUpScreen(
 }
 
 // composable for entering other user info
-// in file: /Users/wyattnapier/AndroidStudioProjects/501_Final_Project/app/src/main/java/com/example/a501_final_project/login_register/UserSignUp.kt
-
 @Composable
 fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
 
@@ -163,7 +161,10 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -180,11 +181,12 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                         text = "Name cannot be empty",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp) // Added bottom padding
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp) // Added bottom padding
                     )
                 } else {
                     // Add a spacer to maintain layout consistency
-                    Spacer(modifier = Modifier.height(28.dp)) // TODO: Adjust height to match error text space
+                    Spacer(modifier = Modifier.height(24.dp)) // TODO: Adjust height to match error text space
                 }
                 OutlinedTextField(
                     value = venmoUsername,
@@ -202,11 +204,12 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                         text = "Venmo username cannot be empty",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp) // Added bottom padding
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp) // Added bottom padding
                     )
                 } else {
                     // Add a spacer to maintain layout consistency
-                    Spacer(modifier = Modifier.height(28.dp)) // TODO: Adjust height to match error text space
+                    Spacer(modifier = Modifier.height(24.dp)) // TODO: Adjust height to match error text space
                 }
             }
         }
@@ -267,7 +270,7 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                     value = loginViewModel.displayName,
                     onValueChange = { loginViewModel.displayName = it },
                     label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
                     isError = isNameError,
                     singleLine = true,
                     leadingIcon = { // Add an icon for Name
@@ -279,16 +282,17 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                         text = "Name cannot be empty",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
                 } else {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
                 OutlinedTextField(
                     value = loginViewModel.venmoUsername,
                     onValueChange = { loginViewModel.venmoUsername = it },
                     label = { Text("Venmo username") },
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
                     isError = isVenmoError,
                     singleLine = true,
                     leadingIcon = { // Add an icon for Venmo
@@ -303,10 +307,11 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                         text = "Venmo username cannot be empty",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                     )
                 } else {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
             }
         }
