@@ -95,7 +95,7 @@ class HouseholdViewModel(
         val isCurrentStepValid = when (setupStep) {
             0 -> householdName.isNotBlank() // Step 0 is valid if the name is not blank
             1 -> choreInputs.all { it.name.isNotBlank() && it.cycle.toDouble() > 0 } // Step 1 is valid if all chores are valid
-            2 -> paymentInputs.all { it.name.isNotBlank() && it.amount.toDouble() > 0 && it.split.toDouble() > 0 && it.split.toDouble() <= 100 && it.cycle.toDouble() > 0 } // step 2 valid if all inputs are nonnull and in valid range
+            2 -> paymentInputs.all { it.name.isNotBlank() && it.amount.toDouble() > 0 && it.split.toDouble() in 0.0..100.0 && it.cycle.toDouble() > 0 } // step 2 valid if all inputs are nonnull and in valid range
             3 -> calendarName.isNotBlank() // Step 3 is valid if the calendar name is not blank
             else -> true // Assume other steps are valid for now
         }

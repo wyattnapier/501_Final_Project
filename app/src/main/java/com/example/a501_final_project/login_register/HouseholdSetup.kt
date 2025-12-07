@@ -475,12 +475,12 @@ fun PaymentSection(
             label = { Text("Your Split (%)") },
             placeholder = { Text("Your percentage") },
             modifier = Modifier.fillMaxWidth(),
-            isError = hasAttemptedSubmit && (payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100),
+            isError = hasAttemptedSubmit && (payment.split.toDouble() !in 0.0..100.0),
             singleLine = true
         )
-        if (hasAttemptedSubmit && (payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100)) {
+        if (hasAttemptedSubmit && (payment.split.toDouble() !in 0.0..100.0)) {
             Text(
-                text = "Split must be between 1 and 99%",
+                text = "Split must be between 0 and 100%",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -1012,7 +1012,7 @@ fun PaymentItem(
             label = { Text("Your Split (%)") },
             placeholder = { Text("Enter percentage") },
             modifier = Modifier.fillMaxWidth(),
-            isError = payment.split.toDouble() <= 0 || payment.split.toDouble() >= 100,
+            isError = payment.split.toDouble() !in 0.0..100.0,
             singleLine = true
         )
 
