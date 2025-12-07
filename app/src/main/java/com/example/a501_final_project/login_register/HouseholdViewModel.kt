@@ -148,8 +148,8 @@ class HouseholdViewModel(
         paymentInputs[index] = update
     }
 
-    fun updateCalendar(calendar: String){
-        calendarName = calendar
+    fun updateCalendarName(calendarNameInput: String){
+        calendarName = calendarNameInput
     }
 
     fun updatePaymentDB(index: Int, update: PaymentDB){

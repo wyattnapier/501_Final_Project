@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.a501_final_project.R
@@ -187,7 +188,9 @@ fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
                     )
                 }
             }
@@ -235,7 +238,9 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
                         ) {
                             Text(
                                 "Chore ${index + 1}",
@@ -264,7 +269,9 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
 
         Button(
             onClick = { viewModel.addChore() },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Add Another Chore", style = MaterialTheme.typography.bodyLarge)
@@ -370,7 +377,9 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel, modifier: Modifier) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 12.dp)
                         ) {
                             Text(
                                 "Payment ${index + 1}",
@@ -399,7 +408,9 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel, modifier: Modifier) {
 
         Button(
             onClick = { viewModel.addPayment() },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Add Another Payment", style = MaterialTheme.typography.bodyLarge)
@@ -558,7 +569,7 @@ fun NewHouseholdCalendar(viewModel: HouseholdViewModel, modifier: Modifier){
             Column(modifier = Modifier.padding(16.dp)) {
                 OutlinedTextField(
                     value = viewModel.calendarName,
-                    onValueChange = { viewModel.updateCalendar(it) },
+                    onValueChange = { viewModel.updateCalendarName(it) },
                     label = { Text("Calendar Name") },
                     placeholder = { Text("e.g., Apartment Calendar") },
                     modifier = Modifier.fillMaxWidth(),
@@ -571,7 +582,9 @@ fun NewHouseholdCalendar(viewModel: HouseholdViewModel, modifier: Modifier){
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
                     )
                 }
             }
@@ -594,7 +607,9 @@ fun ReviewHouseholdDetails(viewModel: HouseholdViewModel, modifier: Modifier){
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.primary,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
             )
         }
 
@@ -789,7 +804,9 @@ fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navContr
 
         Button(
             onClick = { navController.navigate("Home") },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Proceed to App", style = MaterialTheme.typography.bodyLarge)
@@ -819,7 +836,9 @@ fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
         ) {
             IconButton(onClick = onBack) {
                 Icon(
@@ -861,7 +880,9 @@ fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
         Button(
             onClick = { viewModel.getHouseholdForJoining(householdID) },
             enabled = !viewModel.isLoading && householdID.isNotBlank(),
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ){
             Text("Search for Household", style = MaterialTheme.typography.bodyLarge)
@@ -891,7 +912,9 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 24.dp)
         ) {
             IconButton(onClick = onBack) {
                 Icon(
@@ -942,7 +965,9 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
 
         Button(
             onClick = { viewModel.confirmJoinHousehold() },
-            modifier = Modifier.fillMaxWidth().height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
             enabled = !viewModel.isLoading,
             shape = RoundedCornerShape(12.dp)
         ) {
