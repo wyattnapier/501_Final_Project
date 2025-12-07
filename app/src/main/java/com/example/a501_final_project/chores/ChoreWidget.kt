@@ -1,5 +1,6 @@
 package com.example.a501_final_project.chores
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,8 +49,9 @@ fun ChoreWidget(
                 .clickable(onClick = { onCardClick() }),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer
             ),
+            border = BorderStroke(2.dp, MaterialTheme.colorScheme.onTertiaryContainer)
         ) {
             Text(
                 "Loading chores data...",
@@ -68,10 +70,14 @@ fun ChoreWidget(
             .clickable(onClick = { onCardClick() }),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
         ),
+        border = BorderStroke(2.dp, MaterialTheme.colorScheme.onTertiaryContainer)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
                 "Chores",
                 style = MaterialTheme.typography.titleLarge,
