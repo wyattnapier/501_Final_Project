@@ -81,6 +81,16 @@ class HouseholdViewModel(
     var hasAttemptedSubmit by mutableStateOf(false)
         private set
 
+    var DESCRIPTION_MAX_LENGTH = 150
+
+    fun isInputStringValidLength(
+        input: String,
+        minLength: Int = 1, // default to nonempty strings for names
+        maxLength: Int = 25 // default to 25 for most names and longer for descriptions
+    ): Boolean {
+        return input.length in minLength .. maxLength
+    }
+
     fun loadCurrentUserId() {
         // Load current user ID when ViewModel is created
         uid = repository.getCurrentUserId() ?: ""
@@ -93,10 +103,10 @@ class HouseholdViewModel(
 
         // Add logic to check if the current step is valid before incrementing
         val isCurrentStepValid = when (setupStep) {
-            0 -> householdName.isNotBlank() // Step 0 is valid if the name is not blank
-            1 -> choreInputs.all { it.name.isNotBlank() && it.cycle.toDouble() > 0 } // Step 1 is valid if all chores are valid
-            2 -> paymentInputs.all { it.name.isNotBlank() && it.amount.toDouble() > 0 && it.split.toDouble() in 0.0..100.0 && it.cycle.toDouble() > 0 } // step 2 valid if all inputs are nonnull and in valid range
-            3 -> calendarName.isNotBlank() // Step 3 is valid if the calendar name is not blank
+            0 -> isInputStringValidLength(householdName) // Step 0 is valid if the name is not blank
+            1 -> choreInputs.all { isInputStringValidLength(it.name) && isInputStringValidLength(it.description, 0, DESCRIPTION_MAX_LENGTH) && it.cycle.toDouble() > 0 } // Step 1 is valid if all chores are valid
+            2 -> paymentInputs.all { isInputStringValidLength(it.name) && it.amount.toDouble() > 0 && it.split.toDouble() in 0.0..100.0 && it.cycle.toDouble() > 0 } // step 2 valid if all inputs are nonnull and in valid range
+            3 -> isInputStringValidLength(calendarName) // Step 3 is valid if the calendar name is not blank
             else -> true // Assume other steps are valid for now
         }
 

@@ -137,8 +137,8 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
     var venmoUsername by rememberSaveable { mutableStateOf("")}
     var hasAttemptedSubmit by remember { mutableStateOf(false) }
 
-    val isNameError = hasAttemptedSubmit && name.isBlank()
-    val isVenmoError = hasAttemptedSubmit && venmoUsername.isBlank()
+    val isNameError = hasAttemptedSubmit && !isInputStringValidLength(name)
+    val isVenmoError = hasAttemptedSubmit && !isInputStringValidLength(venmoUsername)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -176,7 +176,7 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                 )
                 if (isNameError) {
                     Text(
-                        text = "Name cannot be empty",
+                        text = "Name must be between 1 and 25 characters",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
@@ -199,7 +199,7 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                 )
                 if (isVenmoError) {
                     Text(
-                        text = "Venmo username cannot be empty",
+                        text = "Venmo username must be between 1 and 25 characters",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
@@ -217,7 +217,7 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
         Button(
             onClick = {
                 hasAttemptedSubmit = true
-                if (name.isNotBlank() && venmoUsername.isNotBlank()) {
+                if (isInputStringValidLength(name) && isInputStringValidLength(venmoUsername)) {
                     Log.d("GetUserInfo", "no errors --> name: $name, venmo: $venmoUsername")
                     onNext(name, venmoUsername)
                 }
@@ -236,8 +236,8 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
 @Composable
 fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
     var hasAttemptedSubmit by remember { mutableStateOf(false) }
-    val isNameError = hasAttemptedSubmit && loginViewModel.displayName.isBlank()
-    val isVenmoError = hasAttemptedSubmit && loginViewModel.venmoUsername.isBlank()
+    val isNameError = hasAttemptedSubmit && !isInputStringValidLength(loginViewModel.displayName)
+    val isVenmoError = hasAttemptedSubmit && !isInputStringValidLength(loginViewModel.venmoUsername)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -276,7 +276,7 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                 )
                 if (isNameError) {
                     Text(
-                        text = "Name cannot be empty",
+                        text = "Name must be between 1 and 25 characters",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
@@ -301,7 +301,7 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                 )
                 if (isVenmoError) {
                     Text(
-                        text = "Venmo username cannot be empty",
+                        text = "Venmo username must be between 1 and 25 characters",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
@@ -325,7 +325,7 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
         Button(
             onClick = {
                 hasAttemptedSubmit = true
-                if (loginViewModel.displayName.isNotBlank() && loginViewModel.venmoUsername.isNotBlank()) {
+                if (isInputStringValidLength(loginViewModel.displayName) && isInputStringValidLength(loginViewModel.venmoUsername)) {
                     loginViewModel.saveUserToDb()
                     navController.navigate("HouseholdSetup/create")
                 }
@@ -344,7 +344,7 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
         OutlinedButton( // Use an OutlinedButton for secondary actions
             onClick = {
                 hasAttemptedSubmit = true
-                if (loginViewModel.displayName.isNotBlank() && loginViewModel.venmoUsername.isNotBlank()) {
+                if (isInputStringValidLength(loginViewModel.displayName) && isInputStringValidLength(loginViewModel.venmoUsername)) {
                     loginViewModel.saveUserToDb()
                     navController.navigate("HouseholdSetup/join")
                 }
@@ -359,6 +359,14 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
 
         Spacer(modifier = Modifier.height(20.dp)) // Some padding at the bottom
     }
+}
+
+fun isInputStringValidLength(
+    input: String,
+    minLength: Int = 1, // default to nonempty strings for names
+    maxLength: Int = 25 // default to 25 for most names and longer for descriptions
+): Boolean {
+    return input.length in minLength .. maxLength
 }
 
 @Preview(showBackground = true, showSystemUi = true)

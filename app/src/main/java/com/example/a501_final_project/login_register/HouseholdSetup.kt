@@ -150,7 +150,7 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
 
 @Composable
 fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
-    val isNameError = viewModel.hasAttemptedSubmit && viewModel.householdName.isBlank()
+    val isNameError = viewModel.hasAttemptedSubmit && !viewModel.isInputStringValidLength(viewModel.householdName)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -184,7 +184,7 @@ fun NewHouseholdName(viewModel: HouseholdViewModel, modifier: Modifier){
                 )
                 if (isNameError) {
                     Text(
-                        text = "Household name cannot be empty",
+                        text = "Household name must be between 1 and 25 characters",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
@@ -259,6 +259,7 @@ fun NewHouseholdChore(viewModel: HouseholdViewModel, modifier: Modifier){
                                 viewModel.updateChore(index, updated)
                             },
                             hasAttemptedSubmit = viewModel.hasAttemptedSubmit,
+                            viewModel
                         )
                     }
                 }
@@ -284,8 +285,9 @@ fun ChoreSection(
     chore: ChoreInput,
     onChoreChanged: (ChoreInput) -> Unit,
     hasAttemptedSubmit: Boolean,
+    viewModel: HouseholdViewModel
 ) {
-    val isNameError = hasAttemptedSubmit && chore.name.isBlank()
+    val isNameError = hasAttemptedSubmit && !viewModel.isInputStringValidLength(chore.name)
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
@@ -311,8 +313,16 @@ fun ChoreSection(
             label = { Text("Description (Optional)") },
             placeholder = { Text("What needs to be done?") },
             modifier = Modifier.fillMaxWidth(),
-            maxLines = 2
+            maxLines = 2,
+            isError = chore.description.length > 150,
         )
+        if (chore.description.length > 150) {
+            Text(
+                text = "Chore description cannot be longer than 150 characters",
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
 
         OutlinedTextField(
             value = if (chore.cycle==0) "" else chore.cycle.toString(),
@@ -397,7 +407,8 @@ fun NewHouseholdPayment(viewModel: HouseholdViewModel, modifier: Modifier) {
                             onPaymentChanged = { updated ->
                                 viewModel.updatePayment(index, updated)
                             },
-                            hasAttemptedSubmit = viewModel.hasAttemptedSubmit
+                            hasAttemptedSubmit = viewModel.hasAttemptedSubmit,
+                            viewModel = viewModel
                         )
                     }
                 }
@@ -423,8 +434,9 @@ fun PaymentSection(
     payment: PaymentInput,
     onPaymentChanged: (PaymentInput) -> Unit,
     hasAttemptedSubmit: Boolean,
+    viewModel: HouseholdViewModel
 ) {
-    val isNameError = hasAttemptedSubmit && payment.name.isBlank()
+    val isNameError = hasAttemptedSubmit && !viewModel.isInputStringValidLength( payment.name)
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedTextField(
@@ -438,7 +450,7 @@ fun PaymentSection(
         )
         if (isNameError) {
             Text(
-                text = "Payment name cannot be empty",
+                text = "Payment name must be between 1 and 25 characters",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -537,7 +549,7 @@ fun PaymentSection(
 
 @Composable
 fun NewHouseholdCalendar(viewModel: HouseholdViewModel, modifier: Modifier){
-    val isNameError = viewModel.hasAttemptedSubmit && viewModel.calendarName.isBlank()
+    val isNameError = viewModel.hasAttemptedSubmit && !viewModel.isInputStringValidLength(viewModel.calendarName)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -578,7 +590,7 @@ fun NewHouseholdCalendar(viewModel: HouseholdViewModel, modifier: Modifier){
                 )
                 if (isNameError) {
                     Text(
-                        text = "Calendar name cannot be empty",
+                        text = "Calendar name must be between 1 and 25 characters",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
