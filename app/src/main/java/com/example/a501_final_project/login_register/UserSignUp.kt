@@ -147,7 +147,6 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             .background(MaterialTheme.colorScheme.background)
             .padding(top = 32.dp, start = 16.dp, end = 16.dp)
     ) {
-        // 1. A more prominent header
         Text(text = "Tell Us About Yourself",
             style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.primary,
@@ -155,7 +154,6 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)
         )
 
-        // 2. Group the user inputs inside a Card
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -182,11 +180,11 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp) // Added bottom padding
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     )
                 } else {
                     // Add a spacer to maintain layout consistency
-                    Spacer(modifier = Modifier.height(24.dp)) // TODO: Adjust height to match error text space
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
                 OutlinedTextField(
                     value = venmoUsername,
@@ -205,18 +203,17 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp) // Added bottom padding
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     )
                 } else {
                     // Add a spacer to maintain layout consistency
-                    Spacer(modifier = Modifier.height(24.dp)) // TODO: Adjust height to match error text space
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
 
         Spacer(modifier = Modifier.weight(1f)) // Pushes the button to the bottom
 
-        // 3. A clear action button
         Button(
             onClick = {
                 hasAttemptedSubmit = true
@@ -227,12 +224,12 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp), // A slightly larger button
+                .height(50.dp),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(text = "Next", style = MaterialTheme.typography.bodyLarge)
         }
-        Spacer(modifier = Modifier.height(16.dp)) // Some padding at the bottom
+        Spacer(modifier = Modifier.height(20.dp)) // Some padding at the bottom
     }
 }
 
@@ -253,12 +250,12 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             text = "Review Your Info",
             style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)
         )
 
-        // 2. Group the user inputs inside a Card for better visual structure
         Card(
-            modifier = Modifier.fillMaxWidth().padding(4.dp),
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         ) {
@@ -270,7 +267,7 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                     value = loginViewModel.displayName,
                     onValueChange = { loginViewModel.displayName = it },
                     label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     isError = isNameError,
                     singleLine = true,
                     leadingIcon = { // Add an icon for Name
@@ -283,16 +280,16 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     )
                 } else {
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
                 OutlinedTextField(
                     value = loginViewModel.venmoUsername,
                     onValueChange = { loginViewModel.venmoUsername = it },
                     label = { Text("Venmo username") },
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     isError = isVenmoError,
                     singleLine = true,
                     leadingIcon = { // Add an icon for Venmo
@@ -308,10 +305,10 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     )
                 } else {
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
             }
         }
