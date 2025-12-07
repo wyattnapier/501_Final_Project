@@ -26,6 +26,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.api.services.calendar.CalendarScopes
 
+// maps out which step of sign up we are in
+enum class SignUpSteps {
+    GOOGLE_LOGIN,
+    USER_INFO,
+    REVIEW
+}
+
 class LoginViewModel() : ViewModel() {
     var displayName by mutableStateOf("")
     var venmoUsername by mutableStateOf("")

@@ -3,6 +3,7 @@ package com.example.a501_final_project.login_register
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,9 +12,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -28,23 +35,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.remember
+import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
+import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
-
-// temp state variables to mark out which step of log in process we are in
-// TODO: this should go in ViewModel? either loginviewmodel or ignup viewmodel?
-enum class SignUpSteps {
-    GOOGLE_LOGIN,
-    USER_INFO,
-    REVIEW
-}
 @Composable
 fun SignUpScreen(
     loginViewModel: LoginViewModel,
@@ -126,17 +130,15 @@ fun SignUpScreen(
 }
 
 // composable for entering other user info
+// in file: /Users/wyattnapier/AndroidStudioProjects/501_Final_Project/app/src/main/java/com/example/a501_final_project/login_register/UserSignUp.kt
+
 @Composable
 fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
 
-    // temp values, will eventually do with view model
     var name by rememberSaveable { mutableStateOf("")}
     var venmoUsername by rememberSaveable { mutableStateOf("")}
-
-    // State to track if the user has tried to submit, for validation
     var hasAttemptedSubmit by remember { mutableStateOf(false) }
 
-    // Derived state to check if the name field is currently invalid
     val isNameError = hasAttemptedSubmit && name.isBlank()
     val isVenmoError = hasAttemptedSubmit && venmoUsername.isBlank()
 
@@ -144,71 +146,90 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(top = 32.dp, start = 16.dp, end = 16.dp)
     ) {
-        Text(text = "Tell us more about yourself!",
-            style = MaterialTheme.typography.headlineSmall,
+        // 1. A more prominent header
+        Text(text = "Tell Us About Yourself",
+            style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom=16.dp)
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)
         )
 
-        Text(text="What should we call you?",
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(8.dp))
-        TextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Name") },
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.padding(bottom=32.dp),
-            isError = isNameError,
-            singleLine = true
-        )
-        if (isNameError) {
-            Text(
-                text = "Name cannot be empty",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
-            )
-        } else {
-            // Use a Spacer to maintain consistent layout when the error is not visible
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-
-        Text(text="What's is your venmo username?",
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(8.dp))
-        TextField(
-            value = venmoUsername,
-            onValueChange = { venmoUsername = it },
-            label = { Text("Venmo") },
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.padding(bottom=32.dp),
-            isError = isVenmoError,
-            singleLine = true
-        )
-        if (isVenmoError) {
-            Text(
-                text = "Venmo cannot be empty",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 16.dp, bottom = 16.dp)
-            )
-        } else {
-            // Use a Spacer to maintain consistent layout when the error is not visible
-            Spacer(modifier = Modifier.height(32.dp))
-        }
-        // TODO: this button should route to household set up (or review info)?
-        Button(onClick = {
-            hasAttemptedSubmit = true
-            if (name.isNotBlank() && venmoUsername.isNotBlank()) {
-                Log.d("GetUserInfo", "no errors --> name: $name, venmo: $venmoUsername")
-                onNext(name, venmoUsername)
+        // 2. Group the user inputs inside a Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Your Name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = isNameError,
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(Icons.Default.Person, contentDescription = "Name")
+                    }
+                )
+                if (isNameError) {
+                    Text(
+                        text = "Name cannot be empty",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp) // Added bottom padding
+                    )
+                } else {
+                    // Add a spacer to maintain layout consistency
+                    Spacer(modifier = Modifier.height(28.dp)) // TODO: Adjust height to match error text space
+                }
+                OutlinedTextField(
+                    value = venmoUsername,
+                    onValueChange = { venmoUsername = it },
+                    label = { Text("Venmo Username") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = isVenmoError,
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(Icons.Default.ShoppingCart, contentDescription = "Venmo")
+                    }
+                )
+                if (isVenmoError) {
+                    Text(
+                        text = "Venmo username cannot be empty",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp) // Added bottom padding
+                    )
+                } else {
+                    // Add a spacer to maintain layout consistency
+                    Spacer(modifier = Modifier.height(28.dp)) // TODO: Adjust height to match error text space
+                }
             }
-        }) {
-            Text(text = "Next")
         }
+
+        Spacer(modifier = Modifier.weight(1f)) // Pushes the button to the bottom
+
+        // 3. A clear action button
+        Button(
+            onClick = {
+                hasAttemptedSubmit = true
+                if (name.isNotBlank() && venmoUsername.isNotBlank()) {
+                    Log.d("GetUserInfo", "no errors --> name: $name, venmo: $venmoUsername")
+                    onNext(name, venmoUsername)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp), // A slightly larger button
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(text = "Next", style = MaterialTheme.typography.bodyLarge)
+        }
+        Spacer(modifier = Modifier.height(16.dp)) // Some padding at the bottom
     }
 }
 
@@ -222,56 +243,83 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(top = 32.dp, start = 16.dp, end = 16.dp)
     ) {
         Text(
-            text = "Review your information",
-            style = MaterialTheme.typography.headlineSmall,
+            text = "Review Your Info",
+            style = MaterialTheme.typography.displaySmall,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(bottom=16.dp)
+            modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)
         )
 
-        OutlinedTextField(
-            value = loginViewModel.displayName,
-            onValueChange = { loginViewModel.displayName = it },
-            label = { Text("Name") },
-            modifier = Modifier.padding(bottom=12.dp),
-            isError = isNameError,
-            singleLine = true
-        )
-        if (isNameError) {
-            Text(
-                text = "Name cannot be empty",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.fillMaxWidth().padding(start = 16.dp)
-            )
+        // 2. Group the user inputs inside a Card for better visual structure
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(4.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                OutlinedTextField(
+                    value = loginViewModel.displayName,
+                    onValueChange = { loginViewModel.displayName = it },
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    isError = isNameError,
+                    singleLine = true,
+                    leadingIcon = { // Add an icon for Name
+                        Icon(Icons.Default.Person, contentDescription = "Name")
+                    }
+                )
+                if (isNameError) {
+                    Text(
+                        text = "Name cannot be empty",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+                OutlinedTextField(
+                    value = loginViewModel.venmoUsername,
+                    onValueChange = { loginViewModel.venmoUsername = it },
+                    label = { Text("Venmo username") },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    isError = isVenmoError,
+                    singleLine = true,
+                    leadingIcon = { // Add an icon for Venmo
+                        Icon(
+                            Icons.Default.ShoppingCart,
+                            contentDescription = "Venmo"
+                        ) // TODO: make credit card
+                    }
+                )
+                if (isVenmoError) {
+                    Text(
+                        text = "Venmo username cannot be empty",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+            }
         }
-        OutlinedTextField(
-            value = loginViewModel.venmoUsername,
-            onValueChange = { loginViewModel.venmoUsername = it },
-            label = { Text("Venmo username") },
-            modifier = Modifier.padding(bottom=24.dp),
-            isError = isVenmoError,
-            singleLine = true
-        )
-        if (isVenmoError) {
-            Text(
-                text = "Venmo username cannot be empty",
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.fillMaxWidth().padding(start = 16.dp)
-            )
-        }
+
+        Spacer(modifier = Modifier.weight(1f)) // Pushes the buttons to the bottom
 
         Text(
-            text = "Looks good?",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+            text = "Ready to go?",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Save user info and navigate to household setup with create option
+        // Primary Action: Create Household
         Button(
             onClick = {
                 hasAttemptedSubmit = true
@@ -280,16 +328,18 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                     navController.navigate("HouseholdSetup/create")
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp), // A slightly larger button
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Text("Create New Household")
+            Text("Create New Household", style = MaterialTheme.typography.bodyLarge)
         }
 
-        // Save user info and navigate to household setup with join option
-        Button(
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Secondary Action: Join Household
+        OutlinedButton( // Use an OutlinedButton for secondary actions
             onClick = {
                 hasAttemptedSubmit = true
                 if (loginViewModel.displayName.isNotBlank() && loginViewModel.venmoUsername.isNotBlank()) {
@@ -297,12 +347,22 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
                     navController.navigate("HouseholdSetup/join")
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
-            )
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Text("Join Existing Household")
+            Text("Join Existing Household", style = MaterialTheme.typography.bodyLarge)
         }
+
+        Spacer(modifier = Modifier.height(20.dp)) // Some padding at the bottom
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun GetUserInfoPreview() {
+    _501_Final_ProjectTheme {
+        GetUserInfo(onNext = { _, _ -> })
     }
 }

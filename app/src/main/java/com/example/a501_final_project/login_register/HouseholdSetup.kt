@@ -50,8 +50,6 @@ import androidx.navigation.NavController
 import com.example.a501_final_project.R
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
-
-
 @Composable
 fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavController){
     if (viewModel.existingHousehold == true){
@@ -855,14 +853,3 @@ fun PaymentItem(
 
     }
 }
-
-
-//
-//@Preview(showBackground = true)
-//@Composable
-//fun HouseholdPreview() {
-//    _501_Final_ProjectTheme {
-//        val viewModel = remember { HouseholdViewModel() }
-//        NewHousehold(viewModel)
-//    }
-//}
