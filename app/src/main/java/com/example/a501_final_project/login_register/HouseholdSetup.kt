@@ -731,88 +731,95 @@ fun ReviewHouseholdDetails(viewModel: HouseholdViewModel, modifier: Modifier){
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navController : NavController){
     val clipboardManager = LocalClipboardManager.current
     val householdId = viewModel.householdID
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp, vertical = 24.dp)
-    ){
-        Text(
-            "Household Created!",
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+    Scaffold(
+        bottomBar = {
+            BottomAppBar(
+                containerColor = MaterialTheme.colorScheme.background,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(
-                    "Household ID",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
+                Button(
+                    onClick = { navController.navigate("Home") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(
-                        householdId,
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    IconButton(
-                        onClick = {
-                            clipboardManager.setText(AnnotatedString(householdId))
-                        }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.content_copy_24px),
-                            contentDescription = "Copy Household ID",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text("Proceed to App", style = MaterialTheme.typography.bodyLarge)
                 }
-
-                Text(
-                    "Share this ID with your roommates so they can join",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 12.dp)
-                )
             }
         }
+    ) { innerPadding ->
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(innerPadding) // Apply Scaffold's inner padding
+                .padding(horizontal = 16.dp, vertical = 24.dp)
+        ){
+            Text(
+                "Household Created!",
+                style = MaterialTheme.typography.displaySmall,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 24.dp)
+            )
 
-        Spacer(modifier = Modifier.weight(1f))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        "Household ID",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
 
-        Button(
-            onClick = { navController.navigate("Home") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text("Proceed to App", style = MaterialTheme.typography.bodyLarge)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            householdId,
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        IconButton(
+                            onClick = {
+                                clipboardManager.setText(AnnotatedString(householdId))
+                            }
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.content_copy_24px),
+                                contentDescription = "Copy Household ID",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Text(
+                        "Share this ID with your roommates so they can join",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
+            }
         }
-
-        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
