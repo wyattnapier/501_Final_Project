@@ -1,6 +1,7 @@
 package com.example.a501_final_project
 
 import android.util.Log
+import com.example.a501_final_project.chores.Chore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -225,4 +226,28 @@ class FirestoreRepository {
             throw exception
         }
     }
+
+
+    /**
+     * function for updatign firebase with chore updates
+     */
+
+    suspend fun updateChoreAssignmentsSuspend(updatedChores: List<Chore>) {
+        // this is very specific to H001
+        val db = FirebaseFirestore.getInstance()
+        val householdId = updatedChores.first().householdID
+
+        val choreMaps = updatedChores.map { chore ->
+            mapOf(
+                "choreID" to chore.choreID,
+                "assignedToId" to chore.assignedToId,
+                "due_date" to chore.dueDate,
+            )
+        }
+
+        db.collection("households")
+            .document(householdId)
+            .update("chores", choreMaps)
+    }
+
 }

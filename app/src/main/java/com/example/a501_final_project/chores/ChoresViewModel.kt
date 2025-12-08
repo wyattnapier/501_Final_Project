@@ -3,6 +3,7 @@ package com.example.a501_final_project.chores
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.compose.ui.util.unpackInt1
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
@@ -24,6 +25,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import androidx.core.net.toUri
 import com.example.a501_final_project.BuildConfig
+import java.util.UUID
 
 
 /**
@@ -43,6 +45,7 @@ data class Chore(
     var assignedToId: String,
     var assignedToName: String?,
     var completed: Boolean,
+    var instanceOf: String, // the recurring chore type it belongs to, safer than checking name
 )
 
 data class RecurringChore(
@@ -206,6 +209,7 @@ class ChoresViewModel(
                             dateCompleted = dateCompleted,
                             assignedToId = assignedToId,
                             assignedToName = assignedToName,
+                            instanceOf = currentRecurringChore?.recurringChoreId ?: "Unnamed Chore"
                         )
                     }
 
@@ -215,6 +219,8 @@ class ChoresViewModel(
 
                 _isChoresDataLoaded.value = true
                 _isLoading.value = false
+                // assign chores upon opening
+                assignChores()
                 Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
 
             } catch (e: Exception) {
@@ -237,26 +243,122 @@ class ChoresViewModel(
      */
     fun assignChores() {
         val currentRoommates = roommates.value
+        val recurringChores = recurringChoresList ?: return
         if (currentRoommates.isEmpty()) {
             Log.w("ChoresViewModel", "Cannot assign chores, the roommates list is empty.")
             return
         }
 
-        _choresList.value = _choresList.value.mapIndexed { index, chore ->
-            chore.copy(assignedToId = currentRoommates[index % currentRoommates.size])
+//        _choresList.value = _choresList.value.mapIndexed { index, chore ->
+//            chore.copy(assignedToId = currentRoommates[index % currentRoommates.size])
+//        }
+
+
+
+        val chores = _choresList.value.toMutableList()
+
+        // if there are no roommates then we can't do any assignments
+        if (currentRoommates.isEmpty()) {
+            return
         }
+
+        // if no chores then we can't do any assignments
+        if (chores.isEmpty()) {
+            return
+        }
+
+
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        val today = Calendar.getInstance() // Use fully qualified name
+        val unassignedChores = chores.filter { chore ->
+            chore.assignedToId.isBlank() && chore.dueDate.isNotBlank()
+        }.filter{ chore ->
+            try {
+                val due = dateFormat.parse(chore.dueDate)
+                due != null && due.after(today.time)
+            } catch (e: Exception) {
+                false
+            }
+        }
+
+        if (unassignedChores.isEmpty()) {
+            Log.d("ChoresViewModel", "no chores need to be assigned")
+            return
+        }
+
+        // count how much load each roommate has
+        val load = mutableMapOf<String, Int>()
+        currentRoommates.forEach { roommate ->
+            load[roommate] = chores.count { it.assignedToId == roommate }
+        }
+
+        // assign the chores to the least loaded
+        for (chore in unassignedChores) {
+            val leastLoaded = load.minBy { it.value }.key // minBy takes first instance of the min value, so "random" in that sense, but can make actually random if need
+            load[leastLoaded] = load[leastLoaded]!! + 1
+
+            val choreIdx = chores.indexOfFirst {it.choreID == chore.choreID}
+            if (choreIdx != -1) {
+                chores[choreIdx] = chores[choreIdx].copy(assignedToId = leastLoaded) // assign it to least loaded roommate
+            }
+        }
+
+        // updates UI
+        _choresList.value = chores
+
+        // send to DB
+        viewModelScope.launch {
+            firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
+        }
+
+        Log.d("ChoresViewModel", "chores assigned")
     }
+
 
     /**
      * function to mark a chore as completed
      * ideally when user completes their chore,
      * this function is called and gets passed the chore
      * this function might not be needed, but it could help with safe access/storing logic in one place
+     * This function also creates a new instance of a chore of the same type to be assigned
      */
     fun completeChore(completedChore: Chore) {
-        _choresList.value = _choresList.value.map { chore ->
-            if (chore.choreID == completedChore.choreID) chore.copy(completed = true) else chore
+        val currentList = _choresList.value.toMutableList()
+        val choreIndex = currentList.indexOfFirst { it.choreID == completedChore.choreID }
+        val recurringType = recurringChoresList!!.filter {
+            chore -> chore.recurringChoreId == completedChore.instanceOf
         }
+
+        val chore = currentList[choreIndex]
+        currentList[choreIndex] = chore.copy(completed = true)
+
+        if (chore.instanceOf.isNotBlank()) {
+            val df = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+            val calendar = Calendar.getInstance()
+            try {
+                calendar.time = df.parse(chore.dueDate)!! // not null...
+            } catch (e: Exception) {
+                calendar.time = Date()
+            }
+
+            calendar.add(Calendar.DAY_OF_YEAR, recurringType[0].cycleFrequency)
+            val newDueDate = df.format(calendar.time)
+            val newChore = chore.copy( // the same previous chore (so type is preserved)
+                choreID = UUID.randomUUID().toString(),
+                assignedToId = "",     // unassigned
+                completed = false,
+                dueDate = newDueDate
+            )
+
+            currentList.add(newChore)
+        }
+
+        // update UI
+        _choresList.value = currentList
+
+//        _choresList.value = _choresList.value.map { chore ->
+//            if (chore.choreID == completedChore.choreID) chore.copy(completed = true) else chore
+//        }
         viewModelScope.launch {
             firestoreRepository.markChoreAsCompletedSuspend(
                 completedChore.choreID,
