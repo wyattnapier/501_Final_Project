@@ -8,22 +8,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.navigation.NavController
-import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseUser
-import com.google.firebase.firestore.FirebaseFirestore
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
-import org.mockito.Mockito.*
-import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.whenever
 import org.mockito.junit.MockitoJUnitRunner
 
 @RunWith(MockitoJUnitRunner::class)
@@ -35,26 +26,11 @@ class UserSignUpTest {
     @Mock
     private lateinit var mockNavController: NavController
 
-    @Mock
-    private lateinit var mockFirebaseAuth: FirebaseAuth
-
-    @Mock
-    private lateinit var mockFirebaseUser: FirebaseUser
-
-    @Mock
-    private lateinit var mockFirestore: FirebaseFirestore
-
-    @Mock
-    private lateinit var mockGoogleSignInClient: GoogleSignInClient
-
     private lateinit var context: Context
 
     @Before
     fun setUp() {
         context = InstrumentationRegistry.getInstrumentation().targetContext
-
-        // Setup Firebase mocks
-        whenever(mockFirebaseAuth.currentUser).thenReturn(null)
     }
 
     // GetUserInfo Tests (Pure UI - no ViewModel needed)
@@ -101,6 +77,33 @@ class UserSignUpTest {
         // Verify error message appears
         composeTestRule
             .onNodeWithText("Name must be between 1 and 25 characters")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun getUserInfo_showsErrorWhenVenmoIsEmpty() {
+        composeTestRule.setContent {
+            _501_Final_ProjectTheme {
+                var name by remember { mutableStateOf("testuser") }
+                var venmo by remember { mutableStateOf("") }
+                GetUserInfo(
+                    name = name,
+                    onNameChange = { name = it },
+                    venmoUsername = venmo,
+                    onVenmoUsernameChange = { venmo = it },
+                    onNext = {}
+                )
+            }
+        }
+
+        // Click Next without entering data
+        composeTestRule
+            .onNodeWithText("Next")
+            .performClick()
+
+        // Verify error message appears
+        composeTestRule
+            .onNodeWithText("Venmo username must be between 1 and 25 characters")
             .assertIsDisplayed()
     }
 
