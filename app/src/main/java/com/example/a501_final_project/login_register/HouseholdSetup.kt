@@ -73,6 +73,7 @@ fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavControlle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel.errorMessage) {
@@ -119,7 +120,7 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
                             }
                         } else {
                             Button(
-                                onClick = { viewModel.createHousehold() },
+                                onClick = { viewModel.createHousehold(context = context) },
                                 enabled = !viewModel.isLoading,
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -983,7 +984,7 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { viewModel.confirmJoinHousehold() },
+            onClick = { viewModel.confirmJoinHousehold(context = context) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),

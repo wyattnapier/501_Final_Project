@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -10,8 +11,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
 import com.example.a501_final_project.chores.RecurringChore
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
+import com.google.api.services.calendar.CalendarScopes
 import com.google.firebase.firestore.FieldValue
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ChoreInput(
     var name: String = "",
@@ -166,7 +174,88 @@ class HouseholdViewModel(
         paymentsFromDB[index] = update
     }
 
-    fun createHousehold() {
+    /**
+     * Creates a new Google Calendar for the currently signed-in user.
+     * @param context The application context.
+     * @param calendarName The desired name for the new calendar.
+     * @return The unique ID of the created calendar, or null on failure.
+     */
+    suspend fun createGoogleCalendar(context: Context, calendarName: String): String? {
+        val account = GoogleSignIn.getLastSignedInAccount(context) ?: return null
+
+        val credential = GoogleAccountCredential.usingOAuth2(
+            context,
+            listOf(CalendarScopes.CALENDAR) // This scope allows full read/write access
+        ).apply { selectedAccount = account.account }
+
+        val calendarService = com.google.api.services.calendar.Calendar.Builder(
+            NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            credential
+        ).setApplicationName("501_Final_Project").build()
+
+        val newCalendar = com.google.api.services.calendar.model.Calendar().apply {
+            summary = calendarName
+            // You can set the timezone to the user's local timezone if you have it
+            timeZone = java.util.TimeZone.getDefault().id
+        }
+
+        // use dispatchers.io to run blocking network call
+        return withContext(Dispatchers.IO) {
+            try {
+                val createdCalendar = calendarService.calendars().insert(newCalendar).execute()
+                Log.d("HouseholdViewModel", "Successfully created calendar with ID: ${createdCalendar.id}")
+                createdCalendar.id // Return the ID from the withContext block
+            } catch (e: Exception) {
+                Log.e("HouseholdViewModel", "Failed to create Google Calendar", e)
+                errorMessage = "Failed to create Google Calendar: ${e.message}"
+                null // Return null on failure from the withContext block
+            }
+        }
+    }
+
+    // TODO: verify that this isn't scuffed
+    /**
+     * Shares an existing Google Calendar with a new user.
+     * @param context The application context of the user SHARING the calendar.
+     * @param calendarId The ID of the calendar to share.
+     * @param newUserEmail The email address of the user to invite.
+     */
+    suspend fun shareGoogleCalendar(context: Context, calendarId: String, newUserEmail: String) {
+        val account = GoogleSignIn.getLastSignedInAccount(context) ?: return
+
+        val credential = GoogleAccountCredential.usingOAuth2(
+            context,
+            listOf(CalendarScopes.CALENDAR)
+        ).apply { selectedAccount = account.account }
+
+        val calendarService = com.google.api.services.calendar.Calendar.Builder(
+            NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            credential
+        ).setApplicationName("501_Final_Project").build()
+
+        // Define the access rule for the new user
+        val scope = com.google.api.services.calendar.model.AclRule.Scope().apply {
+            type = "user"
+            value = newUserEmail // Set the email address
+        }
+        val rule = com.google.api.services.calendar.model.AclRule().apply {
+            this.scope = scope
+            role = "owner" // "writer" gives them permission to add/edit events. "owner" is also an option.
+        }
+
+        try {
+            calendarService.acl().insert(calendarId, rule).execute()
+            Log.d("HouseholdViewModel", "Successfully shared calendar '$calendarId' with '$newUserEmail'")
+        } catch (e: Exception) {
+            Log.e("HouseholdViewModel", "Failed to share Google Calendar", e)
+            // You might want to notify the user that sharing failed
+        }
+    }
+
+
+    fun createHousehold(context: Context) {
         errorMessage = null
         isLoading = true
 
@@ -196,19 +285,25 @@ class HouseholdViewModel(
             )
         )
 
-        val fullHouseholdObject = mapOf(
-            "name" to householdName,
-            "recurring_chores" to recurring_chores,
-            "recurring_payments" to recurring_payments,
-            "calendar" to calendarName,
-            "residents" to residents,
-            "chores" to emptyList<Map<String, Any>>()  // Initialize empty chores array
-        )
-
-        Log.d("HouseholdViewModel", "Creating household with name: $householdName")
-
         viewModelScope.launch {
             try {
+                // 0. create google calendar
+                val googleCalendarId = createGoogleCalendar(context, calendarName)
+                    ?: // Handle failure to create calendar
+                    throw Exception("Could not create the Google Calendar.")
+
+                val fullHouseholdObject = mapOf(
+                    "name" to householdName,
+                    "recurring_chores" to recurring_chores,
+                    "recurring_payments" to recurring_payments,
+//                    "calendar" to calendarName, // TODO: add field for "calendar_name"
+                    "calendar" to googleCalendarId, // TODO: change field to "calendar_id"
+                    "residents" to residents,
+                    "chores" to emptyList<Map<String, Any>>()  // Initialize empty chores array
+                )
+
+                Log.d("HouseholdViewModel", "Creating household with name: $householdName")
+
                 // 1. Call the suspend function and directly assign the returned ID
                 val newHouseholdId = repository.createHouseholdSuspend(fullHouseholdObject)
 
@@ -293,7 +388,7 @@ class HouseholdViewModel(
         }
     }
 
-    fun confirmJoinHousehold() {
+    fun confirmJoinHousehold(context: Context) {
         errorMessage = null
         isLoading = true
 
@@ -322,6 +417,16 @@ class HouseholdViewModel(
 
         viewModelScope.launch {
             try {
+                // start sharing google calendar with new user
+                val newUserEmail = GoogleSignIn.getLastSignedInAccount(context)?.email
+                    ?: throw Exception("Could not get user's email for calendar invite.")
+                // Get the calendar ID from the household we are about to join.
+                val householdData = repository.getHouseholdSuspend(householdID)
+                val calendarIdToJoin = householdData["calendar"] as? String
+                    ?: throw Exception("The household does not have a shared calendar.")
+                // call the function to actually share the calendar
+                shareGoogleCalendar(context, calendarIdToJoin, newUserEmail)
+
                 // Call the refactored suspend function
                 repository.addResidentToHouseholdSuspend(
                     householdId = householdID,
