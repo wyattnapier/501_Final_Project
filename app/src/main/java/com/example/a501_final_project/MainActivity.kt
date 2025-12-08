@@ -78,7 +78,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     object Error : Screen("Error", "Error", Icons.Default.Settings)
     object UserSignUp : Screen("UserSignUp", "UserSignUp", Icons.Default.AccountBox)
-    object HouseholdSetup : Screen("HouseholdSetup", "HouseholdSetup", Icons.Default.Create)
+    // screen for household setup is custom route
 }
 
 // list of all screens used in the bottom bar
@@ -121,8 +121,8 @@ fun MainScreen() {
     val noBars = setOf(
         Screen.Login.route,
         Screen.UserSignUp.route,
-        Screen.HouseholdSetup.route,
     )
+    val shouldShowBars = currentRoute !in noBars && !(currentRoute?.startsWith("HouseholdSetup") ?: false)
     // view models
     val mainViewModel: MainViewModel = viewModel()
     val loginViewModel: LoginViewModel = viewModel()
@@ -170,12 +170,12 @@ fun MainScreen() {
 
     Scaffold(
         bottomBar = {
-            if (currentRoute !in noBars) {
+            if (shouldShowBars) {
                 BottomBar(navController)
             }
         },
         topBar = {
-            if (currentRoute !in noBars) {
+            if (shouldShowBars) {
                 TopBar(navController)
             }
          },

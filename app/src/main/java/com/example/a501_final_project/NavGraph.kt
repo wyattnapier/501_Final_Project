@@ -1,10 +1,13 @@
 package com.example.a501_final_project
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.a501_final_project.chores.ChoresScreen
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
@@ -103,12 +106,27 @@ fun AppNavGraph(
                     }
                 })
         }
+//        composable(Screen.HouseholdSetup.route) {
+//            HouseholdLanding(
+//                viewModel = householdViewModel, navController = navController
+//            )
+//        }
+        composable(
+            route = "HouseholdSetup/{action}",
+            arguments = listOf(navArgument("action") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val action = backStackEntry.arguments?.getString("action")
+            val householdViewModel: HouseholdViewModel = householdViewModel
+            // Set the existingHousehold flag based on the action parameter
+            LaunchedEffect(action) {
+                householdViewModel.existingHousehold = when (action) {
+                    "create" -> false
+                    "join" -> true
+                    else -> null
+                }
+            }
 
-        // to make householdsetup page navigable
-        composable(Screen.HouseholdSetup.route) {
-            HouseholdLanding(
-                viewModel = householdViewModel, navController = navController
-            )
+            HouseholdLanding(householdViewModel, navController)
         }
     }
 }
