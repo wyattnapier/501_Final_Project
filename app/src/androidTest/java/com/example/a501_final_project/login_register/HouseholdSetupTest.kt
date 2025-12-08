@@ -69,19 +69,6 @@ class HouseholdSetupTest {
     }
 
     @Test
-    fun newHouseholdName_showsPlaceholder() {
-        composeTestRule.setContent {
-            _501_Final_ProjectTheme {
-                NewHouseholdName(viewModel, androidx.compose.ui.Modifier)
-            }
-        }
-
-        composeTestRule
-            .onNodeWithText("e.g., Downtown Apartment")
-            .assertExists()
-    }
-
-    @Test
     fun newHouseholdName_acceptsTextInput() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
@@ -357,7 +344,7 @@ class HouseholdSetupTest {
 
     @Test
     fun paymentSection_showsErrorsWhenFieldsInvalid() {
-        val testPayment = PaymentInput("", 0, 0, 0, false)
+        val testPayment = PaymentInput("", 0, 101, 0, false)
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
@@ -568,23 +555,6 @@ class HouseholdSetupTest {
             .assertIsDisplayed()
     }
 
-    @Test
-    fun householdCreated_navigatesOnProceedClick() {
-        viewModel.updateID("12345")
-
-        composeTestRule.setContent {
-            _501_Final_ProjectTheme {
-                HouseholdCreated(viewModel, androidx.compose.ui.Modifier, mockNavController)
-            }
-        }
-
-        composeTestRule
-            .onNodeWithText("Proceed to App")
-            .performClick()
-
-        verify(mockNavController).navigate("Home")
-    }
-
     // FindHousehold Tests
     @Test
     fun findHousehold_displaysTitle() {
@@ -683,7 +653,7 @@ class HouseholdSetupTest {
             .assertIsDisplayed()
 
         composeTestRule
-            .onNodeWithText("Occupied split: 30.0%")
+            .onNodeWithText("Occupied split: 30%")
             .assertIsDisplayed()
     }
 

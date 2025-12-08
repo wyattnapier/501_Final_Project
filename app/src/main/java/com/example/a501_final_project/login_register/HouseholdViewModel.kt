@@ -44,10 +44,8 @@ data class ResidentDB(
 )
 
 class HouseholdViewModel(
-    private val repository: IRepository = FirestoreRepository(),
+    private val repository: IRepository = FirestoreRepository(), // use IRepository interface for testing
 ) : ViewModel() {
-//    constructor() : this(FirestoreRepository())
-
     var existingHousehold by mutableStateOf<Boolean?>(null)
 
     // Get current user ID from repository
