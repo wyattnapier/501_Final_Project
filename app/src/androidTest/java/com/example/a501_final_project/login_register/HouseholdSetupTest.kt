@@ -1,23 +1,19 @@
 package com.example.a501_final_project.login_register
 
-/*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.navigation.NavController
-import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.example.a501_final_project.FirestoreRepository
+import com.example.a501_final_project.IRepository
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
-import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
-import org.mockito.Mockito.*
+import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.any
-import org.mockito.kotlin.whenever
 import org.mockito.junit.MockitoJUnitRunner
+import org.mockito.kotlin.whenever
 
 @RunWith(MockitoJUnitRunner::class)
 class HouseholdSetupTest {
@@ -26,7 +22,7 @@ class HouseholdSetupTest {
     val composeTestRule = createComposeRule()
 
     @Mock
-    private lateinit var mockRepository: FirestoreRepository
+    private lateinit var mockRepository: IRepository
 
     @Mock
     private lateinit var mockNavController: NavController
@@ -111,7 +107,7 @@ class HouseholdSetupTest {
         }
 
         composeTestRule
-            .onNodeWithText("Household name cannot be empty")
+            .onNodeWithText("Household name must be between 1 and 25 characters")
             .assertIsDisplayed()
     }
 
@@ -181,7 +177,8 @@ class HouseholdSetupTest {
                 ChoreSection(
                     chore = testChore,
                     onChoreChanged = {},
-                    hasAttemptedSubmit = false
+                    hasAttemptedSubmit = false,
+                    viewModel = viewModel
                 )
             }
         }
@@ -208,13 +205,14 @@ class HouseholdSetupTest {
                 ChoreSection(
                     chore = testChore,
                     onChoreChanged = {},
-                    hasAttemptedSubmit = true
+                    hasAttemptedSubmit = true,
+                    viewModel = viewModel
                 )
             }
         }
 
         composeTestRule
-            .onNodeWithText("Chore name cannot be empty")
+            .onNodeWithText("Chore name must be between 1 and 25 characters")
             .assertIsDisplayed()
     }
 
@@ -227,7 +225,8 @@ class HouseholdSetupTest {
                 ChoreSection(
                     chore = testChore,
                     onChoreChanged = {},
-                    hasAttemptedSubmit = true
+                    hasAttemptedSubmit = true,
+                    viewModel = viewModel
                 )
             }
         }
@@ -247,7 +246,8 @@ class HouseholdSetupTest {
                 ChoreSection(
                     chore = testChore,
                     onChoreChanged = { updatedChore = it },
-                    hasAttemptedSubmit = false
+                    hasAttemptedSubmit = false,
+                    viewModel = viewModel
                 )
             }
         }
@@ -312,7 +312,8 @@ class HouseholdSetupTest {
                 PaymentSection(
                     payment = testPayment,
                     onPaymentChanged = {},
-                    hasAttemptedSubmit = false
+                    hasAttemptedSubmit = false,
+                    viewModel = viewModel
                 )
             }
         }
@@ -343,7 +344,8 @@ class HouseholdSetupTest {
                 PaymentSection(
                     payment = testPayment,
                     onPaymentChanged = {},
-                    hasAttemptedSubmit = false
+                    hasAttemptedSubmit = false,
+                    viewModel = viewModel
                 )
             }
         }
@@ -362,13 +364,14 @@ class HouseholdSetupTest {
                 PaymentSection(
                     payment = testPayment,
                     onPaymentChanged = {},
-                    hasAttemptedSubmit = true
+                    hasAttemptedSubmit = true,
+                    viewModel = viewModel
                 )
             }
         }
 
         composeTestRule
-            .onNodeWithText("Payment name cannot be empty")
+            .onNodeWithText("Payment name must be between 1 and 25 characters")
             .assertIsDisplayed()
 
         composeTestRule
@@ -376,7 +379,7 @@ class HouseholdSetupTest {
             .assertIsDisplayed()
 
         composeTestRule
-            .onNodeWithText("Split must be between 1 and 99%")
+            .onNodeWithText("Split must be between 0 and 100%")
             .assertIsDisplayed()
 
         composeTestRule
@@ -386,20 +389,21 @@ class HouseholdSetupTest {
 
     @Test
     fun paymentSection_showsErrorWhenSplitTooHigh() {
-        val testPayment = PaymentInput("Rent", 1000, 100, 30, false)
+        val testPayment = PaymentInput("Rent", 1000, 101, 30, false)
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
                 PaymentSection(
                     payment = testPayment,
                     onPaymentChanged = {},
-                    hasAttemptedSubmit = true
+                    hasAttemptedSubmit = true,
+                    viewModel = viewModel
                 )
             }
         }
 
         composeTestRule
-            .onNodeWithText("Split must be between 1 and 99%")
+            .onNodeWithText("Split must be between 0 and 100%")
             .assertIsDisplayed()
     }
 
@@ -432,10 +436,13 @@ class HouseholdSetupTest {
 
     @Test
     fun newHouseholdCalendar_showsErrorWhenEmpty() {
-        viewModel.incrementStep() // Skip to calendar step
-        viewModel.incrementStep()
-        viewModel.incrementStep()
-        viewModel.incrementStep()
+        viewModel.updateName("test")
+        viewModel.choreInputs[0] = ChoreInput("test", "test", 1)
+        viewModel.paymentInputs[0] = PaymentInput("test", 1, 1, 1, false)
+        viewModel.incrementStep() // -> 1
+        viewModel.incrementStep() // -> 2
+        viewModel.incrementStep() // -> 3
+        viewModel.incrementStep() // -> 4 (triggers validation for step 3)
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
@@ -444,7 +451,7 @@ class HouseholdSetupTest {
         }
 
         composeTestRule
-            .onNodeWithText("Calendar name cannot be empty")
+            .onNodeWithText("Calendar name must be between 1 and 25 characters")
             .assertIsDisplayed()
     }
 
@@ -676,7 +683,7 @@ class HouseholdSetupTest {
             .assertIsDisplayed()
 
         composeTestRule
-            .onNodeWithText("Occupied split: 30%")
+            .onNodeWithText("Occupied split: 30.0%")
             .assertIsDisplayed()
     }
 
@@ -748,6 +755,7 @@ class HouseholdSetupTest {
     @Test
     fun viewModel_decrementStepWorks() {
         viewModel.updateName("Test")
+        viewModel.choreInputs[0] = ChoreInput("test", "", 1)
         viewModel.incrementStep()
         assert(viewModel.setupStep == 1)
 
@@ -777,4 +785,3 @@ class HouseholdSetupTest {
         assert(viewModel.paymentInputs.size == initialSize)
     }
 }
-*/
