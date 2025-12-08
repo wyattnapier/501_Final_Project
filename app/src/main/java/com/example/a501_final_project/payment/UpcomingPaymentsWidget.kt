@@ -11,10 +11,16 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -112,10 +118,16 @@ fun UpcomingPaymentsWidget(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "You owe others",
+                        "You Owe Others",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    HorizontalDivider(
+                        modifier = Modifier.fillMaxWidth(0.8f),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (oweOthers.isEmpty()) {
                         Text(
                             text = "You're all caught up!",
@@ -140,10 +152,16 @@ fun UpcomingPaymentsWidget(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "Others owe you",
+                        "Others Owe You",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    HorizontalDivider(
+                        modifier = Modifier.fillMaxWidth(0.8f),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (othersOwe.isEmpty()) {
                         Text(
                             text = "Everybody has paid you!",
@@ -170,13 +188,22 @@ fun UpcomingPaymentItem(
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
-        Column {
+        Row (
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Send,
+                contentDescription = "Send Icon",
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(modifier = Modifier.padding(4.dp))
             Text (
                 text =
                     if (payToCurrentUser) {
-                        "${payment.payFromName} owes you for ${payment.memo}"
+                        "${payment.payFromName} for ${payment.memo}"
                     } else {
-                        "You owe ${payment.payToName} for ${payment.memo}"
+                        "${payment.payToName} for ${payment.memo}"
                     },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
