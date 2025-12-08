@@ -4,27 +4,41 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.events.UpcomingEventItem
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun ChoreWidget(
@@ -61,7 +75,10 @@ fun ChoreWidget(
         return
     }
 
-    val chore = chores.find { it.assignedToId == currentUserId && it.householdID == currentHouseholdId }
+    val today = System.currentTimeMillis()
+    val myChores = choresViewModel.getUpcomingChores(chores).filter {
+        it.assignedToId == currentUserId && it.householdID == currentHouseholdId
+    }
 
     Card(
         modifier = modifier
@@ -94,27 +111,80 @@ fun ChoreWidget(
                 }
             } else {
                 Spacer(Modifier.height(4.dp))
+                if (myChores.isEmpty()){
+                    Box(
+                        modifier = Modifier.fillMaxWidth().fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No chore assigned!",
+                            fontSize = MaterialTheme.typography.bodyLarge.fontSize,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+                else {
+                    myChores.forEach { chore ->
+                        ChoreItem(chore, choresViewModel)
+                    }
+                }
+            }
+        }
+    }
+}
 
-                Text(
-                    "Your chore: ${chore?.name ?: "No chore assigned"}",
-                    fontSize = MaterialTheme.typography.bodyLarge.fontSize,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-                if (chore?.name != null) {
+@Composable
+fun ChoreItem(chore: Chore, choreViewModel: ChoresViewModel, modifier: Modifier = Modifier){
+    val dateFormat = remember { SimpleDateFormat("EEE, MMM d", Locale.getDefault()) }
+
+    val dueDate = Date(chore.dueDate)
+    val dateStr = dateFormat.format(dueDate)
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp, horizontal = 4.dp)
+            .clip(RoundedCornerShape(8.dp)),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Card(
+            modifier = Modifier
+                .padding(5.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onTertiaryContainer)
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (chore.completed) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = "Chore completed",
+                        tint = Color(0xFF2E7D32) // A dark, success green color
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Filled.Clear,
+                        contentDescription = "Chore not completed",
+                        tint = MaterialTheme.colorScheme.error // Use the theme's error color for the 'X'
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        chore.description ?: "",
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                        text = chore.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        "Due: ${chore.dueDate}",
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Text(
-                        if (chore.completed) "Chore Completed :)" else "Not Completed!",
-                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
-                        color = if (choresViewModel.isChoreOverdue(chore) && !chore.completed) Color.Red else MaterialTheme.colorScheme.onSecondaryContainer
+                        text = "Due: $dateStr",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (choreViewModel.isChoreOverdue(chore) && !chore.completed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
