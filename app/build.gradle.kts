@@ -70,8 +70,6 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,INDEX.LIST}" // prevent conflict
             excludes += "META-INF/DEPENDENCIES"
-            excludes += "mockito-extensions/org.mockito.plugins.MemberAccessor"
-            excludes += "mockito-extensions/org.mockito.plugins.MockMaker"
         }
     }
 }
@@ -130,7 +128,6 @@ dependencies {
     androidTestImplementation("org.mockito:mockito-core:5.12.0")
     androidTestImplementation("org.mockito:mockito-android:5.12.0")
     androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
-//    androidTestImplementation("org.mockito:mockito-inline:5.2.0")
 
     // Coroutines testing
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")

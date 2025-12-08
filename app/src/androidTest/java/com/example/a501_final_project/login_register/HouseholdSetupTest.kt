@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+/*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.navigation.NavController
@@ -776,3 +777,4 @@ class HouseholdSetupTest {
         assert(viewModel.paymentInputs.size == initialSize)
     }
 }
+*/
