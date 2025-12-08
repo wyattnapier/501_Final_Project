@@ -6,6 +6,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,7 +23,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -41,11 +41,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
-import androidx.compose.ui.focus.focusModifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.NavController
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
@@ -57,6 +54,10 @@ fun SignUpScreen(
 ) {
     var currentStep by rememberSaveable { mutableStateOf(SignUpSteps.GOOGLE_LOGIN) }
     val snackbarHostState = remember { SnackbarHostState() }
+    // hoisted state so it is still there on back
+    var name by rememberSaveable { mutableStateOf("") }
+    var venmoUsername by rememberSaveable { mutableStateOf("") }
+
     // scaffold so we can have snackbar message
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -113,17 +114,27 @@ fun SignUpScreen(
             }
 
             SignUpSteps.USER_INFO -> {
-                GetUserInfo(onNext = {name, venmoUsername ->
-                    loginViewModel.displayName = name
-                    loginViewModel.venmoUsername = venmoUsername
-                    currentStep = SignUpSteps.REVIEW
-                })
+                GetUserInfo(
+                    name = name,
+                    onNameChange = { name = it },
+                    venmoUsername = venmoUsername,
+                    onVenmoUsernameChange = { venmoUsername = it },
+                    onNext = {
+                        // When "Next" is clicked, update the ViewModel before switching screens
+                        loginViewModel.displayName = name
+                        loginViewModel.venmoUsername = venmoUsername
+                        currentStep = SignUpSteps.REVIEW
+                    }
+                )
             }
 
             SignUpSteps.REVIEW -> {
-                ReviewInfo(loginViewModel, navController)
+                ReviewInfo(
+                    loginViewModel = loginViewModel,
+                    navController = navController,
+                    onBack = { currentStep = SignUpSteps.USER_INFO }
+                )
             }
-
         }
     }
 
@@ -131,12 +142,14 @@ fun SignUpScreen(
 
 // composable for entering other user info
 @Composable
-fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
-
-    var name by rememberSaveable { mutableStateOf("")}
-    var venmoUsername by rememberSaveable { mutableStateOf("")}
+fun GetUserInfo(
+    name: String,
+    onNameChange: (String) -> Unit,
+    venmoUsername: String,
+    onVenmoUsernameChange: (String) -> Unit,
+    onNext : () -> Unit
+) {
     var hasAttemptedSubmit by remember { mutableStateOf(false) }
-
     val isNameError = hasAttemptedSubmit && !isInputStringValidLength(name)
     val isVenmoError = hasAttemptedSubmit && !isInputStringValidLength(venmoUsername)
 
@@ -165,7 +178,7 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
             ) {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = onNameChange,
                     label = { Text("Your Name") },
                     modifier = Modifier.fillMaxWidth(),
                     isError = isNameError,
@@ -180,7 +193,9 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
                     )
                 } else {
                     // Add a spacer to maintain layout consistency
@@ -188,7 +203,7 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                 }
                 OutlinedTextField(
                     value = venmoUsername,
-                    onValueChange = { venmoUsername = it },
+                    onValueChange = onVenmoUsernameChange,
                     label = { Text("Venmo Username") },
                     modifier = Modifier.fillMaxWidth(),
                     isError = isVenmoError,
@@ -203,7 +218,9 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
                     )
                 } else {
                     // Add a spacer to maintain layout consistency
@@ -219,7 +236,7 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
                 hasAttemptedSubmit = true
                 if (isInputStringValidLength(name) && isInputStringValidLength(venmoUsername)) {
                     Log.d("GetUserInfo", "no errors --> name: $name, venmo: $venmoUsername")
-                    onNext(name, venmoUsername)
+                    onNext() // Call the simplified onNext lambda
                 }
             },
             modifier = Modifier
@@ -229,22 +246,22 @@ fun GetUserInfo(onNext : (name: String, venmoUsername: String) -> Unit) {
         ) {
             Text(text = "Next", style = MaterialTheme.typography.bodyLarge)
         }
-        Spacer(modifier = Modifier.height(20.dp)) // Some padding at the bottom
+        Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
 @Composable
-fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
-    var hasAttemptedSubmit by remember { mutableStateOf(false) }
-    val isNameError = hasAttemptedSubmit && !isInputStringValidLength(loginViewModel.displayName)
-    val isVenmoError = hasAttemptedSubmit && !isInputStringValidLength(loginViewModel.venmoUsername)
-
+fun ReviewInfo(
+    loginViewModel: LoginViewModel,
+    navController : NavController,
+    onBack: () -> Unit
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(top = 32.dp, start = 16.dp, end = 16.dp)
+            .padding(16.dp)
     ) {
         Text(
             text = "Review Your Info",
@@ -261,54 +278,33 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                verticalArrangement = Arrangement.spacedBy(24.dp) // Increased spacing
             ) {
-                OutlinedTextField(
-                    value = loginViewModel.displayName,
-                    onValueChange = { loginViewModel.displayName = it },
-                    label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = isNameError,
-                    singleLine = true,
-                    leadingIcon = { // Add an icon for Name
-                        Icon(Icons.Default.Person, contentDescription = "Name")
-                    }
-                )
-                if (isNameError) {
-                    Text(
-                        text = "Name must be between 1 and 25 characters",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                // Display Name as read-only text
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Person,
+                        contentDescription = "Name Icon",
+                        modifier = Modifier.padding(end = 16.dp), // Increased padding
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Column {
+                        Text("Name", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                        Text(loginViewModel.displayName, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
-                OutlinedTextField(
-                    value = loginViewModel.venmoUsername,
-                    onValueChange = { loginViewModel.venmoUsername = it },
-                    label = { Text("Venmo username") },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = isVenmoError,
-                    singleLine = true,
-                    leadingIcon = { // Add an icon for Venmo
-                        Icon(
-                            Icons.Default.ShoppingCart,
-                            contentDescription = "Venmo"
-                        ) // TODO: make credit card
-                    }
-                )
-                if (isVenmoError) {
-                    Text(
-                        text = "Venmo username must be between 1 and 25 characters",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                // Display Venmo as read-only text
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.ShoppingCart,
+                        contentDescription = "Venmo Icon",
+                        modifier = Modifier.padding(end = 16.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
-                } else {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Column {
+                        Text("Venmo Username", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.secondary)
+                        Text(loginViewModel.venmoUsername, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
             }
         }
@@ -318,17 +314,14 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
         Text(
             text = "Ready to go?",
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 16.dp)
+            modifier = Modifier.padding(bottom = 12.dp)
         )
 
         // Primary Action: Create Household
         Button(
             onClick = {
-                hasAttemptedSubmit = true
-                if (isInputStringValidLength(loginViewModel.displayName) && isInputStringValidLength(loginViewModel.venmoUsername)) {
-                    loginViewModel.saveUserToDb()
-                    navController.navigate("HouseholdSetup/create")
-                }
+                loginViewModel.saveUserToDb()
+                navController.navigate("HouseholdSetup/create")
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -341,13 +334,10 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
         Spacer(modifier = Modifier.height(8.dp))
 
         // Secondary Action: Join Household
-        OutlinedButton( // Use an OutlinedButton for secondary actions
+        Button(
             onClick = {
-                hasAttemptedSubmit = true
-                if (isInputStringValidLength(loginViewModel.displayName) && isInputStringValidLength(loginViewModel.venmoUsername)) {
-                    loginViewModel.saveUserToDb()
-                    navController.navigate("HouseholdSetup/join")
-                }
+                loginViewModel.saveUserToDb()
+                navController.navigate("HouseholdSetup/join")
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -355,6 +345,22 @@ fun ReviewInfo(loginViewModel: LoginViewModel, navController : NavController) {
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Join Existing Household", style = MaterialTheme.typography.bodyLarge)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Text("Go Back & Edit", style = MaterialTheme.typography.bodyLarge)
         }
 
         Spacer(modifier = Modifier.height(20.dp)) // Some padding at the bottom
@@ -367,12 +373,4 @@ fun isInputStringValidLength(
     maxLength: Int = 25 // default to 25 for most names and longer for descriptions
 ): Boolean {
     return input.length in minLength .. maxLength
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun GetUserInfoPreview() {
-    _501_Final_ProjectTheme {
-        GetUserInfo(onNext = { _, _ -> })
-    }
 }
