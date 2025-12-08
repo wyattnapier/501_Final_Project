@@ -130,6 +130,7 @@ fun UpcomingEventItem(
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.secondaryContainer
             ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSecondaryContainer)
         ) {
             Row (
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
