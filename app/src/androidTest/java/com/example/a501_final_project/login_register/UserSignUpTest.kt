@@ -49,12 +49,8 @@ class UserSignUpTest {
 
     private lateinit var context: Context
 
-    // We'll use a real LoginViewModel for UI tests, but mock its dependencies
-    // For pure UI component tests that don't involve the ViewModel, we can test directly
-
     @Before
     fun setUp() {
-//        MockitoAnnotations.openMocks(this)
         context = InstrumentationRegistry.getInstrumentation().targetContext
 
         // Setup Firebase mocks
@@ -246,16 +242,16 @@ class UserSignUpTest {
     }
 
     // ------ ReviewInfo Tests - These need a mock ViewModel ------
-    /*
+
     @Test
     fun reviewInfo_displaysCorrectDataAsText() {
-        val mockViewModel = mock(LoginViewModel::class.java)
-        whenever(mockViewModel.displayName).thenReturn("Wyatt Napier")
-        whenever(mockViewModel.venmoUsername).thenReturn("wyatt-n")
+        val realViewModel = LoginViewModel()
+        realViewModel.displayName = "Wyatt Napier"
+        realViewModel.venmoUsername = "wyatt-n"
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                ReviewInfo(mockViewModel, mockNavController, onBack = {})
+                ReviewInfo(realViewModel, mockNavController, onBack = {})
             }
         }
 
@@ -267,14 +263,54 @@ class UserSignUpTest {
     }
 
     @Test
-    fun reviewInfo_hasBackButton() {
-        val mockViewModel = mock(LoginViewModel::class.java)
-        whenever(mockViewModel.displayName).thenReturn("Test")
-        whenever(mockViewModel.venmoUsername).thenReturn("@test")
+    fun reviewInfo_hasCreateHouseholdButton() {
+        // Arrange
+        val realViewModel = LoginViewModel()
+        realViewModel.displayName = "Test"
+        realViewModel.venmoUsername = "@test"
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                ReviewInfo(mockViewModel, mockNavController, onBack = {})
+                ReviewInfo(realViewModel, mockNavController, onBack = {})
+            }
+        }
+
+        // Assert that the "Create New Household" button is displayed and enabled
+        composeTestRule
+            .onNodeWithText("Create New Household")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+
+    @Test
+    fun reviewInfo_hasJoinHouseholdButton() {
+        // Arrange
+        val realViewModel = LoginViewModel()
+        realViewModel.displayName = "Test"
+        realViewModel.venmoUsername = "@test"
+
+        composeTestRule.setContent {
+            _501_Final_ProjectTheme {
+                ReviewInfo(realViewModel, mockNavController, onBack = {})
+            }
+        }
+
+        // Assert that the "Join Existing Household" button is displayed and enabled
+        composeTestRule
+            .onNodeWithText("Join Existing Household")
+            .assertIsDisplayed()
+            .assertIsEnabled()
+    }
+
+    @Test
+    fun reviewInfo_hasBackButton() {
+        val realViewModel = LoginViewModel()
+        realViewModel.displayName = "Test"
+        realViewModel.venmoUsername = "@test"
+
+        composeTestRule.setContent {
+            _501_Final_ProjectTheme {
+                ReviewInfo(realViewModel, mockNavController, onBack = {})
             }
         }
 
@@ -284,14 +320,14 @@ class UserSignUpTest {
     @Test
     fun reviewInfo_callsOnBackWhenBackButtonIsClicked() {
         var onBackCalled = false
-        val mockViewModel = mock(LoginViewModel::class.java)
-        whenever(mockViewModel.displayName).thenReturn("Test")
-        whenever(mockViewModel.venmoUsername).thenReturn("@test")
+        val realViewModel = LoginViewModel()
+        realViewModel.displayName = "Test"
+        realViewModel.venmoUsername = "@test"
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
                 ReviewInfo(
-                    loginViewModel = mockViewModel,
+                    loginViewModel = realViewModel,
                     navController = mockNavController,
                     onBack = { onBackCalled = true }
                 )
@@ -302,5 +338,4 @@ class UserSignUpTest {
 
         assert(onBackCalled)
     }
-     */
 }
