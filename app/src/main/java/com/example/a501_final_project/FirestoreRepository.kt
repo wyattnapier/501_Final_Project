@@ -109,6 +109,39 @@ class FirestoreRepository {
             ?: throw Exception("Household does not have a calendar_id")
     }
 
+    // add member to list of those that need to be added to household calendar
+    suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String) {
+        try {
+            val householdRef = db.collection("households").document(householdId)
+            // Atomically add the new user's email to the 'pending_members' array.
+            householdRef.update("pending_members", FieldValue.arrayUnion(newUserEmail)).await()
+            Log.d("FirestoreRepository", "Added $newUserEmail to pending members for household $householdId")
+        } catch(e: Exception) {
+            Log.e("FirestoreRepository", "Failed to add pending member", e)
+            throw e
+        }
+    }
+
+    // TODO: update to be atomic
+    suspend fun removePendingMember(householdId: String, emailToRemove: String) {
+        try {
+            val householdRef = db.collection("households").document(householdId)
+            val document = householdRef.get().await()
+            if (!document.exists()) {
+                throw Exception("Household document with ID '$householdId' not found.")
+            }
+
+            val pendingMembersList = document.get("pending_members") as? List<String> ?: emptyList()
+            val updatedPendingMembers = pendingMembersList.filter { it != emailToRemove }
+            householdRef.update("pending_members", updatedPendingMembers).await()
+            Log.d("FirestoreRepository", "Successfully updated pending members list for household $householdId.")
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Failed to remove pending member using Read-Modify-Write", e)
+            throw e
+        }
+    }
+
+
     /**
      * Get household information from Firestore
      * @param householdID: String, the ID of the household to fetch

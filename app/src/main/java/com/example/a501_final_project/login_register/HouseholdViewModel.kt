@@ -417,23 +417,17 @@ class HouseholdViewModel(
         viewModelScope.launch {
             try {
                 // start sharing google calendar with new user
-                withContext(Dispatchers.IO) {
-                    val newUserEmail = GoogleSignIn.getLastSignedInAccount(context)?.email
-                        ?: throw Exception("Could not get user's email for calendar invite.")
-                    // Get the calendar ID from the household we are about to join.
-                    val householdData = repository.getHouseholdSuspend(householdID)
-                    val calendarIdToJoin = householdData["calendar"] as? String
-                        ?: throw Exception("The household does not have a shared calendar.")
-                    // call the function to actually share the calendar
-                    shareGoogleCalendar(context, calendarIdToJoin, newUserEmail)
-                }
+                // TODO: make sure that this isn't blocking main thread
+                val newUserEmail = GoogleSignIn.getLastSignedInAccount(context)?.email
+                    ?: throw Exception("Could not get new user's email.")
                 // Call the refactored suspend function
                 repository.addResidentToHouseholdSuspend(
                     householdId = householdID,
                     residentData = newResident,
                     paymentsData = paymentsMap as List<Map<String, Any>>,
                 )
-
+                // add user to list of members waiting to be added to household calendar
+                repository.addPendingMemberToHousehold(householdID, newUserEmail)
                 // Update user document with household_id
                 repository.updateUserHouseholdIdSuspend(uid, householdID)
 
@@ -449,6 +443,30 @@ class HouseholdViewModel(
         }
     }
 
+    // invite pending members to calendar -- triggered by launched effect in MainActivity.kt
+    fun processPendingInvites(context: Context, calendarId: String, pendingEmails: List<String>) {
+        viewModelScope.launch {
+            Log.d("HouseholdViewModel", "Processing ${pendingEmails.size} pending invites. Adding to $calendarId calendar.")
+            var successfulShares = 0
+            withContext(Dispatchers.IO) {
+                pendingEmails.forEach { email ->
+                    try {
+                        // This call now succeeds because the current user is an existing member.
+                        shareGoogleCalendar(context, calendarId, email)
+                        // After a successful share, remove the email from the pending list.
+                        repository.removePendingMember(householdID, email)
+                        successfulShares++
+                    } catch (e: Exception) {
+                        Log.e("HouseholdViewModel", "Failed to share calendar with $email", e)
+                    }
+                }
+            }
+            if (successfulShares > 0) {
+                Log.d("HouseholdViewModel", "Successfully processed $successfulShares invites.")
+                // Optionally, you could trigger a UI refresh or show a notification.
+            }
+        }
+    }
 
     /**
      * Load household data using the repository (for when user is already in a household)
