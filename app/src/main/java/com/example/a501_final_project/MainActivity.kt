@@ -167,21 +167,6 @@ fun MainScreen() {
             }
         }
     }
-    // This effect runs whenever the household data is loaded to add new members to calendar
-    LaunchedEffect(loginState.isLoggedIn, mainViewModel.isHouseholdDataLoaded.collectAsState().value) {
-        val householdData = mainViewModel.householdData.value
-        if (householdData != null) {
-            val pendingMembers = householdData["pending_members"] as? List<String>
-            val calendarId = householdData["calendar_id"] as? String
-
-            if (!pendingMembers.isNullOrEmpty() && !calendarId.isNullOrBlank()) {
-                Log.d("MainActivity", "Found pending members to invite: $pendingMembers")
-                // This user is an existing member, so they can share the calendar.
-                // We use the HouseholdViewModel for the sharing logic.
-                householdViewModel.processPendingInvites(context, calendarId, pendingMembers)
-            }
-        }
-    }
 
     Scaffold(
         bottomBar = {

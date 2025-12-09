@@ -90,11 +90,20 @@ class EventsViewModel(
         if (_isCalendarIdLoaded.value) return
         viewModelScope.launch {
             try {
-                // 1. Fetch the CALENDAR ID directly from the repository
-                val calendarId = firestoreRepository.getHouseholdCalendarIdSuspend()
+                // 1. Fetch calendar data from repository
+                val calendarDataMap = firestoreRepository.getHouseholdCalendarIdAndPendingMembersSuspend()
+                val householdId = calendarDataMap["household_id"] as? String
+                val calendarId = calendarDataMap["calendar_id"] as? String
+                val pendingMembers = calendarDataMap["pending_members"] as? List<String>
+                if (householdId.isNullOrBlank() || calendarId.isNullOrBlank()) {
+                    throw Exception("Household ID [$householdId] and/or calendar ID [$calendarId] from Firestore is null or blank")
+                }
                 _householdCalendarId.value = calendarId
                 Log.d("EventsViewModel", "Loaded calendar ID in loadCalendarData: $calendarId")
-
+                if (!pendingMembers.isNullOrEmpty()) {
+                    Log.d("HouseholdViewModel", "Found pending members to invite: $pendingMembers")
+                    processPendingInvites(context, householdId, calendarId, pendingMembers)
+                }
                 // 2. Chain the call to fetch events now that we have the ID
                 fetchCalendarEvents(context, calendarId)
 
@@ -106,6 +115,73 @@ class EventsViewModel(
             }
         }
     }
+
+    // ----- START calendar sharing -----
+    // invite pending members to calendar -- triggered by launched effect in MainActivity.kt
+    fun processPendingInvites(context: Context, householdId: String, calendarId: String, pendingEmails: List<String>) {
+        viewModelScope.launch {
+            Log.d("HouseholdViewModel", "Processing ${pendingEmails.size} pending invites. Adding to $calendarId calendar.")
+            var successfulShares = 0
+            withContext(Dispatchers.IO) {
+                pendingEmails.forEach { email ->
+                    try {
+                        // This call now succeeds because the current user is an existing member.
+                        shareGoogleCalendar(context, calendarId, email)
+                        // After a successful share, remove the email from the pending list.
+                        firestoreRepository.removePendingMember(householdId, email)
+                        successfulShares++
+                    } catch (e: Exception) {
+                        Log.e("HouseholdViewModel", "Failed to share calendar with $email", e)
+                    }
+                }
+            }
+            if (successfulShares > 0) {
+                Log.d("HouseholdViewModel", "Successfully processed $successfulShares invites.")
+                // Optionally, you could trigger a UI refresh or show a notification.
+            }
+        }
+    }
+
+    /**
+     * Shares an existing Google Calendar with a new user.
+     * @param context The application context of the user SHARING the calendar.
+     * @param calendarId The ID of the calendar to share.
+     * @param newUserEmail The email address of the user to invite.
+     */
+    suspend fun shareGoogleCalendar(context: Context, calendarId: String, newUserEmail: String) {
+        val account = GoogleSignIn.getLastSignedInAccount(context) ?: return
+
+        val credential = GoogleAccountCredential.usingOAuth2(
+            context,
+            listOf(CalendarScopes.CALENDAR)
+        ).apply { selectedAccount = account.account }
+
+        val calendarService = com.google.api.services.calendar.Calendar.Builder(
+            NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            credential
+        ).setApplicationName("501_Final_Project").build()
+
+        // Define the access rule for the new user
+        val scope = com.google.api.services.calendar.model.AclRule.Scope().apply {
+            type = "user"
+            value = newUserEmail // Set the email address
+        }
+        val rule = com.google.api.services.calendar.model.AclRule().apply {
+            this.scope = scope
+            role = "owner" // "writer" gives them permission to add/edit events. "owner" is also an option.
+        }
+
+        try {
+            calendarService.acl().insert(calendarId, rule).execute()
+            Log.d("HouseholdViewModel", "Successfully shared calendar '$calendarId' with '$newUserEmail'")
+        } catch (e: Exception) {
+            Log.e("HouseholdViewModel", "Failed to share Google Calendar", e)
+            // You might want to notify the user that sharing failed
+        }
+    }
+
+    // ----- END calendar sharing -----
 
     fun setLeftDayForThreeDay(day: Calendar) {
         _leftDayForThreeDay.value = day

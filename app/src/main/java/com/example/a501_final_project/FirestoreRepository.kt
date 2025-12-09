@@ -101,12 +101,15 @@ class FirestoreRepository {
     /**
      * Gets the Google Calendar ID from the current user's household data. (SUSPEND VERSION)
      */
-    suspend fun getHouseholdCalendarIdSuspend(): String {
+    suspend fun getHouseholdCalendarIdAndPendingMembersSuspend(): Map<String, Any?> {
         // Re-use the existing function that gets the whole household document
-        val (_, householdData) = getHouseholdWithoutIdSuspend()
+        val (householdId, householdData) = getHouseholdWithoutIdSuspend()
         // Return the 'calendar_id' field, or throw an exception if it's missing
-        return householdData["calendar_id"] as? String
-            ?: throw Exception("Household does not have a calendar_id")
+        return mapOf(
+            "household_id" to householdId,
+            "calendar_id" to householdData["calendar_id"],
+            "pending_members" to householdData["pending_members"]
+        )
     }
 
     // add member to list of those that need to be added to household calendar
@@ -122,25 +125,26 @@ class FirestoreRepository {
         }
     }
 
-    // TODO: update to be atomic
     suspend fun removePendingMember(householdId: String, emailToRemove: String) {
+        if (emailToRemove.isEmpty()) {
+            Log.w("FirestoreRepository", "No email to remove: [$emailToRemove]")
+            return
+        }
+        if (householdId.isEmpty()) {
+            Log.w("FirestoreRepository", "No household ID to remove from: [$householdId]")
+            return
+        }
+        Log.d("FirestoreRepository", "Removing $emailToRemove from pending members for household $householdId")
         try {
             val householdRef = db.collection("households").document(householdId)
-            val document = householdRef.get().await()
-            if (!document.exists()) {
-                throw Exception("Household document with ID '$householdId' not found.")
-            }
-
-            val pendingMembersList = document.get("pending_members") as? List<String> ?: emptyList()
-            val updatedPendingMembers = pendingMembersList.filter { it != emailToRemove }
-            householdRef.update("pending_members", updatedPendingMembers).await()
-            Log.d("FirestoreRepository", "Successfully updated pending members list for household $householdId.")
+            // Atomically remove the email from the 'pending_members' array.
+            householdRef.update("pending_members", FieldValue.arrayRemove(emailToRemove)).await()
+            Log.d("FirestoreRepository", "Removed $emailToRemove from pending members.")
         } catch (e: Exception) {
-            Log.e("FirestoreRepository", "Failed to remove pending member using Read-Modify-Write", e)
+            Log.e("FirestoreRepository", "Failed to remove pending member", e)
             throw e
         }
     }
-
 
     /**
      * Get household information from Firestore
