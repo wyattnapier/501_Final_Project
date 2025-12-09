@@ -64,6 +64,9 @@ class EventsViewModel(
     private val _sharingProgress = MutableStateFlow<String?>(null)
     val sharingProgress = _sharingProgress.asStateFlow()
 
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
+
     private val numCalendarDataDays = 28
 
     private val _calendarDataDateRangeStart = MutableStateFlow(Calendar.getInstance())
@@ -191,11 +194,18 @@ class EventsViewModel(
 
         val successCount = results.count { it }
         Log.d("EventsViewModel", "Successfully processed $successCount/${pendingEmails.size} invites")
-
+        val message = if (successCount > 0) {
+            "Successfully invited $successCount/${pendingEmails.size} new member(s) to the calendar."
+        } else {
+            null // Don't show a toast if nothing happened
+        }
         if (successCount < pendingEmails.size) {
             withContext(Dispatchers.Main) {
-                _calendarError.value = "Some calendar shares failed. ${pendingEmails.size - successCount} member(s) may not have access."
+                Log.d("EventsViewModel", "Some calendar shares failed. ${pendingEmails.size - successCount} member(s) may not have access.")
             }
+        }
+        withContext(Dispatchers.Main) {
+            _toastMessage.value = message
         }
     }
 
@@ -514,5 +524,11 @@ class EventsViewModel(
                 }
             }
         }
+    }
+    /**
+     * Resets the toast message state to null after it has been shown.
+     */
+    fun clearToastMessage() {
+        _toastMessage.value = null
     }
 }

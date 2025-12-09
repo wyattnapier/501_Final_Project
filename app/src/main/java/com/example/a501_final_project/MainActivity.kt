@@ -2,6 +2,7 @@ package com.example.a501_final_project
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -190,6 +191,17 @@ fun MainScreen() {
             Log.d("MainScreen", "  - isLoggedIn: ${loginState.isLoggedIn}")
             Log.d("MainScreen", "  - account != null: ${account != null}")
             Log.d("MainScreen", "  - isHouseholdLoaded: $isHouseholdLoaded")
+        }
+    }
+
+    val toastMessage by eventsViewModel.toastMessage.collectAsState()
+
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let { message ->
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            // Important: Reset the message to null after showing it,
+            // so the Toast doesn't re-appear on configuration change (e.g., screen rotation).
+            eventsViewModel.clearToastMessage()
         }
     }
 
