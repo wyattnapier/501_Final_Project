@@ -110,61 +110,86 @@ fun navigateToScreen(navController: NavController, screen: Screen) {
  */
 @Composable
 fun MainScreen() {
-
     val navController = rememberNavController()
-
-    // for conditional rendering o top and bottom bars
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Screens where the bars should NOT appear
     val noBars = setOf(
         Screen.Login.route,
         Screen.UserSignUp.route,
     )
     val shouldShowBars = currentRoute !in noBars && !(currentRoute?.startsWith("HouseholdSetup") ?: false)
-    // view models
+
     val mainViewModel: MainViewModel = viewModel()
     val loginViewModel: LoginViewModel = viewModel()
     val paymentViewModel: PaymentViewModel = viewModel()
     val choresViewModel: ChoresViewModel = viewModel()
     val eventsViewModel: EventsViewModel = viewModel()
-    val householdViewModel : HouseholdViewModel = viewModel()
+    val householdViewModel: HouseholdViewModel = viewModel()
 
     val loginState by loginViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // fetch user google calendar data on app start or login change
-    LaunchedEffect(Unit, loginState) {
+    // DEBUG: Log every recomposition
+    Log.d("MainScreen", "=== MainScreen recomposing ===")
+    Log.d("MainScreen", "Current route: $currentRoute")
+    Log.d("MainScreen", "Login state: isLoggedIn=${loginState.isLoggedIn}, userEmail=${loginState.userEmail}")
+
+    // Initial load on app start or login change
+    LaunchedEffect(Unit, loginState.isLoggedIn) {
+        Log.d("MainScreen", "LaunchedEffect 1 triggered - Unit or loginState changed")
+        Log.d("MainScreen", "isLoggedIn: ${loginState.isLoggedIn}")
+
         val account = GoogleSignIn.getLastSignedInAccount(context)
+        Log.d("MainScreen", "Google account: ${account?.email}")
+
         if (loginState.isLoggedIn && account != null) {
-            Log.d("MainScreen", "Loading user data")
+            Log.d("MainScreen", "User logged in, loading initial data")
             mainViewModel.loadUserData()
-            Log.d("MainScreen", "Loading household data for user")
             mainViewModel.loadHouseholdData()
-            Log.d("MainScreen", "Loading current user id for signup-household data")
             householdViewModel.loadCurrentUserId()
+        } else {
+            Log.d("MainScreen", "User NOT logged in or account is null")
         }
     }
-    // Separate effect that watches for household data to be loaded to handle race conditions
-    LaunchedEffect(loginState.isLoggedIn, mainViewModel.isHouseholdDataLoaded.collectAsState().value) {
+
+    // Watch for household data to be loaded, then load calendar/chores/payments
+    val isHouseholdLoaded by mainViewModel.isHouseholdDataLoaded.collectAsState()
+    val isCalendarIdLoaded by eventsViewModel.isCalendarIdLoaded.collectAsState()
+    val isChoresLoaded by choresViewModel.isChoresDataLoaded.collectAsState()
+    val isPaymentsLoaded by paymentViewModel.isPaymentsDataLoaded.collectAsState()
+
+    // DEBUG: Log state values
+    Log.d("MainScreen", "State values - isHouseholdLoaded: $isHouseholdLoaded, isCalendarIdLoaded: $isCalendarIdLoaded, isChoresLoaded: $isChoresLoaded, isPaymentsLoaded: $isPaymentsLoaded")
+
+    LaunchedEffect(loginState.isLoggedIn, isHouseholdLoaded) {
+        Log.d("MainScreen", "LaunchedEffect 2 triggered - loginState or isHouseholdLoaded changed")
+        Log.d("MainScreen", "isLoggedIn: ${loginState.isLoggedIn}, isHouseholdLoaded: $isHouseholdLoaded")
+
         val account = GoogleSignIn.getLastSignedInAccount(context)
-        val isHouseholdLoaded = mainViewModel.isHouseholdDataLoaded.value
-        val isChoresLoaded = choresViewModel.isChoresDataLoaded.value
-        val isCalendarIdLoaded = eventsViewModel.isCalendarIdLoaded.value
-        val isPaymentsLoaded = paymentViewModel.isPaymentsDataLoaded.value
+        Log.d("MainScreen", "Google account: ${account?.email}")
 
         if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
-            Log.d("MainScreen", "Household loaded, now fetching data for widgets")
-            if (!isCalendarIdLoaded) {
-                eventsViewModel.loadCalendarData(context) // chains call to fetch calendar events too
-            }
+            Log.d("MainScreen", "✓ All conditions met for loading widget data")
+            Log.d("MainScreen", "Calendar loaded: $isCalendarIdLoaded, Chores loaded: $isChoresLoaded, Payments loaded: $isPaymentsLoaded")
+
+            Log.d("MainScreen", ">>> CALLING eventsViewModel.loadCalendarData() <<<")
+            eventsViewModel.loadCalendarData(context, forceReload = !isCalendarIdLoaded)
+
             if (!isChoresLoaded) {
+                Log.d("MainScreen", "Loading chores data")
                 choresViewModel.loadHouseholdData()
             }
+
             if (!isPaymentsLoaded) {
+                Log.d("MainScreen", "Loading payments data")
                 paymentViewModel.loadPaymentsData()
             }
+        } else {
+            Log.d("MainScreen", "✗ Conditions NOT met:")
+            Log.d("MainScreen", "  - isLoggedIn: ${loginState.isLoggedIn}")
+            Log.d("MainScreen", "  - account != null: ${account != null}")
+            Log.d("MainScreen", "  - isHouseholdLoaded: $isHouseholdLoaded")
         }
     }
 
@@ -178,7 +203,7 @@ fun MainScreen() {
             if (shouldShowBars) {
                 TopBar(navController)
             }
-         },
+        },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         AppNavGraph(

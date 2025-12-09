@@ -246,10 +246,13 @@ class HouseholdViewModel(
 
         viewModelScope.launch {
             try {
-                // 0. create google calendar
+                Log.d("HouseholdViewModel", "Step 1: Creating Google Calendar")
+
+                // 1. Create google calendar
                 val googleCalendarId = createGoogleCalendar(context, calendarName)
-                    ?: // Handle failure to create calendar
-                    throw Exception("Could not create the Google Calendar.")
+                    ?: throw Exception("Could not create the Google Calendar.")
+
+                Log.d("HouseholdViewModel", "Step 2: Calendar created with ID: $googleCalendarId")
 
                 val fullHouseholdObject = mapOf(
                     "name" to householdName,
@@ -257,27 +260,33 @@ class HouseholdViewModel(
                     "recurring_payments" to recurring_payments,
                     "calendar_id" to googleCalendarId,
                     "residents" to residents,
-                    "chores" to emptyList<Map<String, Any>>()  // Initialize empty chores array
+                    "chores" to emptyList<Map<String, Any>>(),
+                    "pending_members" to emptyList<String>()  // Initialize empty pending members
                 )
 
-                Log.d("HouseholdViewModel", "Creating household with name: $householdName")
+                Log.d("HouseholdViewModel", "Step 3: Creating household document in Firestore")
 
-                // 1. Call the suspend function and directly assign the returned ID
+                // 2. Create household document
                 val newHouseholdId = repository.createHouseholdSuspend(fullHouseholdObject)
+                Log.d("HouseholdViewModel", "Step 4: Household created with ID: $newHouseholdId")
 
-                Log.d("HouseholdViewModel", "Created household $newHouseholdId")
-                householdID = newHouseholdId // Assign the ID to the ViewModel's state
+                householdID = newHouseholdId
 
-                // 2. Update user document with the new household_id
+                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id")
+
+                // 3. Update user document with the new household_id (WAIT for this to complete!)
                 repository.updateUserHouseholdIdSuspend(uid, newHouseholdId)
+
+                Log.d("HouseholdViewModel", "Step 6: User document updated successfully")
+                Log.d("HouseholdViewModel", "✓ Household creation complete!")
 
                 householdCreated = true
 
             } catch (e: Exception) {
-                Log.e("HouseholdViewModel", "Error creating household", e)
+                Log.e("HouseholdViewModel", "✗ Error creating household", e)
                 errorMessage = "Failed to create household: ${e.message}"
             } finally {
-                isLoading = false // Ensure loading is always turned off
+                isLoading = false
             }
         }
     }
@@ -370,31 +379,43 @@ class HouseholdViewModel(
             )
         }
 
+        Log.d("HouseholdViewModel", "Step 1: Preparing to join household $householdID")
         Log.d("HouseholdViewModel", "Resident to add: $newResident")
-        Log.d("HouseholdViewModel", "Household ID: $householdID")
 
         viewModelScope.launch {
             try {
-                // start sharing google calendar with new user
-                // TODO: make sure that this isn't blocking main thread
+                Log.d("HouseholdViewModel", "Step 2: Getting user's email for calendar sharing")
+
+                // Get new user's email
                 val newUserEmail = GoogleSignIn.getLastSignedInAccount(context)?.email
                     ?: throw Exception("Could not get new user's email.")
-                // Call the refactored suspend function
+
+                Log.d("HouseholdViewModel", "Step 3: Adding resident to household document")
+
+                // Add resident to household
                 repository.addResidentToHouseholdSuspend(
                     householdId = householdID,
                     residentData = newResident,
                     paymentsData = paymentsMap as List<Map<String, Any>>,
                 )
-                // add user to list of members waiting to be added to household calendar
+
+                Log.d("HouseholdViewModel", "Step 4: Adding user to pending members list")
+
+                // Add to pending members for calendar sharing
                 repository.addPendingMemberToHousehold(householdID, newUserEmail)
-                // Update user document with household_id
+
+                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id")
+
+                // Update user document with household_id (WAIT for this!)
                 repository.updateUserHouseholdIdSuspend(uid, householdID)
 
-                Log.d("HouseholdViewModel", "Successfully joined household and updated user profile")
+                Log.d("HouseholdViewModel", "Step 6: User document updated successfully")
+                Log.d("HouseholdViewModel", "✓ Successfully joined household!")
+
                 householdCreated = true
 
             } catch (e: Exception) {
-                Log.e("HouseholdViewModel", "Failed to join household", e)
+                Log.e("HouseholdViewModel", "✗ Failed to join household", e)
                 errorMessage = "Failed to join household: ${e.message}"
             } finally {
                 isLoading = false

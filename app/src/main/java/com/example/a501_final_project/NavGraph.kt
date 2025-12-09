@@ -1,5 +1,6 @@
 package com.example.a501_final_project
 
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -39,7 +40,13 @@ fun AppNavGraph(
     ) {
         // Home
         composable(Screen.Home.route) {
-            HomeScreen(navController, mainViewModel, eventsViewModel, paymentViewModel, choresViewModel, modifier = modifier)
+            HomeScreen(
+                navController, mainViewModel,
+                eventsViewModel,
+                paymentViewModel,
+                choresViewModel,
+                modifier = modifier
+            )
         }
         // Chores
         composable(Screen.Chores.route) {
@@ -95,7 +102,6 @@ fun AppNavGraph(
         }
 
         // User sign up page
-        // TODO: adjust this navigation later on, currently just to be able to navigate to sign up page
         composable(Screen.UserSignUp.route) {
             SignUpScreen(
                 loginViewModel = loginViewModel,
@@ -106,17 +112,18 @@ fun AppNavGraph(
                     }
                 })
         }
-//        composable(Screen.HouseholdSetup.route) {
-//            HouseholdLanding(
-//                viewModel = householdViewModel, navController = navController
-//            )
-//        }
+
+        // Household Setup routes - consolidated into one with optional action parameter
         composable(
             route = "HouseholdSetup/{action}",
-            arguments = listOf(navArgument("action") { type = NavType.StringType })
+            arguments = listOf(navArgument("action") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
         ) { backStackEntry ->
             val action = backStackEntry.arguments?.getString("action")
-            val householdViewModel: HouseholdViewModel = householdViewModel
+
             // Set the existingHousehold flag based on the action parameter
             LaunchedEffect(action) {
                 householdViewModel.existingHousehold = when (action) {
@@ -126,7 +133,32 @@ fun AppNavGraph(
                 }
             }
 
-            HouseholdLanding(householdViewModel, navController)
+            HouseholdLanding(
+                viewModel = householdViewModel,
+                navController = navController,
+                mainViewModel = mainViewModel,
+                onHouseholdCreated = {
+                    // Reload all data when household is created
+                    Log.d("AppNavGraph", "Household created, reloading data")
+                    mainViewModel.loadUserData()
+                    mainViewModel.loadHouseholdData()
+                }
+            )
+        }
+
+        // Fallback route for "HouseholdSetup" without action parameter
+        composable("HouseholdSetup") {
+            HouseholdLanding(
+                viewModel = householdViewModel,
+                navController = navController,
+                mainViewModel = mainViewModel,
+                onHouseholdCreated = {
+                    // Reload all data when household is created
+                    Log.d("AppNavGraph", "Household created, reloading data")
+                    mainViewModel.loadUserData()
+                    mainViewModel.loadHouseholdData()
+                }
+            )
         }
     }
 }
