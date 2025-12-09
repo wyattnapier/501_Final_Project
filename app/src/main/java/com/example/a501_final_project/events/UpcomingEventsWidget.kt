@@ -44,6 +44,7 @@ fun UpcomingEventsWidget(
     val events by eventsViewModel.events.collectAsState()
     val isCalendarIdLoaded by eventsViewModel.isCalendarIdLoaded.collectAsState()
     val isLoadingCalendar by eventsViewModel.isLoadingCalendar.collectAsState()
+    val calendarError by eventsViewModel.calendarError.collectAsState()
 
     Log.d("UpcomingEventsWidget", "Events: $events")
 
@@ -71,8 +72,13 @@ fun UpcomingEventsWidget(
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
-
-            if (isLoadingCalendar || !isCalendarIdLoaded) {
+            if (calendarError != null) {
+                Text(
+                    calendarError!!,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            } else if (isLoadingCalendar || !isCalendarIdLoaded) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

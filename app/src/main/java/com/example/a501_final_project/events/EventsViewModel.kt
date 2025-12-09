@@ -8,6 +8,7 @@ import com.example.a501_final_project.FirestoreRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
@@ -429,6 +430,19 @@ class EventsViewModel(
                 Log.e("EventsViewModel", "Need additional permissions", e)
                 withContext(Dispatchers.Main) {
                     _calendarError.value = "Additional calendar permissions needed. Please sign in again."
+                }
+            } catch (e: GoogleJsonResponseException) {
+                // This block specifically catches errors from the Google API
+                if (e.statusCode == 404) {
+                    Log.w("EventsViewModel", "Calendar not found (404). Access is likely pending.", e)
+                    withContext(Dispatchers.Main) {
+                        _calendarError.value = "Access to the shared calendar is pending. Please try again later."
+                    }
+                } else {
+                    Log.e("EventsViewModel", "Google API error with code: ${e.statusCode}", e)
+                    withContext(Dispatchers.Main) {
+                        _calendarError.value = "Calendar API error: ${e.message}"
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("EventsViewModel", "Calendar API error", e)
