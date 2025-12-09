@@ -296,8 +296,7 @@ class HouseholdViewModel(
                     "name" to householdName,
                     "recurring_chores" to recurring_chores,
                     "recurring_payments" to recurring_payments,
-//                    "calendar" to calendarName, // TODO: add field for "calendar_name"
-                    "calendar" to googleCalendarId, // TODO: change field to "calendar_id"
+                    "calendar_id" to googleCalendarId,
                     "residents" to residents,
                     "chores" to emptyList<Map<String, Any>>()  // Initialize empty chores array
                 )
@@ -418,15 +417,16 @@ class HouseholdViewModel(
         viewModelScope.launch {
             try {
                 // start sharing google calendar with new user
-                val newUserEmail = GoogleSignIn.getLastSignedInAccount(context)?.email
-                    ?: throw Exception("Could not get user's email for calendar invite.")
-                // Get the calendar ID from the household we are about to join.
-                val householdData = repository.getHouseholdSuspend(householdID)
-                val calendarIdToJoin = householdData["calendar"] as? String
-                    ?: throw Exception("The household does not have a shared calendar.")
-                // call the function to actually share the calendar
-                shareGoogleCalendar(context, calendarIdToJoin, newUserEmail)
-
+                withContext(Dispatchers.IO) {
+                    val newUserEmail = GoogleSignIn.getLastSignedInAccount(context)?.email
+                        ?: throw Exception("Could not get user's email for calendar invite.")
+                    // Get the calendar ID from the household we are about to join.
+                    val householdData = repository.getHouseholdSuspend(householdID)
+                    val calendarIdToJoin = householdData["calendar"] as? String
+                        ?: throw Exception("The household does not have a shared calendar.")
+                    // call the function to actually share the calendar
+                    shareGoogleCalendar(context, calendarIdToJoin, newUserEmail)
+                }
                 // Call the refactored suspend function
                 repository.addResidentToHouseholdSuspend(
                     householdId = householdID,

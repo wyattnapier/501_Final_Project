@@ -37,7 +37,7 @@ fun UpcomingEventsWidget(
     onEventClick: (CalendarEventInfo) -> Unit = {},
     eventsViewModel: EventsViewModel
 ) {
-    val isCalendarNameLoaded = eventsViewModel.isCalendarNameLoaded.collectAsState()
+    val isCalendarIdLoaded = eventsViewModel.isCalendarIdLoaded.collectAsState()
     val isLoadingCalendar = eventsViewModel.isLoadingCalendar.collectAsState()
 
     val now = remember { Calendar.getInstance().timeInMillis }
@@ -65,7 +65,7 @@ fun UpcomingEventsWidget(
                 fontWeight = FontWeight.Bold
             )
 
-            if (isLoadingCalendar.value || !isCalendarNameLoaded.value) {
+            if (isLoadingCalendar.value || !isCalendarIdLoaded.value) {
                 Box(
                     modifier = Modifier.fillMaxWidth().fillMaxHeight(),
                     contentAlignment = Alignment.Center

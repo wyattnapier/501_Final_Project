@@ -99,12 +99,14 @@ class FirestoreRepository {
     }
 
     /**
-     * Get household calendar name (SUSPEND VERSION)
+     * Gets the Google Calendar ID from the current user's household data. (SUSPEND VERSION)
      */
-    suspend fun getHouseholdCalendarNameWithoutIdSuspend(): String {
+    suspend fun getHouseholdCalendarIdSuspend(): String {
+        // Re-use the existing function that gets the whole household document
         val (_, householdData) = getHouseholdWithoutIdSuspend()
-        return householdData["calendar"] as? String
-            ?: throw Exception("Household has no calendar name")
+        // Return the 'calendar_id' field, or throw an exception if it's missing
+        return householdData["calendar_id"] as? String
+            ?: throw Exception("Household does not have a calendar_id")
     }
 
     /**
