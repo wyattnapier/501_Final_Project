@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -62,6 +63,8 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
     val userId by mainViewModel.userId.collectAsState()
     val sharedHouseholdID by mainViewModel.householdId.collectAsState()
 
+    val upcomingChores = choresViewModel.getUpcomingChores(chores)
+
     val context = LocalContext.current
 
     Log.d("ChoresScreen", "userId: $userId")
@@ -93,53 +96,31 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
         if (showPrevChores) {
             PrevChores(chores, context, choresViewModel)
         } else {
-            MyChoreWidget(currentUserId, currentHouseholdId, chores, choresViewModel, context)
-            RoommateChores(currentUserId, currentHouseholdId, chores, choresViewModel, context)
+            MyChoreWidget(currentUserId, currentHouseholdId, upcomingChores, choresViewModel, context, Modifier.weight(1f))
+            RoommateChores(currentUserId, currentHouseholdId, upcomingChores, choresViewModel, context, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
 fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
-    val chore = chores.find { it.assignedToId == userID && it.householdID == householdID }
-    val isOverdue = choresViewModel.isChoreOverdue(chore)
+    val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+
+    var myChores = chores.filter { it.assignedToId == userID && it.householdID == householdID }
+
+    val incompleteChores = myChores.filter {!it.completed}.sortedBy {
+        try {
+            dateFormat.parse(it.dueDate)
+        } catch (e: ParseException) {
+            Date(Long.MAX_VALUE)
+        }
+    }
+    val completeChores = myChores.filter {it.completed}
+
+    myChores = incompleteChores + completeChores
 
     // Get URIs from ViewModel
     val tempImageUri by choresViewModel.tempImageUri.collectAsState()
-    val choreImageUris by choresViewModel.choreImageUris.collectAsState<Map<String, Uri>>()
-    var capturedImageUri = chore?.let { choreImageUris[it.choreID] }
-
-    if(chore?.completed ?: false) {
-        LaunchedEffect(chore.choreID) {
-            choresViewModel.getChoreImageUri(chore.choreID, chore.householdID)
-        }
-    }
-
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture(),
-        onResult = { success ->
-            if (success && tempImageUri != null && chore != null) {
-                // Photo captured successfully
-                Toast.makeText(context, "Photo captured! Chore marked as complete.", Toast.LENGTH_SHORT).show()
-                choresViewModel.completeChoreWithPhoto(chore, tempImageUri!!, context)
-            } else {
-                Toast.makeText(context, "Photo capture cancelled.", Toast.LENGTH_SHORT).show()
-                choresViewModel.clearTempImageUri()
-            }
-        }
-    )
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted: Boolean ->
-        if (isGranted) {
-            val uri = createImageUri(context)
-            choresViewModel.setTempImageUri(uri)
-            cameraLauncher.launch(uri)
-        } else {
-            Toast.makeText(context, "Camera permission is required to take a picture.", Toast.LENGTH_SHORT).show()
-        }
-    }
 
     Column(
         modifier = modifier
@@ -147,104 +128,167 @@ fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, chor
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(10.dp)
     ) {
-        // First Row: Task info and button
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(2f, true)) {
-                Text("My Chore", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
-                Text(chore?.name ?: "No chore assigned", fontSize = MaterialTheme.typography.bodyLarge.fontSize)
-                Text(
-                    "Due Date: ${chore?.dueDate}",
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                    color = if (isOverdue && chore?.completed != true) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-            Column(
-                modifier = Modifier.weight(1f, true),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Button(
-                    onClick = {
-                        if (chore == null) {
-                            Toast.makeText(context, "No chore assigned!", Toast.LENGTH_SHORT).show()
-                            return@Button
-                        }
+        Text("My Chores", fontSize = MaterialTheme.typography.headlineMedium.fontSize)
 
-                        when (PackageManager.PERMISSION_GRANTED) {
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.CAMERA
-                            ) -> {
-                                val uri = createImageUri(context)
-                                choresViewModel.setTempImageUri(uri)
-                                cameraLauncher.launch(uri)
-                            }
-                            else -> {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
-                            }
-                        }
-                    },
-                    enabled = chore?.completed != true
-                ) {
-                    val buttonText = if (chore?.completed == true) "Chore Completed" else "Complete with Photo"
-                    Text(text = buttonText, textAlign = TextAlign.Center)
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Second Row: Captured photo (only shown if photo exists)
-        capturedImageUri?.let { uri ->
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(250.dp)
-                    .padding(top = 6.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .background(Color.LightGray)
-            ) {
-                AsyncImage(
-                    model = ImageRequest.Builder(context)
-                        .data(uri)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Chore completion proof",
-                    modifier = Modifier.fillMaxWidth(),
-                    contentScale = ContentScale.Crop
-                )
-                IconButton(
-                    onClick = {
-                        when (PackageManager.PERMISSION_GRANTED) {
-                            ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.CAMERA
-                            ) -> {
-                                val newUri = createImageUri(context)
-                                choresViewModel.setTempImageUri(newUri)
-                                cameraLauncher.launch(newUri)
-                            }
-                            else -> {
-                                permissionLauncher.launch(Manifest.permission.CAMERA)
+        if (myChores.isEmpty()){
+            Text("No chores assigned!", fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+        } else{
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ){
+                items(myChores.size) { index ->
+                    val chore = myChores[index]
+
+                    val cameraLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.TakePicture(),
+                        onResult = { success ->
+                            if (success && tempImageUri != null) {
+                                // Photo captured successfully
+                                Toast.makeText(context, "Photo captured! Chore marked as complete.", Toast.LENGTH_SHORT).show()
+                                choresViewModel.completeChoreWithPhoto(chore, tempImageUri!!, context)
+                            } else {
+                                Toast.makeText(context, "Photo capture cancelled.", Toast.LENGTH_SHORT).show()
+                                choresViewModel.clearTempImageUri()
                             }
                         }
-                    },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray.copy(alpha = 0.6f))
-                    ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Retake Photo",
-                        tint = Color.White // Makes the icon itself white
                     )
+
+                    val permissionLauncher = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestPermission()
+                    ) { isGranted: Boolean ->
+                        if (isGranted) {
+                            val uri = createImageUri(context)
+                            choresViewModel.setTempImageUri(uri)
+                            cameraLauncher.launch(uri)
+                        } else {
+                            Toast.makeText(context, "Camera permission is required to take a picture.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
+                    MyChoreItem(chore, context, cameraLauncher, permissionLauncher, choresViewModel)
+
+                    if (index < myChores.lastIndex) {
+                        HorizontalDivider( modifier = Modifier.padding(vertical = 8.dp))
+                    }
                 }
             }
         }
     }
 }
+
+@Composable
+fun MyChoreItem(
+    chore: Chore,
+    context: Context,
+    cameraLauncher: ManagedActivityResultLauncher<Uri, Boolean>,
+    permissionLauncher: ManagedActivityResultLauncher<String, Boolean>,
+    choresViewModel: ChoresViewModel,
+){
+    val isOverdue = choresViewModel.isChoreOverdue(chore)
+
+    val choreImageUris by choresViewModel.choreImageUris.collectAsState<Map<String, Uri>>()
+    val capturedImageUri = chore.let { choreImageUris[it.choreID] }
+
+    if(chore.completed) {
+        LaunchedEffect(chore.choreID) {
+            choresViewModel.getChoreImageUri(chore.choreID, chore.householdID)
+        }
+    }
+
+    // First Row: Task info and button
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(2f, true)) {
+            Text(chore.name, fontSize = MaterialTheme.typography.bodyLarge.fontSize)
+            Text(
+                "Due Date: ${chore.dueDate}",
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                color = if (isOverdue && !chore.completed) Color.Red else MaterialTheme.colorScheme.onPrimaryContainer
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f, true),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Button(
+                onClick = {
+                    when (PackageManager.PERMISSION_GRANTED) {
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.CAMERA
+                        ) -> {
+                            val uri = createImageUri(context)
+                            choresViewModel.setTempImageUri(uri)
+                            cameraLauncher.launch(uri)
+                        }
+                        else -> {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }
+                },
+                enabled = !chore.completed
+            ) {
+                val buttonText = if (chore.completed) "Chore Completed" else "Complete with Photo"
+                Text(text = buttonText, textAlign = TextAlign.Center)
+            }
+        }
+    }
+
+    // Second Row: Captured photo (only shown if photo exists)
+    capturedImageUri?.let { uri ->
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(250.dp)
+                .padding(top = 6.dp)
+                .clip(MaterialTheme.shapes.medium)
+                .background(Color.LightGray)
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(uri)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Chore completion proof",
+                modifier = Modifier.fillMaxWidth(),
+                contentScale = ContentScale.Crop
+            )
+            IconButton(
+                onClick = {
+                    when (PackageManager.PERMISSION_GRANTED) {
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.CAMERA
+                        ) -> {
+                            val newUri = createImageUri(context)
+                            choresViewModel.setTempImageUri(newUri)
+                            cameraLauncher.launch(newUri)
+                        }
+                        else -> {
+                            permissionLauncher.launch(Manifest.permission.CAMERA)
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .clip(CircleShape)
+                    .background(Color.Gray.copy(alpha = 0.6f))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = "Retake Photo",
+                    tint = Color.White // Makes the icon itself white
+                )
+            }
+        }
+    }
+}
+
 
 private fun createImageUri(context: Context): Uri {
     val timestamp = System.currentTimeMillis()
@@ -278,9 +322,10 @@ fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, ch
             }
             item {
                 Row(
-                    modifier = Modifier.fillParentMaxWidth(),
+                    modifier = Modifier.fillParentMaxWidth().padding(4.dp),
                     horizontalArrangement = Arrangement.Center
                 ) {
+                    Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
                         Text("See Previous Chores")
                     }
@@ -344,8 +389,8 @@ fun PrevChores(
     choresViewModel: ChoresViewModel,
     modifier: Modifier = Modifier
 ) {
-    // if due date < today, display on prev tasks
-    val prevChores = chores.filter { choresViewModel.isChoreOverdue(it) }
+    // if due date < today or complete, display on prev tasks
+    val prevChores = chores.filter { choresViewModel.isChoreOverdue(it) || it.completed }
     Column(
         modifier = Modifier
             .fillMaxHeight()
