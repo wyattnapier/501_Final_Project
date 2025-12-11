@@ -72,7 +72,7 @@ interface IRepository {
     suspend fun markPaymentAsCompletedSuspend(paymentId: String, householdId: String)
 
     /**
-     * add member to list of those that need to be added to household calendar
+     * Asynchronously adds a pending member to household
      */
     suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String)
 }
