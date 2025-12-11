@@ -1,5 +1,6 @@
 package com.example.a501_final_project.events
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material.icons.Icons
@@ -44,6 +45,7 @@ fun EventsScreen(
     val canIncrement = lastIncrementingDay.before(calendarDataDateRangeEnd)
     val context = LocalContext.current
     var showAddEventDialog by remember { mutableStateOf(false) }
+    val targetCalendarId = eventsViewModel.householdCalendarId.collectAsState().value
 
 
     Column(modifier = modifier.fillMaxSize()) {
@@ -54,7 +56,7 @@ fun EventsScreen(
         ) {
             IconButton(
                 onClick = { showAddEventDialog = true }, // Open the dialog
-                enabled = loginState.isLoggedIn
+                enabled = loginState.isLoggedIn && targetCalendarId.isNullOrBlank().not()
             ) {
                 Icon(
                     Icons.Default.Add,
@@ -71,10 +73,11 @@ fun EventsScreen(
             IconButton(
                 onClick = {
                     if (loginState.isLoggedIn) {
-                        eventsViewModel.fetchCalendarEvents(context)
+                        Log.d("EventsScreen", "Refreshing calendar events with targetCalendarId: $targetCalendarId")
+                        eventsViewModel.fetchCalendarEvents(context, targetCalendarId ?: "")
                     }
                 },
-                enabled = !isLoading && loginState.isLoggedIn
+                enabled = !isLoading && loginState.isLoggedIn && targetCalendarId.isNullOrBlank().not()
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
             }
@@ -84,7 +87,12 @@ fun EventsScreen(
             when {
                 !loginState.isLoggedIn -> Text("Please sign in to see events.")
                 isLoading && allEvents.isEmpty() -> CircularProgressIndicator()
-                error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                error != null -> Text(
+                    "Error: $error",
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(32.dp)
+                )
                 allEvents.isEmpty() && !isLoading -> Text("No upcoming events found.")
                 else -> {
                     val allEvents = allEvents.sortedBy { it.startDateTime?.value }

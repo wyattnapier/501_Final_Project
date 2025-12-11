@@ -99,8 +99,53 @@ class FirestoreRepository : IRepository {
     }
 
     /**
-     * Get household calendar name (SUSPEND VERSION)
+     * Gets the Google Calendar ID from the current user's household data. (SUSPEND VERSION)
      */
+    suspend fun getHouseholdCalendarIdAndPendingMembersSuspend(): Map<String, Any?> {
+        // Re-use the existing function that gets the whole household document
+        val (householdId, householdData) = getHouseholdWithoutIdSuspend()
+        // Return the 'calendar_id' field, or throw an exception if it's missing
+        return mapOf(
+            "household_id" to householdId,
+            "calendar_id" to householdData["calendar_id"],
+            "pending_members" to householdData["pending_members"]
+        )
+    }
+
+    // add member to list of those that need to be added to household calendar
+    suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String) {
+        try {
+            val householdRef = db.collection("households").document(householdId)
+            // Atomically add the new user's email to the 'pending_members' array.
+            householdRef.update("pending_members", FieldValue.arrayUnion(newUserEmail)).await()
+            Log.d("FirestoreRepository", "Added $newUserEmail to pending members for household $householdId")
+        } catch(e: Exception) {
+            Log.e("FirestoreRepository", "Failed to add pending member", e)
+            throw e
+        }
+    }
+
+    suspend fun removePendingMember(householdId: String, emailToRemove: String) {
+        if (emailToRemove.isEmpty()) {
+            Log.w("FirestoreRepository", "No email to remove: [$emailToRemove]")
+            return
+        }
+        if (householdId.isEmpty()) {
+            Log.w("FirestoreRepository", "No household ID to remove from: [$householdId]")
+            return
+        }
+        Log.d("FirestoreRepository", "Removing $emailToRemove from pending members for household $householdId")
+        try {
+            val householdRef = db.collection("households").document(householdId)
+            // Atomically remove the email from the 'pending_members' array.
+            householdRef.update("pending_members", FieldValue.arrayRemove(emailToRemove)).await()
+            Log.d("FirestoreRepository", "Removed $emailToRemove from pending members.")
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Failed to remove pending member", e)
+            throw e
+        }
+    }
+    
     override suspend fun getHouseholdCalendarNameWithoutIdSuspend(): String {
         val (_, householdData) = getHouseholdWithoutIdSuspend()
         return householdData["calendar"] as? String
