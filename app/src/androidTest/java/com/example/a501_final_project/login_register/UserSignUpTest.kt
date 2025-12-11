@@ -81,6 +81,33 @@ class UserSignUpTest {
     }
 
     @Test
+    fun getUserInfo_showsErrorWhenNameExceedsMaxLength() {
+        composeTestRule.setContent {
+            _501_Final_ProjectTheme {
+                var name by remember { mutableStateOf("I am way too long to be a name especially for this little household app") }
+                var venmo by remember { mutableStateOf("testuser") }
+                GetUserInfo(
+                    name = name,
+                    onNameChange = { name = it },
+                    venmoUsername = venmo,
+                    onVenmoUsernameChange = { venmo = it },
+                    onNext = {}
+                )
+            }
+        }
+
+        // Click Next without entering data
+        composeTestRule
+            .onNodeWithText("Next")
+            .performClick()
+
+        // Verify error message appears
+        composeTestRule
+            .onNodeWithText("Name must be between 1 and 25 characters")
+            .assertIsDisplayed()
+    }
+
+    @Test
     fun getUserInfo_showsErrorWhenVenmoIsEmpty() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
