@@ -65,13 +65,6 @@ class ChoresViewModel(
 
     private val _choresList = MutableStateFlow<List<Chore>>(emptyList())
     var choresList: StateFlow<List<Chore>> = _choresList.asStateFlow()
-//
-//    private val _currentChores = MutableStateFlow<List<Chore>>(emptyList())
-//    val currentChores: StateFlow<List<Chore>> = _currentChores
-//
-//    private val _previousChores = MutableStateFlow<List<Chore>>(emptyList())
-//    val previousChores: StateFlow<List<Chore>> = _previousChores
-
 
     var recurringChoresList: List<RecurringChore>? = null
     private val _showPrevChores = MutableStateFlow(false)
@@ -88,26 +81,6 @@ class ChoresViewModel(
     val isChoresDataLoaded: StateFlow<Boolean> = _isChoresDataLoaded.asStateFlow()
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
-
-
-//    // helper function to separaate current from past chores for the UI
-//    private fun splitChores(chores: List<Chore>) {
-//        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
-//        val today = Calendar.getInstance().time
-//        val current = mutableListOf<Chore>()
-//        val previous = mutableListOf<Chore>()
-//
-//        for (chore in chores) {
-//            val dueDate = chore.dueDate.let { dateFormat.parse(it) }
-//            if (dueDate != null && !dueDate.before(today)) { // not overdue
-//                current.add(chore)
-//            } else {
-//                previous.add(chore)
-//            }
-//        }
-//        _currentChores.value = current
-//        _previousChores.value = previous
-//    }
 
     // helper for converting data from database to local data classes
     private fun Any?.toStringOrNull(): String? {
@@ -201,9 +174,7 @@ class ChoresViewModel(
                             Log.e("ChoresViewModel", "Chore $index: recurring_chore_id is not a Number")
                             return@mapIndexedNotNull null
                         }
-//                        val currentRecurringChore: RecurringChore? = recurringChoreIdNum?.let { id ->
-//                            recurringChoresList?.find { it.recurringChoreId == id.toString() }
-//                        }
+
                         val currentRecurringChore: RecurringChore? = recurringChoresList?.find {
                             it.recurringChoreId == recurringChoreIdNum.toString()
                         }
@@ -321,9 +292,6 @@ class ChoresViewModel(
     /**
      * function to be used when first initializing/creating the list of chores for the household
      */
-//    fun addChores(newChore : Chore) {
-//        _choresList.value += newChore
-//    }
     fun addChores(newChore: Chore) {
         val updated = _choresList.value + newChore
         _choresList.value = updated
@@ -475,9 +443,6 @@ class ChoresViewModel(
         // update UI
         _choresList.value = currentList
 
-//        _choresList.value = _choresList.value.map { chore ->
-//            if (chore.choreID == completedChore.choreID) chore.copy(completed = true) else chore
-//        }
         viewModelScope.launch {
             firestoreRepository.markChoreAsCompletedSuspend(
                 completedChore.choreID,
