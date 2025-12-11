@@ -70,4 +70,5 @@ interface IRepository {
      * Asynchronously finds a payment in a household's payments array and marks it as paid.
      */
     suspend fun markPaymentAsCompletedSuspend(paymentId: String, householdId: String)
-}
+
+    suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String)}

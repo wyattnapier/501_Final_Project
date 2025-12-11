@@ -114,7 +114,7 @@ class FirestoreRepository : IRepository {
     }
 
     // add member to list of those that need to be added to household calendar
-    suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String) {
+    override suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String) {
         try {
             val householdRef = db.collection("households").document(householdId)
             // Atomically add the new user's email to the 'pending_members' array.

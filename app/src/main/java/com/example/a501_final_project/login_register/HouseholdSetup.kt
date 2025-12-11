@@ -91,9 +91,6 @@ fun HouseholdLanding(
 //        }
 
     }
-    else if (viewModel.existingHousehold == false){
-        NewHousehold(viewModel, navController, choresViewModel)
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -290,7 +290,7 @@ class HouseholdViewModel(
                     "calendar_id" to googleCalendarId,
                     "residents" to residents,
 //                    "chores" to emptyList<Map<String, Any>>(),
-                    chores to initialChores,
+                    "chores" to initialChores,
                     "pending_members" to emptyList<String>()  // Initialize empty pending members
                 )
 

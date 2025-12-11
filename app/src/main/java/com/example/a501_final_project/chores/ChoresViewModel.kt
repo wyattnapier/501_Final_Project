@@ -309,7 +309,6 @@ class ChoresViewModel(
                 _isLoading.value = false
                 // assign chores upon opening
                 assignChores()
-                firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
                 Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
 
             } catch (e: Exception) {
@@ -418,12 +417,17 @@ class ChoresViewModel(
             _choresList.value = chores
 
             // Send to DB
-//            try {
-//                firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
-//                Log.d("ChoresViewModel", "Successfully assigned ${unassignedChores.size} chores")
-//            } catch (e: Exception) {
-//                Log.e("ChoresViewModel", "Failed to update assignments in DB", e)
-//            }
+
+            try {
+                firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
+                Log.d(
+                    "ChoresViewModel",
+                    "Successfully assigned ${unassignedChores.size} chores"
+                )
+            } catch (e: Exception) {
+                Log.e("ChoresViewModel", "Failed to update assignments in DB", e)
+            }
+
         }
     }
 
@@ -454,11 +458,7 @@ class ChoresViewModel(
         if (recurring != null) {
             val df = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
             val calendar = Calendar.getInstance()
-            try {
-                calendar.time = df.parse(chore.dueDate)!! // not null...
-            } catch (e: Exception) {
-                calendar.time = Date()
-            }
+            calendar.time = Date() // for next due date to build from today not previous due date
 
             calendar.add(Calendar.DAY_OF_YEAR, recurringType[0].cycleFrequency)
             val newDueDate = df.format(calendar.time)
@@ -484,8 +484,6 @@ class ChoresViewModel(
                 completedChore.householdID
             )
             assignChores()
-            firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
-
         }
     }
     /**
