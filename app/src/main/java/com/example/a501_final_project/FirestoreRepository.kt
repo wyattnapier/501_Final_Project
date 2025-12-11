@@ -6,7 +6,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
-class FirestoreRepository {
+class FirestoreRepository : IRepository {
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
@@ -14,7 +14,7 @@ class FirestoreRepository {
      * Get the current authenticated user's ID
      * @return String? the user ID, or null if not logged in
      */
-    fun getCurrentUserId(): String? {
+    override fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }
 
@@ -22,7 +22,7 @@ class FirestoreRepository {
     /**
      * Get household information from Firestore (SUSPEND VERSION - new)
      */
-    suspend fun getHouseholdSuspend(householdID: String): Map<String, Any> {
+     override suspend fun getHouseholdSuspend(householdID: String): Map<String, Any> {
         return try {
             val document = db.collection("households").document(householdID).get().await()
             if (document != null && document.exists()) {
@@ -40,7 +40,7 @@ class FirestoreRepository {
     /**
      * Get user information from Firestore (SUSPEND VERSION - new)
      */
-    suspend fun getUserSuspend(userId: String): Map<String, Any> {
+    override suspend fun getUserSuspend(userId: String): Map<String, Any> {
         return try {
             val document = db.collection("users").document(userId).get().await()
             if (document != null && document.exists()) {
@@ -57,7 +57,7 @@ class FirestoreRepository {
     /**
      * Get user data for the current logged-in user (SUSPEND VERSION)
      */
-    suspend fun getUserWithoutIdSuspend(): Pair<String, Map<String, Any>> {
+    override suspend fun getUserWithoutIdSuspend(): Pair<String, Map<String, Any>> {
         val currentUserId = getCurrentUserId() ?: throw Exception("No current user logged in")
         Log.d("FirestoreRepository", "Current user ID: $currentUserId")
 
@@ -70,7 +70,7 @@ class FirestoreRepository {
     /**
      * Get the household ID for a user (SUSPEND VERSION)
      */
-    suspend fun getHouseholdIdForUserSuspend(userId: String): String {
+    override suspend fun getHouseholdIdForUserSuspend(userId: String): String {
         return try {
             val document = db.collection("users").document(userId).get().await()
             if (document != null && document.exists()) {
@@ -87,7 +87,7 @@ class FirestoreRepository {
     /**
      * Get household data for the current logged-in user (SUSPEND VERSION)
      */
-    suspend fun getHouseholdWithoutIdSuspend(): Pair<String, Map<String, Any>> {
+    override suspend fun getHouseholdWithoutIdSuspend(): Pair<String, Map<String, Any>> {
         val currentUserId = getCurrentUserId() ?: throw Exception("No current user logged in")
         Log.d("FirestoreRepository", "Current user ID: $currentUserId")
 
@@ -145,6 +145,12 @@ class FirestoreRepository {
             throw e
         }
     }
+    
+    override suspend fun getHouseholdCalendarNameWithoutIdSuspend(): String {
+        val (_, householdData) = getHouseholdWithoutIdSuspend()
+        return householdData["calendar"] as? String
+            ?: throw Exception("Household has no calendar name")
+    }
 
     /**
      * Get household information from Firestore
@@ -183,7 +189,7 @@ class FirestoreRepository {
      * @param householdData: Map<String, Any>, the household data
      * @return String: The ID of the newly created household
      */
-    suspend fun createHouseholdSuspend(householdData: Map<String, Any>): String {
+    override suspend fun createHouseholdSuspend(householdData: Map<String, Any>): String {
         return try {
             val documentReference = db.collection("households")
                 .add(householdData)
@@ -202,7 +208,7 @@ class FirestoreRepository {
      * @param residentData: Map<String, Any>, the new resident data
      * @param paymentsData: List<Map<String, Any>>, updated payments list
      */
-    suspend fun addResidentToHouseholdSuspend(
+    override suspend fun addResidentToHouseholdSuspend(
         householdId: String,
         residentData: Map<String, Any>,
         paymentsData: List<Map<String, Any>>,
@@ -223,7 +229,7 @@ class FirestoreRepository {
         }
     }
 
-    suspend fun updateUserHouseholdIdSuspend(userId: String, householdId: String) {
+    override suspend fun updateUserHouseholdIdSuspend(userId: String, householdId: String) {
         try {
             val userRef = db.collection("users").document(userId)
             userRef.update("household_id", householdId).await()
@@ -234,7 +240,7 @@ class FirestoreRepository {
         }
     }
 
-    suspend fun markChoreAsCompletedSuspend(choreId: String, householdId: String) {
+    override suspend fun markChoreAsCompletedSuspend(choreId: String, householdId: String) {
         try {
             val choreRef = db.collection("households").document(householdId)
             val document = choreRef.get().await()
@@ -265,7 +271,7 @@ class FirestoreRepository {
         }
     }
 
-    suspend fun markPaymentAsCompletedSuspend(paymentId: String, householdId: String) {
+    override suspend fun markPaymentAsCompletedSuspend(paymentId: String, householdId: String) {
         try {
             val paymentRef = db.collection("households").document(householdId)
             val document = paymentRef.get().await()

@@ -151,7 +151,7 @@ fun GetUserInfo(
 ) {
     var hasAttemptedSubmit by remember { mutableStateOf(false) }
     val isNameError = hasAttemptedSubmit && !isInputStringValidLength(name)
-    val isVenmoError = hasAttemptedSubmit && !isInputStringValidLength(venmoUsername)
+    val isVenmoError = hasAttemptedSubmit && !isInputStringValidLength(venmoUsername, 5, 30)
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -214,7 +214,7 @@ fun GetUserInfo(
                 )
                 if (isVenmoError) {
                     Text(
-                        text = "Venmo username must be between 1 and 25 characters",
+                        text = "Venmo username must be between 5 and 30 characters", // aligns with real venmo criterion
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center,
