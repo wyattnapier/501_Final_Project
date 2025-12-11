@@ -56,11 +56,17 @@ class PaymentViewModel(
     }
 
     fun createNewPayment(payFromId: String, payToId: String, amount: Double, memo: String) {
+        var newPaymentId: String? = null
         viewModelScope.launch {
             try {
                 val householdId = firestoreRepository.getHouseholdIdForUserSuspend(payFromId)
-                val newPaymentId = System.currentTimeMillis().toString() // create new id
+                newPaymentId = System.currentTimeMillis().toString() // create new id
+                val payFromName = firestoreRepository.getUserSuspend(payFromId)["name"] as? String
+                val payToUserData = firestoreRepository.getUserSuspend(payToId)
+                val payToName = payToUserData["name"] as? String
+                val payToVenmo = payToUserData["venmoUsername"] as? String
 
+                // to go in the database
                 val newPaymentData = mapOf(
                     "id" to newPaymentId,
                     "pay_from" to payFromId,
@@ -70,18 +76,33 @@ class PaymentViewModel(
                     "paid" to false,
                     "date_paid" to null,
                     "due_date" to null
-                )
+                ) as Map<String, Any>
 
-                firestoreRepository.addNewPaymentToHousehold(householdId,
-                    newPaymentData as Map<String, Any>
+                // to be used to quickly update the ui's payment list
+                val newPaymentObject = Payment(
+                    id = newPaymentId,
+                    payFromId = payFromId,
+                    payFromName = payFromName ?: "Unknown",
+                    payToId = payToId,
+                    payToName = payToName ?: "Unknown",
+                    payToVenmoUsername = payToVenmo,
+                    amount = amount,
+                    memo = memo,
+                    dueDate = null,
+                    datePaid = null,
+                    paid = false,
+                    recurring = false
                 )
+                _paymentsList.value = listOf(newPaymentObject) + _paymentsList.value // optimistic update before writing to database
 
-                // Refresh the local data to show the new payment immediately
-                loadPaymentsData(forceReload = true)
+                firestoreRepository.addNewPaymentToHousehold(householdId, newPaymentData)
 
             } catch (e: Exception) {
                 Log.e("PaymentViewModel", "Failed to create new payment", e)
-                // You could set an error state here to show a message to the user
+                if (newPaymentId != null) {
+                    _paymentsList.value =
+                        _paymentsList.value.filter { it.id != newPaymentId } // if firestore write fails remove new payment
+                }
             }
         }
     }
@@ -254,15 +275,15 @@ class PaymentViewModel(
     /**
      * function to get payments assigned to specified person (by ID)
      */
-    fun getPaymentsFor(personId: String): List<Payment> {
-        return paymentsList.value.filter { it.payToId == personId }
+    fun getPaymentsFor(personId: String, payments: List<Payment>): List<Payment> {
+        return payments.filter { it.payToId == personId }
     }
 
     /**
      * function to get payments from a specific person (by ID)
      */
-    fun getPaymentsFrom(personId: String): List<Payment> {
-        return paymentsList.value.filter { it.payFromId == personId }
+    fun getPaymentsFrom(personId: String, payments: List<Payment>): List<Payment> {
+        return payments.filter { it.payFromId == personId }
     }
 
     /**

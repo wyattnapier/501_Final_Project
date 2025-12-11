@@ -53,10 +53,6 @@ fun HomeScreen(
     val showEvents by prefs.showEvents.collectAsState(initial = true)
 
     val currentUserId by mainViewModel.userId.collectAsState()
-    val currentPaymentsForUser = (
-            paymentViewModel.getPaymentsFor(currentUserId ?: "") +
-                    paymentViewModel.getPaymentsFrom(currentUserId ?: "")
-            ).filter { !it.paid }
     val events by eventsViewModel.events.collectAsState()
 
     Column(

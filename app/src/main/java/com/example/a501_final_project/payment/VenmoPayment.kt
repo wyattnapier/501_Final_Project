@@ -48,11 +48,11 @@ fun VenmoPaymentScreen(
     val pastPayments by paymentViewModel.pastPayments.collectAsState()
     val currentUserId by mainViewModel.userId.collectAsState()
     var showAddPaymentDialog by remember { mutableStateOf(false) }
+    val paymentsList by paymentViewModel.paymentsList.collectAsState()
 
-    // Get payments by ID
     val currentPaymentsForUser = (
-            paymentViewModel.getPaymentsFor(currentUserId ?: "") +
-                    paymentViewModel.getPaymentsFrom(currentUserId ?: "")
+            paymentViewModel.getPaymentsFor(currentUserId ?: "", paymentsList) + // Pass the observed list
+                    paymentViewModel.getPaymentsFrom(currentUserId ?: "", paymentsList) // Pass the observed list
             ).filter { !it.paid }
 
     val pastPaymentsForUser = pastPayments.filter {
