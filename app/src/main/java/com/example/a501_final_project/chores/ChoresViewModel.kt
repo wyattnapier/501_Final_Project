@@ -384,6 +384,41 @@ class ChoresViewModel(
         return isOverdue
     }
 
+    /**
+     * Filters the main chore list to return only chores with a due date after today or overdue and not completed
+     *
+     * @return A list of chores due in the future.
+     */
+    fun getUpcomingChores(chores: List<Chore>): List<Chore> {
+        // 1. Define the date format that matches how you store it in Firestore.
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+
+        // 2. Get today's date and reset its time to the beginning of the day (00:00:00).
+        // This ensures that chores due *any time* today are not included in the "after today" list.
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        // 3. Filter the list of chores.
+        return chores.filter { chore ->
+            try {
+                // Parse the chore's due date string into a Date object.
+                val choreDueDate = dateFormat.parse(chore.dueDate)
+
+                // The filter keeps the chore if its due date is strictly AFTER today or not completed
+                choreDueDate?.after(today) ?: false || !chore.completed
+
+            } catch (e: Exception) {
+                // If the date string is malformed, log the error and exclude it from the list.
+                Log.e("ChoresViewModel", "Could not parse date string: '${chore.dueDate}' for chore: ${chore.name}", e)
+                false
+            }
+        }
+    }
+
     // reset all state variables on logout
     fun reset() {
         _roommates.value = emptyList()

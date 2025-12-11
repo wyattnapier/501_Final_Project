@@ -1,29 +1,41 @@
 package com.example.a501_final_project.payment
 
-import android.R
 import androidx.compose.runtime.Composable
-
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.example.a501_final_project.MainViewModel
+import com.example.a501_final_project.models.LocalResident
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.Date
+import java.util.TimeZone
+
+enum class PaymentDirection {
+    PAYING, REQUESTING
+}
 
 @Composable
 fun VenmoPaymentScreen(
@@ -35,13 +47,13 @@ fun VenmoPaymentScreen(
     val showPastPayments by paymentViewModel.showPastPayments.collectAsState()
     val pastPayments by paymentViewModel.pastPayments.collectAsState()
     val currentUserId by mainViewModel.userId.collectAsState()
+    var showAddPaymentDialog by remember { mutableStateOf(false) }
+    val paymentsList by paymentViewModel.paymentsList.collectAsState()
 
-    // Get payments by ID
     val currentPaymentsForUser = (
-            paymentViewModel.getPaymentsFor(currentUserId ?: "") +
-                    paymentViewModel.getPaymentsFrom(currentUserId ?: "")
+            paymentViewModel.getPaymentsFor(currentUserId ?: "", paymentsList) +
+                    paymentViewModel.getPaymentsFrom(currentUserId ?: "", paymentsList)
             ).filter { !it.paid }
-
     val pastPaymentsForUser = pastPayments.filter {
         it.payFromId == currentUserId || it.payToId == currentUserId
     }
@@ -57,30 +69,48 @@ fun VenmoPaymentScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                Card(
+                    onClick = { if (currentUserId != null && mainViewModel.residents.value.size > 1) showAddPaymentDialog = true },
+                    shape = CircleShape,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    enabled = currentUserId != null && mainViewModel.residents.value.size > 1
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add Payment",
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(8.dp) // Add padding so the icon doesn't touch the edges
+                    )
+                }
+            }
             Text(
                 text = "Pay with Venmo",
                 style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(2f) // Give it more weight to occupy the center
             )
-
-            FilledTonalButton(
-                onClick = { paymentViewModel.toggleShowPastPayments() },
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = if (showPastPayments)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
-                ),
-                modifier = Modifier.height(36.dp)
-            ) {
-                Text(
-                    text = if (showPastPayments) "Showing Past" else "Show Past",
-                    color = if (showPastPayments)
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge
-                )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                FilledTonalButton(
+                    onClick = { paymentViewModel.toggleShowPastPayments() },
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (showPastPayments)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text(
+                        text = if (showPastPayments) "Past" else "Now",
+                        color = if (showPastPayments)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
         }
         LazyColumn {
@@ -102,6 +132,22 @@ fun VenmoPaymentScreen(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
             }
         }
+    }
+    if (showAddPaymentDialog) {
+        AddPaymentDialog(
+            mainViewModel = mainViewModel,
+            onDismiss = { showAddPaymentDialog = false },
+            onConfirm = { payFromId, payToId, amount, memo, dueDate ->
+                paymentViewModel.createNewPayment(
+                    payFromId = payFromId,
+                    payToId = payToId,
+                    amount = amount,
+                    memo = memo,
+                    dueDate = dueDate
+                )
+                showAddPaymentDialog = false
+            }
+        )
     }
 }
 
@@ -265,4 +311,162 @@ fun PaymentReminderButton(
     ) {
         Text(text = "Remind ${payment.payFromName}")
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddPaymentDialog(
+    mainViewModel: MainViewModel,
+    onDismiss: () -> Unit,
+    onConfirm: (payFromId: String, payToId: String, amount: Double, memo: String, dueDate: Date?) -> Unit
+) {
+    val residents by mainViewModel.residents.collectAsState()
+    val currentUserId by mainViewModel.userId.collectAsState()
+    val otherResidents = residents.filter { it.id != currentUserId } // everyone except current user
+
+    var amount by remember { mutableStateOf("") }
+    var memo by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+    var selectedResident by remember { mutableStateOf<LocalResident?>(null) }
+    var paymentDirection by remember { mutableStateOf(PaymentDirection.PAYING) }
+    val options = listOf("Pay To", "Request From")
+    var dueDate by remember { mutableStateOf<Date?>(null) }
+    val showDatePicker = remember { mutableStateOf(false) }
+
+    if (showDatePicker.value) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker.value = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDatePicker.value = false
+                        // Convert the selected Long to a Date object
+                        datePickerState.selectedDateMillis?.let {
+                            dueDate = Date(it)
+                        }
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker.value = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add New Payment Task") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // select if requesting or paying
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    options.forEachIndexed { index, label ->
+                        SegmentedButton(
+                            shape = RoundedCornerShape(50),
+                            onClick = {
+                                paymentDirection = if (index == 0) PaymentDirection.PAYING else PaymentDirection.REQUESTING
+                            },
+                            selected = (paymentDirection == PaymentDirection.PAYING && index == 0) ||
+                                    (paymentDirection == PaymentDirection.REQUESTING && index == 1)
+                        ) {
+                            Text(label)
+                        }
+                    }
+                }
+                // Dropdown to select who to pay
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        modifier = Modifier.menuAnchor(),
+                        readOnly = true,
+                        value = selectedResident?.name ?: "Select a person",
+                        label = { Text(if (paymentDirection == PaymentDirection.PAYING) "Pay To" else "Request From") },
+                        onValueChange = {},
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        otherResidents.forEach { resident ->
+                            DropdownMenuItem(
+                                text = { Text(resident.name) },
+                                onClick = {
+                                    selectedResident = resident // Store the whole object
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Amount Field
+                OutlinedTextField(
+                    value = amount,
+                    onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) amount = it },
+                    label = { Text("Amount") },
+                    prefix = { Text("$") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                // Memo Field
+                OutlinedTextField(
+                    value = memo,
+                    onValueChange = { memo = it },
+                    label = { Text("Memo (e.g., Groceries)") }
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Display the selected date or a placeholder
+                    Text(
+                        text = dueDate?.let {
+                            val sdf = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+                            sdf.timeZone = TimeZone.getTimeZone("UTC")
+                            "Due: ${sdf.format(it)}"
+                        } ?: "No due date set",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Button to open the date picker
+                    TextButton(onClick = { showDatePicker.value = true }) {
+                        Text(if (dueDate == null) "Set Date" else "Change")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val finalAmount = amount.toDoubleOrNull()
+                    val otherUserId = selectedResident?.id
+                    if (selectedResident != null && finalAmount != null && finalAmount > 0) {
+                        val payFromId = if (paymentDirection == PaymentDirection.PAYING) currentUserId else otherUserId
+                        val payToId = if (paymentDirection == PaymentDirection.PAYING) otherUserId else currentUserId
+                        if (payFromId == null || payToId == null) {
+                            Log.e("AddPaymentDialog", "payFromId or payToId is null")
+                            return@Button
+                        }
+                        onConfirm(payFromId, payToId, finalAmount, memo, dueDate)
+                    }
+                },
+                // Disable button until all fields are valid
+                enabled = selectedResident != null && (amount.toDoubleOrNull() ?: 0.0) > 0.0 && memo.isNotBlank()
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

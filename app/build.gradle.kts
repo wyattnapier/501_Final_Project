@@ -60,6 +60,12 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1,INDEX.LIST}" // prevent conflict
@@ -69,11 +75,6 @@ android {
 }
 
 dependencies {
-//    // firebase BoM
-//    implementation(platform("com.google.firebase:firebase-bom:34.5.0"))
-//    implementation("com.google.firebase:firebase-analytics")
-//    implementation("com.google.firebase:firebase-auth")
-
     // Firebase BoM (version manager)
     implementation(platform("com.google.firebase:firebase-bom:33.5.1"))
 
@@ -108,6 +109,36 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:storage-kt")
     implementation("io.ktor:ktor-client-okhttp:2.3.7")
+
+    // ----- testing -----
+    // Compose Testing
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.5.4")
+    debugImplementation("androidx.compose.ui:ui-test-manifest:1.5.4")
+
+    // JUnit
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+
+    // Mockito for mocking
+    // For local tests (src/test)
+    testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+
+    // For instrumented tests (src/androidTest)
+    androidTestImplementation("org.mockito:mockito-core:5.12.0")
+    androidTestImplementation("org.mockito:mockito-android:5.12.0")
+    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+
+    // Coroutines testing
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+
+    // AndroidX Test
+    androidTestImplementation("androidx.test:core:1.5.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test:rules:1.5.0")
+
+    // Navigation testing
+    androidTestImplementation("androidx.navigation:navigation-testing:2.7.5")
 
 
     implementation("io.coil-kt:coil-compose:2.6.0") // coil for image loading
