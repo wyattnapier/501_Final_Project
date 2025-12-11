@@ -32,6 +32,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.example.a501_final_project.MainViewModel
+import com.example.a501_final_project.models.LocalResident
 
 enum class PaymentDirection {
     PAYING, REQUESTING
@@ -305,20 +306,16 @@ fun AddPaymentDialog(
     onDismiss: () -> Unit,
     onConfirm: (payFromId: String, payToId: String, amount: Double, memo: String) -> Unit
 ) {
-    val householdData by mainViewModel.householdData.collectAsState()
-    val residents = (householdData?.get("residents") as? List<Map<String, Any>>) ?: emptyList()
-    Log.d("AddPaymentDialog", "household residents: $residents")
+    val residents by mainViewModel.residents.collectAsState()
     val currentUserId by mainViewModel.userId.collectAsState()
+    val otherResidents = residents.filter { it.id != currentUserId } // everyone except current user
 
     var amount by remember { mutableStateOf("") }
     var memo by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-    var selectedResident by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var selectedResident by remember { mutableStateOf<LocalResident?>(null) }
     var paymentDirection by remember { mutableStateOf(PaymentDirection.PAYING) }
     val options = listOf("Pay To", "Request From")
-
-    // Filter out the current user from the list of people to pay
-    val otherResidents = residents.filter { it["id"] != currentUserId }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -348,7 +345,7 @@ fun AddPaymentDialog(
                     OutlinedTextField(
                         modifier = Modifier.menuAnchor(),
                         readOnly = true,
-                        value = selectedResident?.second ?: "Select a person",
+                        value = selectedResident?.name ?: "Select a person",
                         label = { Text(if (paymentDirection == PaymentDirection.PAYING) "Pay To" else "Request From") },
                         onValueChange = {},
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -358,13 +355,10 @@ fun AddPaymentDialog(
                         onDismissRequest = { expanded = false }
                     ) {
                         otherResidents.forEach { resident ->
-                            Log.d("AddPaymentDialog", "resident: $resident, with id ${resident["id"]}")
-                            val otherResidentId = resident["id"] as String
                             DropdownMenuItem(
-                                text = { Text( if (resident["name"] != null) resident["name"] as String else otherResidentId )}, // TODO: get their name instead
+                                text = { Text(resident.name) },
                                 onClick = {
-//                                    selectedResident = resident["id"] as String to resident["name"] as String // TODO: right now name is null
-                                    selectedResident = resident["id"] as String to "TEST" // TODO: right now name is null
+                                    selectedResident = resident // Store the whole object
                                     expanded = false
                                 }
                             )
@@ -393,9 +387,10 @@ fun AddPaymentDialog(
             Button(
                 onClick = {
                     val finalAmount = amount.toDoubleOrNull()
+                    val otherUserId = selectedResident?.id
                     if (selectedResident != null && finalAmount != null && finalAmount > 0) {
-                        val payFromId = if (paymentDirection == PaymentDirection.PAYING) currentUserId else selectedResident!!.first
-                        val payToId = if (paymentDirection == PaymentDirection.PAYING) selectedResident!!.first else currentUserId
+                        val payFromId = if (paymentDirection == PaymentDirection.PAYING) currentUserId else otherUserId
+                        val payToId = if (paymentDirection == PaymentDirection.PAYING) otherUserId else currentUserId
                         if (payFromId == null || payToId == null) {
                             Log.e("AddPaymentDialog", "payFromId or payToId is null")
                             return@Button
