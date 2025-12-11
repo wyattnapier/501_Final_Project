@@ -64,6 +64,13 @@ class ChoresViewModel(
     private val _choresList = MutableStateFlow<List<Chore>>(emptyList())
     var choresList: StateFlow<List<Chore>> = _choresList.asStateFlow()
 
+    private val _currentChores = MutableStateFlow<List<Chore>>(emptyList())
+    val currentChores: StateFlow<List<Chore>> = _currentChores
+
+    private val _previousChores = MutableStateFlow<List<Chore>>(emptyList())
+    val previousChores: StateFlow<List<Chore>> = _previousChores
+
+
     var recurringChoresList: List<RecurringChore>? = null
     private val _showPrevChores = MutableStateFlow(false)
     val showPrevChores: StateFlow<Boolean> = _showPrevChores.asStateFlow()
@@ -78,6 +85,26 @@ class ChoresViewModel(
     private val _isChoresDataLoaded = MutableStateFlow(false)
     val isChoresDataLoaded: StateFlow<Boolean> = _isChoresDataLoaded.asStateFlow()
     private val _isLoading = MutableStateFlow(false)
+
+
+    // helper function to separaate current from past chores for the UI
+    private fun splitChores(chores: List<Chore>) {
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+        val today = Calendar.getInstance().time
+        val current = mutableListOf<Chore>()
+        val previous = mutableListOf<Chore>()
+
+        for (chore in chores) {
+            val dueDate = chore.dueDate.let { dateFormat.parse(it) }
+            if (dueDate != null && !dueDate.before(today)) { // not overdue
+                current.add(chore)
+            } else {
+                previous.add(chore)
+            }
+        }
+        _currentChores.value = current
+        _previousChores.value = previous
+    }
 
     // helper for converting data from database to local data classes
     private fun Any?.toStringOrNull(): String? {
@@ -139,6 +166,7 @@ class ChoresViewModel(
 
                 // Parse chores
                 val choresListFromDB = data["chores"] as? List<*>
+                Log.d("ChoresViewModel", "Raw chores from Firestore: $choresListFromDB")
                 if (choresListFromDB == null) {
                     Log.w("ChoresViewModel", "'chores' field is null")
                     _choresList.value = emptyList()
@@ -146,28 +174,67 @@ class ChoresViewModel(
                     Log.d("ChoresViewModel", "Processing ${choresListFromDB.size} chores")
 
                     val parsedChores = choresListFromDB.mapIndexedNotNull { index, item ->
-                        val itemAsMap = item as? Map<*, *> ?: return@mapIndexedNotNull null
+                        val itemAsMap = item as? Map<*, *> //?: return@mapIndexedNotNull null
+                        if (itemAsMap == null) {
+                            Log.e("ChoresViewModel", "Chore $index: Failed to cast to Map")
+                            return@mapIndexedNotNull null
+                        }
+
+                        Log.d("ChoresViewModel", "Chore $index raw data: $itemAsMap")
 
                         // Get chore_id
                         val choreId = (itemAsMap["chore_id"] ?: itemAsMap["choreID"]).toStringOrNull()
-                            ?: return@mapIndexedNotNull null
+                           // ?: return@mapIndexedNotNull null
+
+                        if (choreId == null) {
+                            Log.e("ChoresViewModel", "Chore $index: Missing chore_id/choreID")
+                            return@mapIndexedNotNull null
+                        }
+                        Log.d("ChoresViewModel", "Chore $index: choreId = $choreId")
 
                         // Get recurring chore info
                         val recurringChoreIdNum = itemAsMap["recurring_chore_id"] as? Number
-                        val currentRecurringChore: RecurringChore? = recurringChoreIdNum?.let { id ->
-                            recurringChoresList?.find { it.recurringChoreId == id.toString() }
+                        if (recurringChoreIdNum == null) {
+                            Log.e("ChoresViewModel", "Chore $index: recurring_chore_id is not a Number")
+                            return@mapIndexedNotNull null
                         }
+//                        val currentRecurringChore: RecurringChore? = recurringChoreIdNum?.let { id ->
+//                            recurringChoresList?.find { it.recurringChoreId == id.toString() }
+//                        }
+                        val currentRecurringChore: RecurringChore? = recurringChoresList?.find {
+                            it.recurringChoreId == recurringChoreIdNum.toString()
+                        }
+
+
+                        if (currentRecurringChore == null) {
+                            Log.e("ChoresViewModel", "Chore $index: Could not find recurring chore with id ${recurringChoreIdNum.toString()}")
+                            Log.e("ChoresViewModel", "Available recurring chores: ${recurringChoresList?.map { it.recurringChoreId }}")
+                            return@mapIndexedNotNull null
+                        }
+                        Log.d("ChoresViewModel", "Chore $index: Found recurring chore '${currentRecurringChore.name}'")
+
 
                         // Parse due date
                         val dueDateValue = itemAsMap["dueDate"] ?: itemAsMap["due_date"]
+                        Log.d("ChoresViewModel", "Chore $index: dueDate raw = $dueDateValue (${dueDateValue?.javaClass?.simpleName})")
+
                         val dueDate = when (dueDateValue) {
                             is String -> dueDateValue
                             is com.google.firebase.Timestamp -> {
                                 val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
                                 sdf.format(dueDateValue.toDate())
                             }
-                            else -> null
-                        } ?: return@mapIndexedNotNull null
+                            else -> { // this is case that it's a new chore?
+                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                                sdf.format(Date())
+                            }
+                        } //?: return@mapIndexedNotNull null
+                        if (dueDate == null) {
+                            Log.e("ChoresViewModel", "Chore $index: Failed to parse due date")
+                            return@mapIndexedNotNull null
+                        }
+                        Log.d("ChoresViewModel", "Chore $index: dueDate = $dueDate")
+
 
                         // Parse date completed
                         val dateCompletedValue = itemAsMap["dateCompleted"] ?: itemAsMap["date_completed"]
@@ -182,22 +249,40 @@ class ChoresViewModel(
                         }
 
                         // Parse assignedTo ID
+                        val assignedToIdValue = itemAsMap["assignedToId"] ?: itemAsMap["assigned_to_id"]
+                        Log.d("ChoresViewModel", "Chore $index: assignedToId raw = $assignedToIdValue (${assignedToIdValue?.javaClass?.simpleName})")
+
                         val assignedToId = when (val assignedToIdValue = itemAsMap["assignedToId"] ?: itemAsMap["assigned_to_id"]) {
                             is String -> assignedToIdValue
                             is com.google.firebase.firestore.DocumentReference -> assignedToIdValue.id
                             else -> assignedToIdValue.toStringOrNull()
-                        } ?: return@mapIndexedNotNull null
+                        } //?: return@mapIndexedNotNull null
+                        if (assignedToId == null) {
+                            Log.e("ChoresViewModel", "Chore $index: Failed to parse assignedToId")
+                            return@mapIndexedNotNull null
+                        }
+                        Log.d("ChoresViewModel", "Chore $index: assignedToId = $assignedToId")
 
-                        // NOW fetch the user's name using suspend function
                         val assignedToName = try {
-                            val userData = firestoreRepository.getUserSuspend(assignedToId)
-                            userData["name"] as? String ?: assignedToId
+                            if (assignedToId.isBlank()) {
+                                Log.d("ChoresViewModel", "Chore $index: No one assigned yet")
+                                "Unassigned"
+                            } else {
+                                val userData = firestoreRepository.getUserSuspend(assignedToId)
+                                val name = userData["name"] as? String ?: assignedToId
+                                Log.d("ChoresViewModel", "Chore $index: Assigned to $name")
+                                name
+                            }
                         } catch (e: Exception) {
-                            Log.w("ChoresViewModel", "Failed to get name for user $assignedToId: $e")
-                            assignedToId  // Fall back to ID if name fetch fails
+                            Log.w("ChoresViewModel", "Chore $index: Failed to get name for user $assignedToId: $e")
+                            assignedToId
                         }
 
-                        Log.d("ChoresViewModel", "Chore $index: ${currentRecurringChore?.name} assigned to $assignedToName")
+                        val completed = itemAsMap["completed"] as? Boolean ?: false
+                        Log.d("ChoresViewModel", "Chore $index: completed = $completed")
+
+                        Log.d("ChoresViewModel", "Chore $index: ✓ Successfully parsed!")
+
 
                         Chore(
                             choreID = choreId,
@@ -214,6 +299,8 @@ class ChoresViewModel(
                     }
 
                     _choresList.value = parsedChores
+                    // split chores into current and past for UI
+                    splitChores(parsedChores)
                     Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
                 }
 
@@ -221,6 +308,7 @@ class ChoresViewModel(
                 _isLoading.value = false
                 // assign chores upon opening
                 assignChores()
+                firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
                 Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
 
             } catch (e: Exception) {
@@ -233,8 +321,16 @@ class ChoresViewModel(
     /**
      * function to be used when first initializing/creating the list of chores for the household
      */
-    fun addChores(newChore : Chore) {
-        _choresList.value += newChore
+//    fun addChores(newChore : Chore) {
+//        _choresList.value += newChore
+//    }
+    fun addChores(newChore: Chore) {
+        val updated = _choresList.value + newChore
+        _choresList.value = updated
+
+        viewModelScope.launch {
+            firestoreRepository.updateChoreAssignmentsSuspend(updated)
+        }
     }
 
     /**
@@ -248,12 +344,6 @@ class ChoresViewModel(
             Log.w("ChoresViewModel", "Cannot assign chores, the roommates list is empty.")
             return
         }
-
-//        _choresList.value = _choresList.value.mapIndexed { index, chore ->
-//            chore.copy(assignedToId = currentRoommates[index % currentRoommates.size])
-//        }
-
-
 
         val chores = _choresList.value.toMutableList()
 
@@ -289,29 +379,51 @@ class ChoresViewModel(
         // count how much load each roommate has
         val load = mutableMapOf<String, Int>()
         currentRoommates.forEach { roommate ->
-            load[roommate] = chores.count { it.assignedToId == roommate }
+            load[roommate] = chores.count { it.assignedToId == roommate && !it.completed }
         }
 
-        // assign the chores to the least loaded
-        for (chore in unassignedChores) {
-            val leastLoaded = load.minBy { it.value }.key // minBy takes first instance of the min value, so "random" in that sense, but can make actually random if need
-            load[leastLoaded] = load[leastLoaded]!! + 1
+        // get the roommate names so theres not ui issues when gettign names ot display
+        val roommateNames = mutableMapOf<String, String>()
 
-            val choreIdx = chores.indexOfFirst {it.choreID == chore.choreID}
-            if (choreIdx != -1) {
-                chores[choreIdx] = chores[choreIdx].copy(assignedToId = leastLoaded) // assign it to least loaded roommate
-            }
-        }
 
-        // updates UI
-        _choresList.value = chores
-
-        // send to DB
+        // assign now
         viewModelScope.launch {
-            firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
-        }
+            // Fetch all names in parallel
+            for (roommateId in currentRoommates) {
+                try {
+                    val userData = firestoreRepository.getUserSuspend(roommateId)
+                    roommateNames[roommateId] = userData["name"] as? String ?: roommateId
+                } catch (e: Exception) {
+                    Log.w("ChoresViewModel", "Failed to get name for $roommateId", e)
+                    roommateNames[roommateId] = roommateId
+                }
+            }
 
-        Log.d("ChoresViewModel", "chores assigned")
+            // NOW assign chores with names
+            for (chore in unassignedChores) {
+                val leastLoaded = load.minByOrNull { it.value }?.key ?: continue
+                load[leastLoaded] = load[leastLoaded]!! + 1
+
+                val choreIdx = chores.indexOfFirst { it.choreID == chore.choreID }
+                if (choreIdx != -1) {
+                    chores[choreIdx] = chores[choreIdx].copy(
+                        assignedToId = leastLoaded,
+                        assignedToName = roommateNames[leastLoaded] ?: leastLoaded  // ← Add name!
+                    )
+                }
+            }
+
+            // Update UI
+            _choresList.value = chores
+
+            // Send to DB
+//            try {
+//                firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
+//                Log.d("ChoresViewModel", "Successfully assigned ${unassignedChores.size} chores")
+//            } catch (e: Exception) {
+//                Log.e("ChoresViewModel", "Failed to update assignments in DB", e)
+//            }
+        }
     }
 
 
@@ -329,10 +441,16 @@ class ChoresViewModel(
             chore -> chore.recurringChoreId == completedChore.instanceOf
         }
 
+        // complete the existing instance of that chore
         val chore = currentList[choreIndex]
-        currentList[choreIndex] = chore.copy(completed = true)
+        currentList[choreIndex] = chore.copy(
+            completed = true,
+            dateCompleted = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH).format(Date())
+        )
 
-        if (chore.instanceOf.isNotBlank()) {
+        // create a new instance of that chore type
+        val recurring = recurringChoresList?.find { it.recurringChoreId == chore.instanceOf }
+        if (recurring != null) {
             val df = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
             val calendar = Calendar.getInstance()
             try {
@@ -364,6 +482,9 @@ class ChoresViewModel(
                 completedChore.choreID,
                 completedChore.householdID
             )
+            assignChores()
+            firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
+
         }
     }
     /**

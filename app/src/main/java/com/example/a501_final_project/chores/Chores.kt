@@ -59,10 +59,13 @@ import java.util.*
 fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel, modifier: Modifier = Modifier){
     val chores by choresViewModel.choresList.collectAsState()
     val showPrevChores by choresViewModel.showPrevChores.collectAsState()
+    val previousChores by choresViewModel.previousChores.collectAsState()
     val userId by mainViewModel.userId.collectAsState()
     val sharedHouseholdID by mainViewModel.householdId.collectAsState()
 
     val context = LocalContext.current
+
+
 
     Log.d("ChoresScreen", "userId: $userId")
     Log.d("ChoresScreen", "sharedHouseholdID: $sharedHouseholdID")
@@ -91,7 +94,7 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
         .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)){
         if (showPrevChores) {
-            PrevChores(chores, context, choresViewModel)
+            PrevChores(previousChores, context, choresViewModel)
         } else {
             MyChoreWidget(currentUserId, currentHouseholdId, chores, choresViewModel, context)
             RoommateChores(currentUserId, currentHouseholdId, chores, choresViewModel, context)
@@ -348,7 +351,7 @@ fun RoommateChoreItem(
 
 @Composable
 fun PrevChores(
-    chores: List<Chore>,
+    previousChores: List<Chore>,
     context: Context,
     choresViewModel: ChoresViewModel,
     modifier: Modifier = Modifier
@@ -372,7 +375,7 @@ fun PrevChores(
             }
         }
         LazyColumn() {
-            for (chore in chores) {
+            for (chore in previousChores) {
                 item {
                     PrevChoreItem(chore, context, choresViewModel, modifier)
                     HorizontalDivider()

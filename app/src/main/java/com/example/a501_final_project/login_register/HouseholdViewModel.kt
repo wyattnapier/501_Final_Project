@@ -12,6 +12,11 @@ import com.example.a501_final_project.FirestoreRepository
 import com.example.a501_final_project.chores.RecurringChore
 import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 
 data class ChoreInput(
     var name: String = "",
@@ -154,13 +159,40 @@ class HouseholdViewModel(
             )
         )
 
+        // to actualy add chores?
+
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        val calendar = Calendar.getInstance()
+
+
+        val initialChores = recurring_chores.mapIndexed { index, rc ->
+
+            val daysFromNow = (rc["cycle"] as? Number)?.toInt() ?: 7
+            calendar.time = Date()
+            calendar.add(Calendar.DAY_OF_YEAR, daysFromNow)
+            val dueDate = dateFormat.format(calendar.time)
+
+            mapOf(
+                "chore_id" to UUID.randomUUID().toString(),
+                "name" to rc["name"],
+                "description" to rc["description"],
+                "completed" to false,
+                "assignedToId" to "",
+                "assignedToName" to "",
+                "dueDate" to dueDate, // OR generate now
+                "recurring_chore_id" to index,
+                "recurring" to true
+            )
+        }
+
         val fullHouseholdObject = mapOf(
             "name" to householdName,
             "recurring_chores" to recurring_chores,
             "recurring_payments" to recurring_payments,
             "calendar" to calendarName,
             "residents" to residents,
-            "chores" to emptyList<Map<String, Any>>()  // Initialize empty chores array
+//            "chores" to emptyList<Map<String, Any>>()  // Initialize empty chores array
+            "chores" to initialChores
         )
 
         Log.d("HouseholdViewModel", "Creating household with name: $householdName")

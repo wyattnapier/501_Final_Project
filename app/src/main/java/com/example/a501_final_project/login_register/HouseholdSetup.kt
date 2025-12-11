@@ -41,12 +41,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
 
 
 @Composable
-fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavController){
+fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavController, choresViewModel: ChoresViewModel){
+    LaunchedEffect(viewModel.householdCreated) {
+        if (viewModel.householdCreated) {
+            //if household is created then reload so that chores gets update
+            choresViewModel.loadHouseholdData()
+        }
+    }
+
     if (viewModel.existingHousehold == null) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -100,20 +108,35 @@ fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavControlle
             navController.navigate("Home")
         }
 
+        // once household is created reload to do chores
+        if (viewModel.householdCreated) {
+            LaunchedEffect(Unit) {
+                navController.navigate("Home") {
+                    popUpTo("household_setup") { inclusive = true }
+                }
+            }
+        }
+
     }
     else if (viewModel.existingHousehold == false){
-        NewHousehold(viewModel, navController)
+        NewHousehold(viewModel, navController, choresViewModel)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
+fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController, choresViewModel: ChoresViewModel){
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel.errorMessage) {
         viewModel.errorMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
+        }
+    }
+
+    LaunchedEffect(viewModel.householdCreated) {
+        if (viewModel.householdCreated) {
+            choresViewModel.loadHouseholdData()
         }
     }
 

@@ -242,6 +242,9 @@ class FirestoreRepository {
                 "choreID" to chore.choreID,
                 "assignedToId" to chore.assignedToId,
                 "due_date" to chore.dueDate,
+                "completed" to chore.completed,
+                "date_completed" to chore.dateCompleted,
+                "recurring_chore_id" to chore.instanceOf.toIntOrNull()
             )
         }
 

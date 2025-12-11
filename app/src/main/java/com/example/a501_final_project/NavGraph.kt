@@ -106,7 +106,7 @@ fun AppNavGraph(
         // to make householdsetup page navigable
         composable(Screen.HouseholdSetup.route) {
             HouseholdLanding(
-                viewModel = householdViewModel, navController = navController
+                viewModel = householdViewModel, navController = navController, choresViewModel = choresViewModel
             )
         }
     }
