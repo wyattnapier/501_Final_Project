@@ -104,7 +104,12 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
 
 @Composable
 fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
-    val myChores = chores.filter { it.assignedToId == userID && it.householdID == householdID }
+    var myChores = chores.filter { it.assignedToId == userID && it.householdID == householdID }
+
+    val incompleteChores = myChores.filter {it.completed == false}
+    val completeChores = myChores.filter {it.completed == true}
+
+    myChores = incompleteChores + completeChores
 
     // Get URIs from ViewModel
     val tempImageUri by choresViewModel.tempImageUri.collectAsState()
@@ -157,7 +162,7 @@ fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, chor
                     MyChoreItem(chore, context, cameraLauncher, permissionLauncher, choresViewModel)
 
                     if (index < myChores.lastIndex) {
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp))
+                        HorizontalDivider( modifier = Modifier.padding(vertical = 8.dp))
                     }
                 }
             }
@@ -376,7 +381,7 @@ fun PrevChores(
     modifier: Modifier = Modifier
 ) {
     // if due date < today, display on prev tasks
-    val prevChores = chores.filter { choresViewModel.isChoreOverdue(it) }
+    val prevChores = chores.filter { choresViewModel.isChoreOverdue(it) || it.completed }
     Column(
         modifier = Modifier
             .fillMaxHeight()
