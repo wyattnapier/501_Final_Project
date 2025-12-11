@@ -31,6 +31,7 @@ import com.example.a501_final_project.models.LocalResident
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.Date
+import java.util.TimeZone
 
 enum class PaymentDirection {
     PAYING, REQUESTING
@@ -426,11 +427,9 @@ fun AddPaymentDialog(
                     // Display the selected date or a placeholder
                     Text(
                         text = dueDate?.let {
-                            "Due: ${
-                                SimpleDateFormat(
-                                    "MMM d, yyyy",
-                                    Locale.getDefault()
-                                ).format(it)}"
+                            val sdf = SimpleDateFormat("MMM d, yyyy", Locale.getDefault())
+                            sdf.timeZone = TimeZone.getTimeZone("UTC")
+                            "Due: ${sdf.format(it)}"
                         } ?: "No due date set",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
