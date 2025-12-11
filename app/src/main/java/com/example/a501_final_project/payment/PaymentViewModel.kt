@@ -55,17 +55,50 @@ class PaymentViewModel(
         }
     }
 
-    fun loadPaymentsData() {
+    fun createNewPayment(payFromId: String, payToId: String, amount: Double, memo: String) {
+        viewModelScope.launch {
+            try {
+                val householdId = firestoreRepository.getHouseholdIdForUserSuspend(payFromId)
+                val newPaymentId = System.currentTimeMillis().toString() // create new id
+
+                val newPaymentData = mapOf(
+                    "id" to newPaymentId,
+                    "pay_from" to payFromId,
+                    "pay_to" to payToId,
+                    "amount" to amount,
+                    "memo" to memo,
+                    "paid" to false,
+                    "date_paid" to null,
+                    "due_date" to null
+                )
+
+                firestoreRepository.addNewPaymentToHousehold(householdId,
+                    newPaymentData as Map<String, Any>
+                )
+
+                // Refresh the local data to show the new payment immediately
+                loadPaymentsData(forceReload = true)
+
+            } catch (e: Exception) {
+                Log.e("PaymentViewModel", "Failed to create new payment", e)
+                // You could set an error state here to show a message to the user
+            }
+        }
+    }
+
+    // Also, modify loadPaymentsData to allow forcing a reload
+    fun loadPaymentsData(forceReload: Boolean = false) {
         if (_isLoading.value) {
             Log.w("PaymentViewModel", "Already loading, skipping duplicate call")
             return
         }
-        if (_isPaymentsDataLoaded.value) {
+        if (_isPaymentsDataLoaded.value && !forceReload) { // Check the forceReload flag
             Log.w("PaymentViewModel", "Payments data already loaded, skipping")
             return
         }
 
         _isLoading.value = true
+        _isPaymentsDataLoaded.value = false // Reset while loading
         Log.d("PaymentViewModel", "Starting to load payments data...")
 
         viewModelScope.launch {
@@ -194,30 +227,6 @@ class PaymentViewModel(
                 Log.e("PaymentViewModel", "Failed to load payments data", e)
                 _isLoading.value = false
             }
-        }
-    }
-
-    /**
-     * function to add payments to active payments
-     */
-    fun addPayment(payTo: String, payFrom: List<String>, amount: Double, memo: String, recurring: Boolean) {
-        val amountPerPerson = amount / payFrom.size
-        for (name in payFrom) {
-            val newPayment = Payment(
-                id = (paymentsList.value.size + 1).toString(),
-                payToId = payTo,
-                payToName = null,  // TODO: Fetch name
-                payToVenmoUsername = null,  // TODO: Fetch venmo username
-                payFromId = name,
-                payFromName = null,  // TODO: Fetch name
-                amount = amountPerPerson,
-                memo = memo,
-                dueDate = null,
-                datePaid = null,
-                paid = false,
-                recurring = recurring
-            )
-            _paymentsList.value += newPayment
         }
     }
 
