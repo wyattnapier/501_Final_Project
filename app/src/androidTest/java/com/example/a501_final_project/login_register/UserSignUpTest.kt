@@ -395,4 +395,73 @@ class UserSignUpTest {
 
         assert(onBackCalled)
     }
+
+    @Test
+    fun backButton_fromReviewToGetUserInfo_preservesState() {
+        // 1. Hoist the state for the test, just like SignUpScreen does for the real app.
+        var name by mutableStateOf("")
+        var venmo by mutableStateOf("")
+        var currentStep by mutableStateOf(SignUpSteps.USER_INFO) // Start at the USER_INFO step
+
+        composeTestRule.setContent {
+            _501_Final_ProjectTheme {
+                // 2. Use a 'when' block to simulate the navigation controlled by the test.
+                when (currentStep) {
+                    SignUpSteps.USER_INFO -> {
+                        GetUserInfo(
+                            name = name,
+                            onNameChange = { name = it },
+                            venmoUsername = venmo,
+                            onVenmoUsernameChange = { venmo = it },
+                            onNext = {
+                                // When "Next" is clicked, change the step to REVIEW
+                                currentStep = SignUpSteps.REVIEW
+                            }
+                        )
+                    }
+                    SignUpSteps.REVIEW -> {
+                        // Create a dummy ViewModel for the preview
+                        val reviewViewModel = LoginViewModel().apply {
+                            displayName = name
+                            venmoUsername = venmo
+                        }
+                        ReviewInfo(
+                            loginViewModel = reviewViewModel,
+                            navController = mockNavController,
+                            onBack = {
+                                // When "Go Back" is clicked, change the step back to USER_INFO
+                                currentStep = SignUpSteps.USER_INFO
+                            }
+                        )
+                    }
+                    else -> {
+                        // Other steps are not relevant for this test
+                    }
+                }
+            }
+        }
+
+        // --- Step 1: Simulate user entering data on the GetUserInfo screen ---
+        val testName = "Test User"
+        val testVenmo = "testing123"
+        // Enter text in GetUserInfo. This is now guaranteed to be on the screen.
+        composeTestRule.onNodeWithText("Your Name").performTextInput(testName)
+        composeTestRule.onNodeWithText("Venmo Username").performTextInput(testVenmo)
+        // Click "Next" to navigate to ReviewInfo
+        composeTestRule.onNodeWithText("Next").performClick()
+
+        // --- Step 2: Verify we are on the ReviewInfo screen and data is present ---
+        composeTestRule.onNodeWithText("Review Your Info").assertIsDisplayed()
+        composeTestRule.onNodeWithText(testName).assertIsDisplayed()
+        composeTestRule.onNodeWithText(testVenmo).assertIsDisplayed()
+
+        // --- Step 3: Click the back button on the ReviewInfo screen ---
+        composeTestRule.onNodeWithText("Go Back & Edit").performClick()
+
+        // --- Step 4: Verify we are back on GetUserInfo and the data is still there ---
+        composeTestRule.onNodeWithText("Tell Us About Yourself").assertIsDisplayed()
+        // Check that the text fields still contain the original input.
+        composeTestRule.onNodeWithText("Your Name").assert(hasText(testName))
+        composeTestRule.onNodeWithText("Venmo Username").assert(hasText(testVenmo))
+    }
 }
