@@ -3,6 +3,7 @@ package com.example.a501_final_project
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,6 +31,7 @@ class MainViewModel(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     fun loadUserData() {
+        Log.d("MainViewModel", "loadUserData() called")
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
@@ -56,12 +58,17 @@ class MainViewModel(
 
     /**
      * Load the current user's household data using suspend functions
+     * with retry logic for newly created households
      */
-    fun loadHouseholdData() {
+    fun loadHouseholdData(retryCount: Int = 0) {
+        Log.d("MainViewModel", "loadHouseholdData() called (attempt ${retryCount + 1})")
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            _isHouseholdDataLoaded.value = false
+            // Don't reset to false if we're retrying
+            if (retryCount == 0) {
+                _isHouseholdDataLoaded.value = false
+            }
 
             try {
                 // Call the suspend function from the repository
@@ -71,12 +78,21 @@ class MainViewModel(
                 _householdId.value = householdId
                 _householdData.value = data
                 _isHouseholdDataLoaded.value = true
-                Log.d("MainViewModel", "Household loaded: $householdId - ${data["name"]}")
+                Log.d("MainViewModel", "✓ Household loaded successfully: $householdId - ${data["name"]}")
 
             } catch (exception: Exception) {
-                // Update state on failure
-                _errorMessage.value = "Failed to load household: ${exception.message}"
-                Log.e("MainViewModel", "Error loading household", exception)
+                Log.e("MainViewModel", "✗ Error loading household (attempt ${retryCount + 1})", exception)
+
+                // If this is a "no household" error and we haven't retried much, retry
+                if (retryCount < 3 && exception.message?.contains("household") == true) {
+                    Log.d("MainViewModel", "Retrying household load after 1 second...")
+                    delay(1000) // Wait 1 second before retry
+                    loadHouseholdData(retryCount + 1)
+                } else {
+                    // Update state on failure
+                    _errorMessage.value = "Failed to load household: ${exception.message}"
+                    _isHouseholdDataLoaded.value = false
+                }
             } finally {
                 // This will run whether the try block succeeded or failed
                 _isLoading.value = false

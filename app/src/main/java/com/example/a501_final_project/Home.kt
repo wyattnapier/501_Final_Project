@@ -22,10 +22,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavController
+import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.CalendarViewType
 import com.example.a501_final_project.events.EventsViewModel
 import com.example.a501_final_project.events.UpcomingEventsWidget
 import com.example.a501_final_project.login_register.UserPreferences
+import com.example.a501_final_project.payment.PaymentViewModel
+import com.example.a501_final_project.chores.ChoreWidget
+import com.example.a501_final_project.payment.UpcomingPaymentsWidget
 
 /**
  * composable for the home screen
@@ -35,7 +39,10 @@ import com.example.a501_final_project.login_register.UserPreferences
 @Composable
 fun HomeScreen(
     navController: NavController,
+    mainViewModel: MainViewModel,
     eventsViewModel: EventsViewModel,
+    paymentViewModel: PaymentViewModel,
+    choresViewModel: ChoresViewModel,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -45,7 +52,11 @@ fun HomeScreen(
     val showChores by prefs.showChores.collectAsState(initial = true)
     val showEvents by prefs.showEvents.collectAsState(initial = true)
 
-    val events by eventsViewModel.events.collectAsState()
+    val currentUserId by mainViewModel.userId.collectAsState()
+    val currentPaymentsForUser = (
+            paymentViewModel.getPaymentsFor(currentUserId ?: "") +
+                    paymentViewModel.getPaymentsFrom(currentUserId ?: "")
+            ).filter { !it.paid }
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp)
@@ -57,9 +68,9 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 UpcomingEventsWidget(
-                    events = events.sortedBy { it.startDateTime?.value },
                     onCardClick = { eventsWidgetCardOnClick(navController, eventsViewModel) },
                     onEventClick = { eventsWidgetEventOnClick(navController, eventsViewModel) },
+                    eventsViewModel = eventsViewModel,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -71,10 +82,11 @@ fun HomeScreen(
                     .weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                BoxItem(
-                    "Payment",
-                    MaterialTheme.colorScheme.secondaryContainer,
-                    onClick = { navigateToScreen(navController, Screen.Pay) }
+                UpcomingPaymentsWidget(
+                    paymentViewModel = paymentViewModel,
+                    onCardClick = { navigateToScreen(navController, Screen.Pay) },
+                    currentUserId = currentUserId,
+                    modifier = Modifier.fillMaxSize()
                 )
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -85,10 +97,26 @@ fun HomeScreen(
                     .weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                BoxItem(
-                    "Chores",
-                    MaterialTheme.colorScheme.tertiaryContainer,
-                    onClick = { navigateToScreen(navController, Screen.Chores) }
+                ChoreWidget(
+                    mainViewModel = mainViewModel,
+                    choresViewModel = choresViewModel,
+                    onCardClick = { navigateToScreen(navController, Screen.Chores)},
+                    Modifier.fillMaxSize()
+                )
+            }
+        }
+
+        // default message if no widgets are enabled
+        if (!showPayments && !showChores && !showEvents) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = androidx.compose.ui.Alignment.Center
+            ) {
+                Text(
+                    text = "Welcome home :)\nYou've disabled all home screen widgets. Go to settings if you'd like to enable them!",
+                    style = MaterialTheme.typography.headlineSmall,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
                 )
             }
         }

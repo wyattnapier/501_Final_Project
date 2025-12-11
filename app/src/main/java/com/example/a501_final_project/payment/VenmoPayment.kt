@@ -1,5 +1,6 @@
 package com.example.a501_final_project.payment
 
+import android.R
 import androidx.compose.runtime.Composable
 
 import android.content.ActivityNotFoundException
@@ -7,15 +8,19 @@ import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.example.a501_final_project.MainViewModel
@@ -90,7 +95,11 @@ fun VenmoPaymentScreen(
                     Log.d("VenmoPaymentScreen", "Skipping payment with null currentUserId")
                     return@items
                 }
-                PaymentListItem(payment, currentUserId!!, Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+                PaymentListItem(
+                    paymentViewModel = paymentViewModel,
+                    payment = payment,
+                    currentUserId = currentUserId!!,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
             }
         }
     }
@@ -98,8 +107,9 @@ fun VenmoPaymentScreen(
 
 @Composable
 fun PaymentListItem(
+    paymentViewModel: PaymentViewModel,
     payment: Payment,
-    currentUser: String,
+    currentUserId: String,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -109,13 +119,18 @@ fun PaymentListItem(
         if (payment.paid) {
             PaidPaymentListItem(payment)
         } else {
-            UnpaidPaymentListItem(payment, currentUser)
+            UnpaidPaymentListItem(
+                paymentViewModel =paymentViewModel,
+                payment = payment,
+                currentUserId = currentUserId
+            )
         }
     }
 }
 
 @Composable
 fun UnpaidPaymentListItem(
+    paymentViewModel: PaymentViewModel,
     payment: Payment,
     currentUserId: String
 ) {
@@ -154,9 +169,8 @@ fun UnpaidPaymentListItem(
             )
         } else {
             PayButton(
-                payToVenmoUsername = payment.payToVenmoUsername,
-                amount = payment.amount,
-                note = payment.memo,
+                paymentViewModel = paymentViewModel,
+                payment = payment,
                 modifier = Modifier
                     .weight(5f)
                     .padding(start = 8.dp),
@@ -201,12 +215,14 @@ fun PaidPaymentListItem(
 
 @Composable
 fun PayButton(
-    payToVenmoUsername: String?,
-    amount: Double,
-    note: String,
+    paymentViewModel: PaymentViewModel,
+    payment: Payment,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val payToVenmoUsername: String? = payment.payToVenmoUsername
+    val amount: Double = payment.amount
+    val note: String = payment.memo
 
     Button(
         onClick = {
@@ -224,6 +240,7 @@ fun PayButton(
 
             try {
                 context.startActivity(intent)
+                paymentViewModel.completePayment(payment)
             } catch (e: ActivityNotFoundException) {
                 // Venmo not installed → open Play Store
                 val playStoreUri = "https://play.google.com/store/apps/details?id=com.venmo".toUri()

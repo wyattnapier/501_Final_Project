@@ -3,6 +3,8 @@ package com.example.a501_final_project.chores
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.util.unpackInt1
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -63,12 +65,12 @@ class ChoresViewModel(
 
     private val _choresList = MutableStateFlow<List<Chore>>(emptyList())
     var choresList: StateFlow<List<Chore>> = _choresList.asStateFlow()
-
-    private val _currentChores = MutableStateFlow<List<Chore>>(emptyList())
-    val currentChores: StateFlow<List<Chore>> = _currentChores
-
-    private val _previousChores = MutableStateFlow<List<Chore>>(emptyList())
-    val previousChores: StateFlow<List<Chore>> = _previousChores
+//
+//    private val _currentChores = MutableStateFlow<List<Chore>>(emptyList())
+//    val currentChores: StateFlow<List<Chore>> = _currentChores
+//
+//    private val _previousChores = MutableStateFlow<List<Chore>>(emptyList())
+//    val previousChores: StateFlow<List<Chore>> = _previousChores
 
 
     var recurringChoresList: List<RecurringChore>? = null
@@ -85,26 +87,27 @@ class ChoresViewModel(
     private val _isChoresDataLoaded = MutableStateFlow(false)
     val isChoresDataLoaded: StateFlow<Boolean> = _isChoresDataLoaded.asStateFlow()
     private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
 
-    // helper function to separaate current from past chores for the UI
-    private fun splitChores(chores: List<Chore>) {
-        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
-        val today = Calendar.getInstance().time
-        val current = mutableListOf<Chore>()
-        val previous = mutableListOf<Chore>()
-
-        for (chore in chores) {
-            val dueDate = chore.dueDate.let { dateFormat.parse(it) }
-            if (dueDate != null && !dueDate.before(today)) { // not overdue
-                current.add(chore)
-            } else {
-                previous.add(chore)
-            }
-        }
-        _currentChores.value = current
-        _previousChores.value = previous
-    }
+//    // helper function to separaate current from past chores for the UI
+//    private fun splitChores(chores: List<Chore>) {
+//        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+//        val today = Calendar.getInstance().time
+//        val current = mutableListOf<Chore>()
+//        val previous = mutableListOf<Chore>()
+//
+//        for (chore in chores) {
+//            val dueDate = chore.dueDate.let { dateFormat.parse(it) }
+//            if (dueDate != null && !dueDate.before(today)) { // not overdue
+//                current.add(chore)
+//            } else {
+//                previous.add(chore)
+//            }
+//        }
+//        _currentChores.value = current
+//        _previousChores.value = previous
+//    }
 
     // helper for converting data from database to local data classes
     private fun Any?.toStringOrNull(): String? {
@@ -299,8 +302,6 @@ class ChoresViewModel(
                     }
 
                     _choresList.value = parsedChores
-                    // split chores into current and past for UI
-                    splitChores(parsedChores)
                     Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
                 }
 
@@ -555,6 +556,7 @@ class ChoresViewModel(
         return try {
             var signedUrl = supabaseClient.storage.from("chore_photos").createSignedUrl(path, 120.minutes)
             signedUrl = BuildConfig.SUPABASE_URL + "/storage/v1/" + signedUrl
+            _choreImageUris.value = _choreImageUris.value.plus(choreId to signedUrl.toUri())
             signedUrl.toUri()
         }catch (e: Exception){
             Log.e("ChoresViewModel", "Error getting image URI: ${e.message}", e)
@@ -567,4 +569,75 @@ class ChoresViewModel(
         completeChore(chore)
         onPhotoCaptured(chore.choreID, chore.householdID, imageUri, context)
     }
+
+    fun isChoreOverdue(chore: Chore?): Boolean {
+        val isOverdue = chore?.dueDate?.let { dueString ->
+            try {
+                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+                dateFormat.isLenient = false
+
+                val dueDate = dateFormat.parse(dueString) ?: return@let false
+
+                val todayCal = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                val dueCal = Calendar.getInstance().apply {
+                    time = dueDate
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+
+                // overdue if due date < today (yesterday or earlier)
+                dueCal.before(todayCal)
+
+            } catch (e: Exception) {
+                Log.d("MyChoreWidget", "Failed to parse date: ${e.message}")
+                false
+            }
+        } ?: false
+        Log.d("ChoresViewModel", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
+        return isOverdue
+    }
+
+    /**
+     * Filters the main chore list to return only chores with a due date after today.
+     *
+     * @return A list of chores due in the future.
+     */
+    fun getUpcomingChores(chores: List<Chore>): List<Chore> {
+        // 1. Define the date format that matches how you store it in Firestore.
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+
+        // 2. Get today's date and reset its time to the beginning of the day (00:00:00).
+        // This ensures that chores due *any time* today are not included in the "after today" list.
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        // 3. Filter the list of chores.
+        return chores.filter { chore ->
+            try {
+                // Parse the chore's due date string into a Date object.
+                val choreDueDate = dateFormat.parse(chore.dueDate)
+
+                // The filter keeps the chore if its due date is strictly AFTER today or not completed
+                choreDueDate?.after(today) ?: false || !chore.completed
+
+            } catch (e: Exception) {
+                // If the date string is malformed, log the error and exclude it from the list.
+                Log.e("ChoresViewModel", "Could not parse date string: '${chore.dueDate}' for chore: ${chore.name}", e)
+                false
+            }
+        }
+    }
+
 }

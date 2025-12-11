@@ -9,7 +9,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.a501_final_project.FirestoreRepository
 import com.example.a501_final_project.R
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -27,10 +26,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.api.services.calendar.CalendarScopes
 
+// maps out which step of sign up we are in
+enum class SignUpSteps {
+    GOOGLE_LOGIN,
+    USER_INFO,
+    REVIEW
+}
+
 class LoginViewModel() : ViewModel() {
     var displayName by mutableStateOf("")
-    var username by mutableStateOf("")
-
     var venmoUsername by mutableStateOf("")
 
     private val auth: FirebaseAuth = Firebase.auth
@@ -162,7 +166,7 @@ class LoginViewModel() : ViewModel() {
             return
         }
 
-        val user = Member(name = displayName, username = username, venmoUsername = venmoUsername)
+        val user = Member(name = displayName, venmoUsername = venmoUsername)
         val uid = currentUser.uid // this hte current user's UID given by firebase auth
 
         db.collection("users") // the name of the collection in firestore
@@ -217,6 +221,5 @@ data class LoginUiState(
 // data class for a user
 data class Member(
     val name : String,
-    val username : String,
     val venmoUsername : String,
 )

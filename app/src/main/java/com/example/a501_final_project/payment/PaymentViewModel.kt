@@ -44,6 +44,7 @@ class PaymentViewModel(
     val isPaymentsDataLoaded: StateFlow<Boolean> = _isPaymentsDataLoaded.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     // Helper function for type conversion
     private fun Any?.toStringOrNull(): String? {
@@ -231,9 +232,14 @@ class PaymentViewModel(
      * function to mark a payment as paid
      */
     fun completePayment(payment: Payment) {
-        val updatedPayment = payment.copy(paid = true)
-        _pastPayments.value += updatedPayment
-        _paymentsList.value = _paymentsList.value.filter { it != payment }
+        viewModelScope.launch {
+            val updatedPayment = payment.copy(paid = true)
+            _pastPayments.value += updatedPayment
+            _paymentsList.value = _paymentsList.value.filter { it != payment }
+            // update firestore db
+            val householdId = firestoreRepository.getHouseholdIdForUserSuspend(payment.payFromId)
+            firestoreRepository.markPaymentAsCompletedSuspend(payment.id, householdId)
+        }
     }
 
     /**
