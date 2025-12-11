@@ -69,7 +69,10 @@ fun VenmoPaymentScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                IconButton(onClick = { showAddPaymentDialog = true }) {
+                IconButton(
+                    onClick = { showAddPaymentDialog = true },
+                    enabled = currentUserId != null && mainViewModel.residents.value.size > 1
+                ) {
                     Icon(Icons.Default.Add, contentDescription = "Add Payment")
                 }
             }
