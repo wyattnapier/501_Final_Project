@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
+import com.example.a501_final_project.IRepository
 import com.example.a501_final_project.chores.RecurringChore
 import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.launch
@@ -43,9 +44,8 @@ data class ResidentDB(
 )
 
 class HouseholdViewModel(
-    private val repository: FirestoreRepository = FirestoreRepository()
+    private val repository: IRepository = FirestoreRepository(), // use IRepository interface for testing
 ) : ViewModel() {
-
     var existingHousehold by mutableStateOf<Boolean?>(null)
 
     // Get current user ID from repository

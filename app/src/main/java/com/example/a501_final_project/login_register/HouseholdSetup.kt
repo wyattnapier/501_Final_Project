@@ -301,7 +301,7 @@ fun ChoreSection(
         )
         if (isNameError) {
             Text(
-                text = "Chore name cannot be empty",
+                text = "Chore name must be between 1 and 25 characters",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
