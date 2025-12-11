@@ -87,7 +87,12 @@ fun EventsScreen(
             when {
                 !loginState.isLoggedIn -> Text("Please sign in to see events.")
                 isLoading && allEvents.isEmpty() -> CircularProgressIndicator()
-                error != null -> Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                error != null -> Text(
+                    "Error: $error",
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(32.dp)
+                )
                 allEvents.isEmpty() && !isLoading -> Text("No upcoming events found.")
                 else -> {
                     val allEvents = allEvents.sortedBy { it.startDateTime?.value }
