@@ -106,4 +106,13 @@ class MainViewModel(
     fun clearError() {
         _errorMessage.value = null
     }
+
+    // reset all state on logout
+    fun reset() {
+        _userId.value = null
+        _householdId.value = null
+        _householdData.value = null
+        _isHouseholdDataLoaded.value = false
+        Log.d("MainViewModel", "State has been reset.")
+    }
 }

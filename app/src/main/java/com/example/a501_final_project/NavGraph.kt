@@ -78,7 +78,11 @@ fun AppNavGraph(
                 modifier = modifier,
                 navController = navController,
                 loginViewModel = loginViewModel,
-                mainViewModel = mainViewModel
+                mainViewModel = mainViewModel,
+                eventsViewModel = eventsViewModel,
+                choresViewModel = choresViewModel,
+                paymentViewModel = paymentViewModel,
+                householdViewModel = householdViewModel
             )
         }
         // Login

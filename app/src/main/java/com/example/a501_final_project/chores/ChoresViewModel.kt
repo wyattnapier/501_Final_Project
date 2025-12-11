@@ -383,4 +383,15 @@ class ChoresViewModel(
         Log.d("ChoresViewModel", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
         return isOverdue
     }
+
+    // reset all state variables on logout
+    fun reset() {
+        _roommates.value = emptyList()
+        _choresList.value = emptyList()
+        _showPrevChores.value = false
+        _choreImageUris.value = emptyMap()
+        _tempImageUri.value = null
+        _isChoresDataLoaded.value = false
+        _isLoading.value = false
+    }
 }

@@ -205,6 +205,20 @@ fun MainScreen() {
         }
     }
 
+    // watching for full signout event
+    LaunchedEffect(Unit) {
+        loginViewModel.signOutComplete.collect {
+            // When a sign-out event is received, navigate to the login screen
+            // and clear the entire back stack.
+            navController.navigate(Screen.Login.route) {
+                popUpTo(navController.graph.id) {
+                    inclusive = true
+                }
+            }
+            Log.d("MainScreen", "Sign out complete. Navigated to Login screen.")
+        }
+    }
+
     Scaffold(
         bottomBar = {
             if (shouldShowBars) {
