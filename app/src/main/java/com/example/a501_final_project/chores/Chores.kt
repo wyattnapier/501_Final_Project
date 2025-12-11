@@ -104,10 +104,18 @@ fun ChoresScreen(mainViewModel: MainViewModel, choresViewModel: ChoresViewModel,
 
 @Composable
 fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, choresViewModel: ChoresViewModel, context: Context, modifier: Modifier = Modifier){
+    val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+
     var myChores = chores.filter { it.assignedToId == userID && it.householdID == householdID }
 
-    val incompleteChores = myChores.filter {it.completed == false}
-    val completeChores = myChores.filter {it.completed == true}
+    val incompleteChores = myChores.filter {!it.completed}.sortedBy {
+        try {
+            dateFormat.parse(it.dueDate)
+        } catch (e: ParseException) {
+            Date(Long.MAX_VALUE)
+        }
+    }
+    val completeChores = myChores.filter {it.completed}
 
     myChores = incompleteChores + completeChores
 
@@ -314,9 +322,10 @@ fun RoommateChores(userID: String, householdID: String?, chores: List<Chore>, ch
             }
             item {
                 Row(
-                    modifier = Modifier.fillParentMaxWidth(),
+                    modifier = Modifier.fillParentMaxWidth().padding(4.dp),
                     horizontalArrangement = Arrangement.Center
                 ) {
+                    Spacer(modifier = Modifier.height(8.dp))
                     Button(onClick = { choresViewModel.toggleShowPrevChores() }) {
                         Text("See Previous Chores")
                     }
@@ -380,7 +389,7 @@ fun PrevChores(
     choresViewModel: ChoresViewModel,
     modifier: Modifier = Modifier
 ) {
-    // if due date < today, display on prev tasks
+    // if due date < today or complete, display on prev tasks
     val prevChores = chores.filter { choresViewModel.isChoreOverdue(it) || it.completed }
     Column(
         modifier = Modifier
