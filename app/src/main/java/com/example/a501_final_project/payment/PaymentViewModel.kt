@@ -4,11 +4,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
+import com.google.firebase.Timestamp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 
@@ -55,17 +57,79 @@ class PaymentViewModel(
         }
     }
 
-    fun loadPaymentsData() {
+    fun createNewPayment(
+        payFromId: String,
+        payToId: String,
+        amount: Double,
+        memo: String,
+        dueDate: Date?
+    ) {
+        var newPaymentId: String? = null
+        viewModelScope.launch {
+            try {
+                val householdId = firestoreRepository.getHouseholdIdForUserSuspend(payFromId)
+                newPaymentId = System.currentTimeMillis().toString() // create new id
+                val payFromName = firestoreRepository.getUserSuspend(payFromId)["name"] as? String
+                val payToUserData = firestoreRepository.getUserSuspend(payToId)
+                val payToName = payToUserData["name"] as? String
+                val payToVenmo = payToUserData["venmoUsername"] as? String
+                val dueDateTimestamp = dueDate?.let { Timestamp(it) }
+
+                // to go in the database
+                val newPaymentData = mapOf(
+                    "id" to newPaymentId,
+                    "pay_from" to payFromId,
+                    "pay_to" to payToId,
+                    "amount" to amount,
+                    "memo" to memo,
+                    "paid" to false,
+                    "date_paid" to null,
+                    "due_date" to null,
+                    "due_date" to dueDateTimestamp
+                ) as Map<String, Any>
+
+                // to be used to quickly update the ui's payment list
+                val newPaymentObject = Payment(
+                    id = newPaymentId,
+                    payFromId = payFromId,
+                    payFromName = payFromName ?: "Unknown",
+                    payToId = payToId,
+                    payToName = payToName ?: "Unknown",
+                    payToVenmoUsername = payToVenmo,
+                    amount = amount,
+                    memo = memo,
+                    dueDate = dueDate?.let { SimpleDateFormat("MMMM d, yyyy", Locale.getDefault()).format(it) },
+                    datePaid = null,
+                    paid = false,
+                    recurring = false
+                )
+                _paymentsList.value = listOf(newPaymentObject) + _paymentsList.value // optimistic update before writing to database
+
+                firestoreRepository.addNewPaymentToHousehold(householdId, newPaymentData)
+
+            } catch (e: Exception) {
+                Log.e("PaymentViewModel", "Failed to create new payment", e)
+                if (newPaymentId != null) {
+                    _paymentsList.value =
+                        _paymentsList.value.filter { it.id != newPaymentId } // if firestore write fails remove new payment
+                }
+            }
+        }
+    }
+
+    // Also, modify loadPaymentsData to allow forcing a reload
+    fun loadPaymentsData(forceReload: Boolean = false) {
         if (_isLoading.value) {
             Log.w("PaymentViewModel", "Already loading, skipping duplicate call")
             return
         }
-        if (_isPaymentsDataLoaded.value) {
+        if (_isPaymentsDataLoaded.value && !forceReload) { // Check the forceReload flag
             Log.w("PaymentViewModel", "Payments data already loaded, skipping")
             return
         }
 
         _isLoading.value = true
+        _isPaymentsDataLoaded.value = false // Reset while loading
         Log.d("PaymentViewModel", "Starting to load payments data...")
 
         viewModelScope.launch {
@@ -198,30 +262,6 @@ class PaymentViewModel(
     }
 
     /**
-     * function to add payments to active payments
-     */
-    fun addPayment(payTo: String, payFrom: List<String>, amount: Double, memo: String, recurring: Boolean) {
-        val amountPerPerson = amount / payFrom.size
-        for (name in payFrom) {
-            val newPayment = Payment(
-                id = (paymentsList.value.size + 1).toString(),
-                payToId = payTo,
-                payToName = null,  // TODO: Fetch name
-                payToVenmoUsername = null,  // TODO: Fetch venmo username
-                payFromId = name,
-                payFromName = null,  // TODO: Fetch name
-                amount = amountPerPerson,
-                memo = memo,
-                dueDate = null,
-                datePaid = null,
-                paid = false,
-                recurring = recurring
-            )
-            _paymentsList.value += newPayment
-        }
-    }
-
-    /**
      * function to remove payment
      */
     fun removePayment(payment: Payment) {
@@ -245,15 +285,15 @@ class PaymentViewModel(
     /**
      * function to get payments assigned to specified person (by ID)
      */
-    fun getPaymentsFor(personId: String): List<Payment> {
-        return paymentsList.value.filter { it.payToId == personId }
+    fun getPaymentsFor(personId: String, payments: List<Payment>): List<Payment> {
+        return payments.filter { it.payToId == personId }
     }
 
     /**
      * function to get payments from a specific person (by ID)
      */
-    fun getPaymentsFrom(personId: String): List<Payment> {
-        return paymentsList.value.filter { it.payFromId == personId }
+    fun getPaymentsFrom(personId: String, payments: List<Payment>): List<Payment> {
+        return payments.filter { it.payFromId == personId }
     }
 
     /**

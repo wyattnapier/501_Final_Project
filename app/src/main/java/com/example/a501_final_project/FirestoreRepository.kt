@@ -113,7 +113,7 @@ class FirestoreRepository : IRepository {
     }
 
     // add member to list of those that need to be added to household calendar
-    suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String) {
+    override suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String) {
         try {
             val householdRef = db.collection("households").document(householdId)
             // Atomically add the new user's email to the 'pending_members' array.
@@ -145,7 +145,7 @@ class FirestoreRepository : IRepository {
             throw e
         }
     }
-    
+
     override suspend fun getHouseholdCalendarNameWithoutIdSuspend(): String {
         val (_, householdData) = getHouseholdWithoutIdSuspend()
         return householdData["calendar"] as? String
@@ -226,6 +226,18 @@ class FirestoreRepository : IRepository {
         } catch(exception: Exception) {
             Log.e("FirestoreRepository", "Failed to add resident to household", exception)
             throw exception // Re-throw exception for the ViewModel to catch
+        }
+    }
+
+    suspend fun addNewPaymentToHousehold(householdId: String, newPaymentData: Map<String, Any>) {
+        try {
+            val householdRef = db.collection("households").document(householdId)
+            // Atomically add the new payment map to the 'payments' array
+            householdRef.update("payments", FieldValue.arrayUnion(newPaymentData)).await()
+            Log.d("FirestoreRepository", "Successfully added new payment to household $householdId")
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error adding new payment to household", e)
+            throw e // Re-throw for the ViewModel to handle
         }
     }
 

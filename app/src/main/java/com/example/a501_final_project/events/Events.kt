@@ -3,6 +3,7 @@ package com.example.a501_final_project.events
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
@@ -54,32 +55,46 @@ fun EventsScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = { showAddEventDialog = true }, // Open the dialog
-                enabled = loginState.isLoggedIn && targetCalendarId.isNullOrBlank().not()
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add event",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+            Box(modifier = Modifier.padding(all = 4.dp), contentAlignment = Alignment.CenterStart) {
+                Card(
+                    onClick = { showAddEventDialog = true }, // Open the dialog
+                    shape = CircleShape,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    enabled = loginState.isLoggedIn && targetCalendarId.isNullOrBlank().not(),
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add event",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
             }
-
             CalendarViewSwitcher(
                 selectedView = viewType,
                 onViewSelected = { eventsViewModel.setCalendarView(it) }
             )
-
-            IconButton(
-                onClick = {
-                    if (loginState.isLoggedIn) {
-                        Log.d("EventsScreen", "Refreshing calendar events with targetCalendarId: $targetCalendarId")
-                        eventsViewModel.fetchCalendarEvents(context, targetCalendarId ?: "")
-                    }
-                },
-                enabled = !isLoading && loginState.isLoggedIn && targetCalendarId.isNullOrBlank().not()
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
+            Box(modifier = Modifier.padding(4.dp), contentAlignment = Alignment.CenterStart) {
+                Card(
+                    onClick = {
+                        if (loginState.isLoggedIn) {
+                            Log.d("EventsScreen", "Refreshing calendar events with targetCalendarId: $targetCalendarId")
+                            eventsViewModel.fetchCalendarEvents(context, targetCalendarId ?: "")
+                        }
+                    },
+                    shape = CircleShape,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    enabled = !isLoading && loginState.isLoggedIn && targetCalendarId.isNullOrBlank().not()
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
             }
         }
 
