@@ -1,15 +1,11 @@
 package com.example.a501_final_project.payment
 
-import android.R
 import androidx.compose.runtime.Composable
-
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.forEach
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,9 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -74,33 +68,37 @@ fun VenmoPaymentScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            IconButton(onClick = { showAddPaymentDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Payment")
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                IconButton(onClick = { showAddPaymentDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Payment")
+                }
             }
             Text(
                 text = "Pay with Venmo",
                 style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(2f) // Give it more weight to occupy the center
             )
-
-            FilledTonalButton(
-                onClick = { paymentViewModel.toggleShowPastPayments() },
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = if (showPastPayments)
-                        MaterialTheme.colorScheme.primaryContainer
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
-                ),
-                modifier = Modifier.height(36.dp)
-            ) {
-                Text(
-                    text = if (showPastPayments) "Showing Past" else "Show Past",
-                    color = if (showPastPayments)
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.labelLarge
-                )
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+                FilledTonalButton(
+                    onClick = { paymentViewModel.toggleShowPastPayments() },
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = if (showPastPayments)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    modifier = Modifier.height(36.dp)
+                ) {
+                    Text(
+                        text = if (showPastPayments) "Past" else "Now",
+                        color = if (showPastPayments)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
             }
         }
         LazyColumn {
@@ -133,7 +131,7 @@ fun VenmoPaymentScreen(
                     payToId = payToId,
                     amount = amount,
                     memo = memo,
-                    dueDate = dueDate as java.util.Date?
+                    dueDate = dueDate
                 )
                 showAddPaymentDialog = false
             }
