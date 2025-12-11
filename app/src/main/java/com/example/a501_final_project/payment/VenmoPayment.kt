@@ -33,6 +33,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.models.LocalResident
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.Date
 
 enum class PaymentDirection {
     PAYING, REQUESTING
@@ -124,12 +127,13 @@ fun VenmoPaymentScreen(
         AddPaymentDialog(
             mainViewModel = mainViewModel,
             onDismiss = { showAddPaymentDialog = false },
-            onConfirm = { payFromId, payToId, amount, memo ->
+            onConfirm = { payFromId, payToId, amount, memo, dueDate ->
                 paymentViewModel.createNewPayment(
                     payFromId = payFromId,
                     payToId = payToId,
                     amount = amount,
-                    memo = memo
+                    memo = memo,
+                    dueDate = dueDate as java.util.Date?
                 )
                 showAddPaymentDialog = false
             }
@@ -304,7 +308,7 @@ fun PaymentReminderButton(
 fun AddPaymentDialog(
     mainViewModel: MainViewModel,
     onDismiss: () -> Unit,
-    onConfirm: (payFromId: String, payToId: String, amount: Double, memo: String) -> Unit
+    onConfirm: (payFromId: String, payToId: String, amount: Double, memo: String, dueDate: Date?) -> Unit
 ) {
     val residents by mainViewModel.residents.collectAsState()
     val currentUserId by mainViewModel.userId.collectAsState()
@@ -316,7 +320,31 @@ fun AddPaymentDialog(
     var selectedResident by remember { mutableStateOf<LocalResident?>(null) }
     var paymentDirection by remember { mutableStateOf(PaymentDirection.PAYING) }
     val options = listOf("Pay To", "Request From")
+    var dueDate by remember { mutableStateOf<Date?>(null) }
+    val showDatePicker = remember { mutableStateOf(false) }
 
+    if (showDatePicker.value) {
+        val datePickerState = rememberDatePickerState()
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker.value = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDatePicker.value = false
+                        // Convert the selected Long to a Date object
+                        datePickerState.selectedDateMillis?.let {
+                            dueDate = Date(it)
+                        }
+                    }
+                ) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker.value = false }) { Text("Cancel") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add New Payment Task") },
@@ -381,6 +409,29 @@ fun AddPaymentDialog(
                     onValueChange = { memo = it },
                     label = { Text("Memo (e.g., Groceries)") }
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Display the selected date or a placeholder
+                    Text(
+                        text = dueDate?.let {
+                            "Due: ${
+                                SimpleDateFormat(
+                                    "MMM d, yyyy",
+                                    Locale.getDefault()
+                                ).format(it)}"
+                        } ?: "No due date set",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    // Button to open the date picker
+                    TextButton(onClick = { showDatePicker.value = true }) {
+                        Text(if (dueDate == null) "Set Date" else "Change")
+                    }
+                }
             }
         },
         confirmButton = {
@@ -395,7 +446,7 @@ fun AddPaymentDialog(
                             Log.e("AddPaymentDialog", "payFromId or payToId is null")
                             return@Button
                         }
-                        onConfirm(payFromId, payToId, finalAmount, memo)
+                        onConfirm(payFromId, payToId, finalAmount, memo, dueDate)
                     }
                 },
                 // Disable button until all fields are valid

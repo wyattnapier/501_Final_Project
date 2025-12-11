@@ -4,11 +4,13 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
+import com.google.firebase.Timestamp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 
@@ -55,7 +57,13 @@ class PaymentViewModel(
         }
     }
 
-    fun createNewPayment(payFromId: String, payToId: String, amount: Double, memo: String) {
+    fun createNewPayment(
+        payFromId: String,
+        payToId: String,
+        amount: Double,
+        memo: String,
+        dueDate: Date?
+    ) {
         var newPaymentId: String? = null
         viewModelScope.launch {
             try {
@@ -65,6 +73,7 @@ class PaymentViewModel(
                 val payToUserData = firestoreRepository.getUserSuspend(payToId)
                 val payToName = payToUserData["name"] as? String
                 val payToVenmo = payToUserData["venmoUsername"] as? String
+                val dueDateTimestamp = dueDate?.let { Timestamp(it) }
 
                 // to go in the database
                 val newPaymentData = mapOf(
@@ -75,7 +84,8 @@ class PaymentViewModel(
                     "memo" to memo,
                     "paid" to false,
                     "date_paid" to null,
-                    "due_date" to null
+                    "due_date" to null,
+                    "due_date" to dueDateTimestamp
                 ) as Map<String, Any>
 
                 // to be used to quickly update the ui's payment list
@@ -88,7 +98,7 @@ class PaymentViewModel(
                     payToVenmoUsername = payToVenmo,
                     amount = amount,
                     memo = memo,
-                    dueDate = null,
+                    dueDate = dueDate?.let { SimpleDateFormat("MMMM d, yyyy", Locale.getDefault()).format(it) },
                     datePaid = null,
                     paid = false,
                     recurring = false
