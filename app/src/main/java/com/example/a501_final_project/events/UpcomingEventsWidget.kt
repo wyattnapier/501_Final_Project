@@ -62,7 +62,9 @@ fun UpcomingEventsWidget(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer
         ),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.onTertiaryContainer),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
     ) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
@@ -79,7 +81,7 @@ fun UpcomingEventsWidget(
                     CircularProgressIndicator()
                 }
             } else {
-                if (nextThreeEvents.isEmpty() ) {
+                if (nextThreeEvents.isEmpty()) {
                     Box(
                         modifier = Modifier.fillMaxWidth().fillMaxHeight(),
                         contentAlignment = Alignment.Center
@@ -128,9 +130,11 @@ fun UpcomingEventItem(
                 .clickable(onClick = { onClick() }),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
             ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSecondaryContainer)
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 6.dp
+            ),
         ) {
             Row (
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),

@@ -3,6 +3,7 @@ package com.example.a501_final_project.payment
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -86,7 +87,10 @@ fun UpcomingPaymentsWidget(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer
         ),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.onTertiaryContainer)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
+
     ) {
         Column(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -129,11 +133,22 @@ fun UpcomingPaymentsWidget(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     if (oweOthers.isEmpty()) {
-                        Text(
-                            text = "You're all caught up!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(modifier = Modifier.padding(4.dp))
+                                Text(
+                                    text = "You're all caught up!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
                     } else {
                         oweOthers.forEach { payment ->
                             UpcomingPaymentItem(false, payment)
@@ -163,11 +178,22 @@ fun UpcomingPaymentsWidget(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     if (othersOwe.isEmpty()) {
-                        Text(
-                            text = "Everybody has paid you!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(modifier = Modifier.padding(4.dp))
+                                Text(
+                                    text = "Everyone has paid you!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
                     } else {
                         othersOwe.forEach { payment ->
                             UpcomingPaymentItem(true, payment)
@@ -195,7 +221,7 @@ fun UpcomingPaymentItem(
             Icon(
                 Icons.Default.Send,
                 contentDescription = "Send Icon",
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(12.dp)
             )
             Spacer(modifier = Modifier.padding(4.dp))
             Text (
@@ -206,8 +232,8 @@ fun UpcomingPaymentItem(
                         "${payment.payToName} for ${payment.memo}"
                     },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                textAlign = TextAlign.Center,
             )
         }
     }

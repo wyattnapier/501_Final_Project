@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -89,7 +90,9 @@ fun ChoreWidget(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.tertiaryContainer
         ),
-        border = BorderStroke(2.dp, MaterialTheme.colorScheme.onTertiaryContainer)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -124,8 +127,16 @@ fun ChoreWidget(
                     }
                 }
                 else {
-                    myChores.forEach { chore ->
+                    myChores.forEachIndexed { index, chore ->
                         ChoreItem(chore, choresViewModel)
+
+                        if (index < myChores.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.fillMaxWidth(0.8f),
+                                thickness = 1.dp,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.5f)
+                            )
+                        }
                     }
                 }
             }
@@ -147,46 +158,36 @@ fun ChoreItem(chore: Chore, choreViewModel: ChoresViewModel, modifier: Modifier 
             .clip(RoundedCornerShape(8.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Card(
-            modifier = Modifier
-                .padding(5.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.tertiaryContainer
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onTertiaryContainer)
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (chore.completed) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = "Chore completed",
-                        tint = Color(0xFF2E7D32) // A dark, success green color
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.Clear,
-                        contentDescription = "Chore not completed",
-                        tint = MaterialTheme.colorScheme.error // Use the theme's error color for the 'X'
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = chore.name,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = "Due: $dateStr",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (choreViewModel.isChoreOverdue(chore) && !chore.completed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            if (chore.completed) {
+                Icon(
+                    imageVector = Icons.Filled.CheckCircle,
+                    contentDescription = "Chore completed",
+                    tint = Color(0xFF2E7D32) // A dark, success green color
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Filled.Clear,
+                    contentDescription = "Chore not completed",
+                    tint = MaterialTheme.colorScheme.error // Use the theme's error color for the 'X'
+                )
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = chore.name,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Due: $dateStr",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (choreViewModel.isChoreOverdue(chore) && !chore.completed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
