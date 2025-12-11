@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException
+import com.google.api.client.googleapis.json.GoogleJsonResponseException
 import com.google.api.client.http.javanet.NetHttpTransport
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.client.util.DateTime
@@ -14,17 +16,18 @@ import com.google.api.services.calendar.CalendarScopes
 import com.google.api.services.calendar.model.Event
 import com.google.api.services.calendar.model.EventDateTime
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-/**
- * data class for Calendar events
- */
 data class CalendarEventInfo(
     val id: String,
     val summary: String?,
@@ -33,9 +36,6 @@ data class CalendarEventInfo(
     val isAllDay: Boolean = false
 )
 
-/**
- * define different UI view types for Calendar
- */
 enum class CalendarViewType {
     AGENDA,
     THREE_DAY,
@@ -48,7 +48,6 @@ class EventsViewModel(
     private val _events = MutableStateFlow<List<CalendarEventInfo>>(emptyList())
     val events: StateFlow<List<CalendarEventInfo>> = _events.asStateFlow()
 
-    // State to manage the current calendar view
     private val _calendarViewType = MutableStateFlow(CalendarViewType.AGENDA)
     val calendarViewType = _calendarViewType.asStateFlow()
 
@@ -57,6 +56,16 @@ class EventsViewModel(
 
     private val _isLoadingCalendar = MutableStateFlow(false)
     val isLoadingCalendar = _isLoadingCalendar.asStateFlow()
+
+    // New state for calendar sharing progress
+    private val _isSharingCalendar = MutableStateFlow(false)
+    val isSharingCalendar = _isSharingCalendar.asStateFlow()
+
+    private val _sharingProgress = MutableStateFlow<String?>(null)
+    val sharingProgress = _sharingProgress.asStateFlow()
+
+    private val _toastMessage = MutableStateFlow<String?>(null)
+    val toastMessage: StateFlow<String?> = _toastMessage.asStateFlow()
 
     private val numCalendarDataDays = 28
 
@@ -70,35 +79,182 @@ class EventsViewModel(
     )
     val calendarDataDateRangeEnd = _calendarDataDateRangeEnd.asStateFlow()
 
-    // The leftmost date of 3-day view
     private val _leftDayForThreeDay = MutableStateFlow(Calendar.getInstance())
     val leftDayForThreeDay: StateFlow<Calendar> = _leftDayForThreeDay.asStateFlow()
 
-    private val _householdCalendarName = MutableStateFlow<String?>(null)
-    val householdCalendarName: StateFlow<String?> = _householdCalendarName.asStateFlow()
+    private val _householdCalendarId = MutableStateFlow<String?>(null)
+    val householdCalendarId: StateFlow<String?> = _householdCalendarId.asStateFlow()
 
-    private val _isCalendarNameLoaded = MutableStateFlow(false)
-    val isCalendarNameLoaded: StateFlow<Boolean> = _isCalendarNameLoaded.asStateFlow()
+    private val _isCalendarIdLoaded = MutableStateFlow(false)
+    val isCalendarIdLoaded: StateFlow<Boolean> = _isCalendarIdLoaded.asStateFlow()
 
     /**
      * Load and cache the household calendar name
      */
-    fun loadHouseholdCalendarName(context: Context) {
-        viewModelScope.launch {
-            _isCalendarNameLoaded.value = false
-            try {
-                val calendarName = firestoreRepository.getHouseholdCalendarNameWithoutIdSuspend()
-                _householdCalendarName.value = calendarName
-                Log.d("EventsViewModel", "Loaded calendar name: $calendarName")
+    fun loadCalendarData(context: Context, forceReload: Boolean = false) {
+        Log.d("EventsViewModel", ">>> loadCalendarData() CALLED <<<")
+        Log.d("EventsViewModel", "forceReload: $forceReload, _isCalendarIdLoaded: ${_isCalendarIdLoaded.value}")
 
-                fetchCalendarEvents(context)
+        // Allow reload if forced, or if not already loaded
+        if (_isCalendarIdLoaded.value && !forceReload) {
+            Log.d("EventsViewModel", "Calendar data already loaded, skipping")
+            return
+        }
+
+        viewModelScope.launch {
+            try {
+                _isLoadingCalendar.value = true
+                _calendarError.value = null
+
+                // 1. Fetch calendar data from repository
+                Log.d("EventsViewModel", "Fetching household calendar data from Firestore")
+                val calendarDataMap = firestoreRepository.getHouseholdCalendarIdAndPendingMembersSuspend()
+                val householdId = calendarDataMap["household_id"] as? String
+                val calendarId = calendarDataMap["calendar_id"] as? String
+                val pendingMembers = calendarDataMap["pending_members"] as? List<String>
+
+                if (householdId.isNullOrBlank() || calendarId.isNullOrBlank()) {
+                    Log.e("EventsViewModel", "Household ID [$householdId] or calendar ID [$calendarId] is null or blank")
+                    throw Exception("Household calendar information is missing")
+                }
+
+                _householdCalendarId.value = calendarId
+                Log.d("EventsViewModel", "Loaded calendar ID: $calendarId")
+
+                // 2. Process pending invites if any exist (non-blocking)
+                if (!pendingMembers.isNullOrEmpty()) {
+                    Log.d("EventsViewModel", "Found ${pendingMembers.size} pending members to invite")
+                    _isSharingCalendar.value = true
+                    _sharingProgress.value = "Setting up calendar access for new members..."
+
+                    // Process invites without blocking calendar fetch
+                    launch {
+                        try {
+                            processPendingInvites(context, householdId, calendarId, pendingMembers)
+                            _sharingProgress.value = "Calendar access granted successfully"
+                            delay(2000) // Show success message briefly
+                            _sharingProgress.value = null
+                        } catch (e: Exception) {
+                            Log.e("EventsViewModel", "Error processing pending invites", e)
+                            _sharingProgress.value = "Some calendar shares may have failed"
+                            delay(3000)
+                            _sharingProgress.value = null
+                        } finally {
+                            _isSharingCalendar.value = false
+                        }
+                    }
+
+                    // Small delay to let initial shares start
+                    delay(1000)
+                }
+
+                // 3. Fetch events (don't wait for shares to complete)
+                Log.d("EventsViewModel", "Fetching calendar events")
+                fetchCalendarEvents(context, calendarId)
+
             } catch (e: Exception) {
-                Log.e("EventsViewModel", "Failed to load calendar name", e)
-                _calendarError.value = "Could not load calendar name: ${e.message}"
+                Log.e("EventsViewModel", "Failed to load calendar data", e)
+                _calendarError.value = "Could not load household calendar: ${e.message}"
             } finally {
-                _isCalendarNameLoaded.value = true
-                Log.d("EventsViewModel", "Calendar name loaded: ${_householdCalendarName.value}")
+                _isCalendarIdLoaded.value = true
+                _isLoadingCalendar.value = false
             }
+        }
+    }
+
+    /**
+     * Process pending calendar invites in parallel for better performance
+     */
+    private suspend fun processPendingInvites(
+        context: Context,
+        householdId: String,
+        calendarId: String,
+        pendingEmails: List<String>
+    ) = withContext(Dispatchers.IO) {
+        Log.d("EventsViewModel", "Processing ${pendingEmails.size} pending invites")
+
+        // Process all invites in parallel
+        val results = pendingEmails.mapIndexed { index, email ->
+            async {
+                try {
+                    withContext(Dispatchers.Main) {
+                        _sharingProgress.value = "Sharing with ${index + 1}/${pendingEmails.size} members..."
+                    }
+
+                    shareGoogleCalendar(context, calendarId, email)
+                    firestoreRepository.removePendingMember(householdId, email)
+                    Log.d("EventsViewModel", "Successfully shared with $email")
+                    true
+                } catch (e: Exception) {
+                    Log.e("EventsViewModel", "Failed to share calendar with $email: ${e.message}", e)
+                    false
+                }
+            }
+        }.awaitAll()
+
+        val successCount = results.count { it }
+        Log.d("EventsViewModel", "Successfully processed $successCount/${pendingEmails.size} invites")
+        val message = if (successCount > 0) {
+            "Successfully invited $successCount/${pendingEmails.size} new member(s) to the calendar."
+        } else {
+            null // Don't show a toast if nothing happened
+        }
+        if (successCount < pendingEmails.size) {
+            withContext(Dispatchers.Main) {
+                Log.d("EventsViewModel", "Some calendar shares failed. ${pendingEmails.size - successCount} member(s) may not have access.")
+            }
+        }
+        withContext(Dispatchers.Main) {
+            _toastMessage.value = message
+        }
+    }
+
+    /**
+     * Share an existing Google Calendar with a new user
+     */
+    private suspend fun shareGoogleCalendar(
+        context: Context,
+        calendarId: String,
+        newUserEmail: String
+    ) = withContext(Dispatchers.IO) {
+        val account = GoogleSignIn.getLastSignedInAccount(context)
+        if (account == null) {
+            Log.e("EventsViewModel", "Cannot share: No signed-in account")
+            throw Exception("No signed-in account")
+        }
+
+        val credential = GoogleAccountCredential.usingOAuth2(
+            context,
+            listOf(CalendarScopes.CALENDAR)
+        ).apply { selectedAccount = account.account }
+
+        val calendarService = com.google.api.services.calendar.Calendar.Builder(
+            NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            credential
+        ).setApplicationName("501_Final_Project").build()
+
+        try {
+            // Create ACL rule for the new user
+            val scope = com.google.api.services.calendar.model.AclRule.Scope().apply {
+                type = "user"
+                value = newUserEmail
+            }
+
+            val rule = com.google.api.services.calendar.model.AclRule().apply {
+                this.scope = scope
+                role = "owner"
+            }
+
+            calendarService.acl().insert(calendarId, rule).execute()
+            Log.d("EventsViewModel", "Successfully shared calendar with $newUserEmail")
+
+        } catch (e: UserRecoverableAuthIOException) {
+            Log.e("EventsViewModel", "Need additional permissions to share calendar", e)
+            throw Exception("Additional permissions needed: ${e.message}")
+        } catch (e: Exception) {
+            Log.e("EventsViewModel", "Failed to share Google Calendar with $newUserEmail", e)
+            throw e
         }
     }
 
@@ -106,7 +262,6 @@ class EventsViewModel(
         _leftDayForThreeDay.value = day
     }
 
-    // change the view type
     fun setCalendarView(viewType: CalendarViewType) {
         _calendarViewType.value = viewType
     }
@@ -115,11 +270,9 @@ class EventsViewModel(
         val currentLeftDay = _leftDayForThreeDay.value.clone() as Calendar
         currentLeftDay.add(Calendar.DAY_OF_YEAR, 1)
 
-        // The view shows 3 days, so the last visible day is leftDay + 2
         val lastVisibleDay = currentLeftDay.clone() as Calendar
         lastVisibleDay.add(Calendar.DAY_OF_YEAR, 2)
 
-        // Allow incrementing if the last visible day is not after the 14-day end date
         if (!lastVisibleDay.after(_calendarDataDateRangeEnd.value)) {
             _leftDayForThreeDay.value = currentLeftDay
         }
@@ -129,87 +282,68 @@ class EventsViewModel(
         val currentLeftDay = _leftDayForThreeDay.value.clone() as Calendar
         currentLeftDay.add(Calendar.DAY_OF_YEAR, -1)
 
-        // Allow decrementing if the new leftDay is not before today (the start of the 14-day range)
         if (!currentLeftDay.before(_calendarDataDateRangeStart.value)) {
             _leftDayForThreeDay.value = currentLeftDay
         }
     }
 
-    /** Called when user clicks a day in the month calendar */
     fun onDaySelected(clickedDay: Calendar) {
         val startRange = calendarDataDateRangeStart.value
         val endRange = calendarDataDateRangeEnd.value
         var potentialLeftDay = clickedDay.clone() as Calendar
 
-        // The potential last day of the 3-day view if we use the clicked day as the start.
         val potentialRightDay = (clickedDay.clone() as Calendar).apply {
             add(Calendar.DAY_OF_YEAR, 2)
         }
 
-        // SCENARIO 1: The clicked day is before the valid range.
-        // Adjust the view to start on the first valid day.
         if (potentialLeftDay.before(startRange)) {
             potentialLeftDay = startRange.clone() as Calendar
-        }
-        // SCENARIO 2: The resulting 3-day view would extend beyond the valid range.
-        // Adjust the view to end on the last valid day.
-        else if (potentialRightDay.after(endRange)) {
-            // To make `endRange` the rightmost day, the `leftDay` must be `endRange` - 3 days.
+        } else if (potentialRightDay.after(endRange)) {
             potentialLeftDay = (endRange.clone() as Calendar).apply {
                 add(Calendar.DAY_OF_YEAR, -3)
             }
         }
 
-        // Set the correctly adjusted left day and switch the view.
-        Log.d("EventsViewModel","Last day of range is $potentialRightDay and range end is $endRange")
-        Log.d("EventsViewModel", "Clicked day was $clickedDay but setting left day to $potentialLeftDay")
+        Log.d("EventsViewModel", "Setting left day to $potentialLeftDay")
         setLeftDayForThreeDay(potentialLeftDay)
         setCalendarView(CalendarViewType.THREE_DAY)
     }
 
-    /**
-     * Finds the calendar ID for a calendar with a specific name.
-     * @param calendarService The authenticated Calendar API service instance.
-     * @param calendarName The name of the calendar to find (e.g., "Other Events").
-     * @return The calendarId string, or null if not found.
-     */
-    private suspend fun getCalendarIdByName(
-        calendarService: com.google.api.services.calendar.Calendar,
-        calendarName: String?
-    ): String? {
-        return try {
-            val calendarList = calendarService.calendarList().list().execute()
-            calendarList.items.find { it.summary.equals(calendarName, ignoreCase = true) }?.id
-        } catch (e: Exception) {
-            Log.e("EventsViewModel", "Failed to get calendar list", e)
-            null
-        }
-    }
-
     fun fetchCalendarEvents(
         context: Context,
+        targetCalendarId: String,
         days: Int = numCalendarDataDays,
     ) {
-        Log.d("EventsViewModel", "fetchCalendarEvents called")
+        Log.d("EventsViewModel", "fetchCalendarEvents called with targetCalendarId: $targetCalendarId")
+
         viewModelScope.launch(Dispatchers.IO) {
             val googleAccount = GoogleSignIn.getLastSignedInAccount(context)
 
             if (googleAccount == null) {
-                _calendarError.value = "Cannot refresh events: User is not signed in."
-                Log.e("EventsViewModel", "fetchCalendarEvents failed: GoogleSignInAccount is null.")
+                withContext(Dispatchers.Main) {
+                    _calendarError.value = "Cannot refresh events: User is not signed in."
+                }
+                Log.e("EventsViewModel", "fetchCalendarEvents failed: GoogleSignInAccount is null")
                 return@launch
             }
 
-            // Get the cached calendar name
-            val calendarName = _householdCalendarName.value // no fallback!
+            if (targetCalendarId.isBlank()) {
+                withContext(Dispatchers.Main) {
+                    _calendarError.value = "Household calendar ID is missing."
+                }
+                Log.e("EventsViewModel", "fetchCalendarEvents failed: targetCalendarId is blank")
+                return@launch
+            }
 
-            _isLoadingCalendar.value = true
-            _calendarError.value = null
-            Log.d("EventsViewModel", "Calendar name is $calendarName before entering try block")
+            withContext(Dispatchers.Main) {
+                _isLoadingCalendar.value = true
+                _calendarError.value = null
+            }
+
             try {
                 val credential = GoogleAccountCredential.usingOAuth2(
                     context,
-                    listOf(CalendarScopes.CALENDAR_READONLY)
+                    listOf(CalendarScopes.CALENDAR)
                 ).apply {
                     selectedAccount = googleAccount.account
                 }
@@ -218,28 +352,16 @@ class EventsViewModel(
                     NetHttpTransport(),
                     GsonFactory.getDefaultInstance(),
                     credential
-                )
-                    .setApplicationName("501_Final_Project")
-                    .build()
+                ).setApplicationName("501_Final_Project").build()
 
-                Log.d("EventsViewModel", "Calendar name right before getting target calendar id is is $calendarName")
-                val targetCalendarId = getCalendarIdByName(calendarService, calendarName)
+                Log.d("EventsViewModel", "Fetching events for calendar ID: $targetCalendarId")
 
-                if (targetCalendarId == null) {
-                    _calendarError.value = "Calendar '$calendarName' not found."
-                    Log.e("EventsViewModel", "Could not find calendar '$calendarName'.")
-                    _isLoadingCalendar.value = false
-                    return@launch
-                }
-
-                // set time range for fetching events
                 val now = DateTime(System.currentTimeMillis())
                 val timeMax = Calendar.getInstance().apply {
                     add(Calendar.DAY_OF_YEAR, days)
                 }.timeInMillis
                 val maxDateTime = DateTime(timeMax)
 
-                // fetch events for the target calendar ID
                 val eventsResult = calendarService.events().list(targetCalendarId)
                     .setTimeMin(now)
                     .setTimeMax(maxDateTime)
@@ -247,12 +369,13 @@ class EventsViewModel(
                     .setSingleEvents(true)
                     .execute()
 
+                Log.d("EventsViewModel", "Fetched ${eventsResult.items.size} events")
+
                 val items = eventsResult.items.mapNotNull { event ->
                     val isAllDay = event.start?.dateTime == null && event.start?.date != null
 
                     if (isAllDay) {
                         val startString = event.start.date.toString()
-                        // The end date from the API is exclusive, so we need to get it too.
                         val endString = event.end?.date?.toString()
 
                         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
@@ -264,28 +387,23 @@ class EventsViewModel(
                             }
                             val startDateTime = DateTime(localStartCal.time)
 
-                            // Now, handle the end date.
                             val localEndCal: Calendar
                             if (endString != null) {
                                 val endDate = dateFormat.parse(endString)
                                 localEndCal = Calendar.getInstance().apply {
                                     time = endDate
-                                    // The API end date is exclusive, so subtract 1 day to get the inclusive end day.
                                     add(Calendar.DAY_OF_YEAR, -1)
                                 }
                             } else {
-                                // Fallback for safety, though API should always provide an end date.
                                 localEndCal = localStartCal.clone() as Calendar
                             }
 
-                            // Set the time to the very end of the final day.
                             localEndCal.set(Calendar.HOUR_OF_DAY, 23)
                             localEndCal.set(Calendar.MINUTE, 59)
                             localEndCal.set(Calendar.SECOND, 59)
 
                             val endDateTime = DateTime(localEndCal.time)
 
-                            Log.d("EventsViewModel", "Summary: ${event.summary}, Start date time: $startDateTime, End date time: $endDateTime")
                             CalendarEventInfo(
                                 id = event.id,
                                 summary = event.summary,
@@ -294,10 +412,9 @@ class EventsViewModel(
                                 isAllDay = true
                             )
                         } else {
-                            null // Skip if date is invalid
+                            null
                         }
                     } else {
-                        // Timed events logic remains the same
                         val startDateTime = event.start?.dateTime
                         val endDateTime = event.end?.dateTime
                         if (startDateTime != null && endDateTime != null) {
@@ -308,18 +425,48 @@ class EventsViewModel(
                                 endDateTime = endDateTime,
                                 isAllDay = false
                             )
-                        } else { null } // Skip timed events with invalid dates
+                        } else {
+                            null
+                        }
                     }
                 }
-                _events.value = items
+
+                withContext(Dispatchers.Main) {
+                    _events.value = items
+                    Log.d("EventsViewModel", "Updated events state with ${items.size} events")
+                }
+
+            } catch (e: UserRecoverableAuthIOException) {
+                Log.e("EventsViewModel", "Need additional permissions", e)
+                withContext(Dispatchers.Main) {
+                    _calendarError.value = "Additional calendar permissions needed. Please sign in again."
+                }
+            } catch (e: GoogleJsonResponseException) {
+                // This block specifically catches errors from the Google API
+                if (e.statusCode == 404) {
+                    Log.w("EventsViewModel", "Calendar not found (404). Access is likely pending.", e)
+                    withContext(Dispatchers.Main) {
+                        _calendarError.value = "Access to the shared calendar is pending. Please try again later."
+                    }
+                } else {
+                    Log.e("EventsViewModel", "Google API error with code: ${e.statusCode}", e)
+                    withContext(Dispatchers.Main) {
+                        _calendarError.value = "Calendar API error: ${e.message}"
+                    }
+                }
             } catch (e: Exception) {
                 Log.e("EventsViewModel", "Calendar API error", e)
-                _calendarError.value = "Failed to fetch events: ${e.message}"
+                withContext(Dispatchers.Main) {
+                    _calendarError.value = "Failed to fetch events: ${e.message}"
+                }
             } finally {
-                _isLoadingCalendar.value = false
+                withContext(Dispatchers.Main) {
+                    _isLoadingCalendar.value = false
+                }
             }
         }
     }
+
     fun addCalendarEvent(
         context: Context,
         summary: String,
@@ -330,14 +477,17 @@ class EventsViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             val account = GoogleSignIn.getLastSignedInAccount(context)
             if (account == null) {
-                _calendarError.value = "Cannot add event: User not signed in."
+                withContext(Dispatchers.Main) {
+                    _calendarError.value = "Cannot add event: User not signed in."
+                }
                 return@launch
             }
 
-            // Get the cached calendar name
-            val calendarName = _householdCalendarName.value
-            if (calendarName == null) {
-                _calendarError.value = "Calendar name not loaded"
+            val calendarIdForEvent = _householdCalendarId.value
+            if (calendarIdForEvent.isNullOrBlank()) {
+                withContext(Dispatchers.Main) {
+                    _calendarError.value = "Household calendar ID not loaded."
+                }
                 return@launch
             }
 
@@ -353,12 +503,6 @@ class EventsViewModel(
                     credential
                 ).setApplicationName("501-Final-Project").build()
 
-                val calendarIdForEvent = getCalendarIdByName(calendarService, calendarName)
-
-                if (calendarIdForEvent == null) {
-                    _calendarError.value = "Calendar '$calendarName' not found"
-                    return@launch
-                }
                 Log.d("EventsViewModel", "Adding event to calendar ID: $calendarIdForEvent")
 
                 val event = Event().apply {
@@ -370,13 +514,21 @@ class EventsViewModel(
 
                 calendarService.events().insert(calendarIdForEvent, event).execute()
 
-                // Refresh the events list to show the new event
-                fetchCalendarEvents(context)
+                Log.d("EventsViewModel", "Event added successfully, refreshing events")
+                fetchCalendarEvents(context, calendarIdForEvent)
 
             } catch (e: Exception) {
                 Log.e("EventsViewModel", "Failed to add event", e)
-                _calendarError.value = "Error adding event: ${e.message}"
+                withContext(Dispatchers.Main) {
+                    _calendarError.value = "Error adding event: ${e.message}"
+                }
             }
         }
+    }
+    /**
+     * Resets the toast message state to null after it has been shown.
+     */
+    fun clearToastMessage() {
+        _toastMessage.value = null
     }
 }

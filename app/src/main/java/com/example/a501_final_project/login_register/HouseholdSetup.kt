@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
@@ -46,13 +47,19 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.R
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
 @Composable
-fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavController){
-    if (viewModel.existingHousehold == true){
-        if(!viewModel.gotHousehold && !viewModel.householdCreated) {
+fun HouseholdLanding(
+    viewModel: HouseholdViewModel,
+    navController: NavController,
+    mainViewModel: MainViewModel,
+    onHouseholdCreated: () -> Unit = {}
+) {
+    if (viewModel.existingHousehold == true) {
+        if (!viewModel.gotHousehold && !viewModel.householdCreated) {
             FindHousehold(viewModel, Modifier, onBack = { navController.popBackStack() })
         } else {
             JoinHousehold(viewModel, Modifier, onBack = {
@@ -60,24 +67,41 @@ fun HouseholdLanding(viewModel: HouseholdViewModel, navController : NavControlle
                 navController.popBackStack()
             })
         }
-        if(viewModel.householdCreated){
+        if (viewModel.householdCreated) {
+            // Reload data when household is created/joined
+            LaunchedEffect(Unit) {
+                Log.d("HouseholdLanding", "Household created/joined, reloading data")
+                mainViewModel.loadUserData()
+                mainViewModel.loadHouseholdData()
+                onHouseholdCreated()
+            }
             navController.navigate("Home")
         }
-
-    }
-    else if (viewModel.existingHousehold == false){
-        NewHousehold(viewModel, navController)
+    } else if (viewModel.existingHousehold == false) {
+        NewHousehold(viewModel, navController, onHouseholdCreated)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
+fun NewHousehold(
+    viewModel: HouseholdViewModel,
+    navController: NavController,
+    onHouseholdCreated: () -> Unit = {}
+) {
+    val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel.errorMessage) {
         viewModel.errorMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
+        }
+    }
+
+    // Trigger callback when household is created
+    LaunchedEffect(viewModel.householdCreated) {
+        if (viewModel.householdCreated) {
+            onHouseholdCreated()
         }
     }
 
@@ -119,7 +143,7 @@ fun NewHousehold(viewModel: HouseholdViewModel, navController : NavController){
                             }
                         } else {
                             Button(
-                                onClick = { viewModel.createHousehold() },
+                                onClick = { viewModel.createHousehold(context = context) },
                                 enabled = !viewModel.isLoading,
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -301,7 +325,7 @@ fun ChoreSection(
         )
         if (isNameError) {
             Text(
-                text = "Chore name cannot be empty",
+                text = "Chore name must be between 1 and 25 characters",
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall
             )
@@ -983,7 +1007,7 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { viewModel.confirmJoinHousehold() },
+            onClick = { viewModel.confirmJoinHousehold(context = context) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),

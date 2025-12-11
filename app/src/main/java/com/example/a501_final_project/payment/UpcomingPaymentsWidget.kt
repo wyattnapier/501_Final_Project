@@ -1,7 +1,9 @@
 package com.example.a501_final_project.payment
 
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,10 +12,16 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
@@ -77,12 +85,19 @@ fun UpcomingPaymentsWidget(
             .clickable(onClick = { onCardClick() }),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.secondaryContainer
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer
         ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
+
     ) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Text(
-                "Upcoming Payments",
+                "Payments",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -107,16 +122,33 @@ fun UpcomingPaymentsWidget(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "You owe others",
+                        "You Owe Others",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    HorizontalDivider(
+                        modifier = Modifier.fillMaxWidth(0.8f),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (oweOthers.isEmpty()) {
-                        Text(
-                            text = "You're all caught up!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(modifier = Modifier.padding(4.dp))
+                                Text(
+                                    text = "You're all caught up!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
                     } else {
                         oweOthers.forEach { payment ->
                             UpcomingPaymentItem(false, payment)
@@ -135,16 +167,33 @@ fun UpcomingPaymentsWidget(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        "Others owe you",
+                        "Others Owe You",
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    HorizontalDivider(
+                        modifier = Modifier.fillMaxWidth(0.8f),
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     if (othersOwe.isEmpty()) {
-                        Text(
-                            text = "Everybody has paid you!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(8.dp)
-                        )
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                        ) {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Spacer(modifier = Modifier.padding(4.dp))
+                                Text(
+                                    text = "Everyone has paid you!",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
                     } else {
                         othersOwe.forEach { payment ->
                             UpcomingPaymentItem(true, payment)
@@ -165,17 +214,26 @@ fun UpcomingPaymentItem(
     Row(
         Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
-        Column {
+        Row (
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Send,
+                contentDescription = "Send Icon",
+                modifier = Modifier.size(12.dp)
+            )
+            Spacer(modifier = Modifier.padding(4.dp))
             Text (
                 text =
                     if (payToCurrentUser) {
-                        "${payment.payFromName} owes you for ${payment.memo}"
+                        "${payment.payFromName} for ${payment.memo}"
                     } else {
-                        "You owe ${payment.payToName} for ${payment.memo}"
+                        "${payment.payToName} for ${payment.memo}"
                     },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                textAlign = TextAlign.Center,
             )
         }
     }

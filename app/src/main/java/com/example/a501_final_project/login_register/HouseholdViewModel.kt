@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -9,9 +10,17 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
+import com.example.a501_final_project.IRepository
 import com.example.a501_final_project.chores.RecurringChore
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
+import com.google.api.client.http.javanet.NetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
+import com.google.api.services.calendar.CalendarScopes
 import com.google.firebase.firestore.FieldValue
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class ChoreInput(
     var name: String = "",
@@ -43,9 +52,8 @@ data class ResidentDB(
 )
 
 class HouseholdViewModel(
-    private val repository: FirestoreRepository = FirestoreRepository()
+    private val repository: IRepository = FirestoreRepository(), // use IRepository interface for testing
 ) : ViewModel() {
-
     var existingHousehold by mutableStateOf<Boolean?>(null)
 
     // Get current user ID from repository
@@ -166,7 +174,47 @@ class HouseholdViewModel(
         paymentsFromDB[index] = update
     }
 
-    fun createHousehold() {
+    /**
+     * Creates a new Google Calendar for the currently signed-in user.
+     * @param context The application context.
+     * @param calendarName The desired name for the new calendar.
+     * @return The unique ID of the created calendar, or null on failure.
+     */
+    suspend fun createGoogleCalendar(context: Context, calendarName: String): String? {
+        val account = GoogleSignIn.getLastSignedInAccount(context) ?: return null
+
+        val credential = GoogleAccountCredential.usingOAuth2(
+            context,
+            listOf(CalendarScopes.CALENDAR) // This scope allows full read/write access
+        ).apply { selectedAccount = account.account }
+
+        val calendarService = com.google.api.services.calendar.Calendar.Builder(
+            NetHttpTransport(),
+            GsonFactory.getDefaultInstance(),
+            credential
+        ).setApplicationName("501_Final_Project").build()
+
+        val newCalendar = com.google.api.services.calendar.model.Calendar().apply {
+            summary = calendarName
+            // You can set the timezone to the user's local timezone if you have it
+            timeZone = java.util.TimeZone.getDefault().id
+        }
+
+        // use dispatchers.io to run blocking network call
+        return withContext(Dispatchers.IO) {
+            try {
+                val createdCalendar = calendarService.calendars().insert(newCalendar).execute()
+                Log.d("HouseholdViewModel", "Successfully created calendar with ID: ${createdCalendar.id}")
+                createdCalendar.id // Return the ID from the withContext block
+            } catch (e: Exception) {
+                Log.e("HouseholdViewModel", "Failed to create Google Calendar", e)
+                errorMessage = "Failed to create Google Calendar: ${e.message}"
+                null // Return null on failure from the withContext block
+            }
+        }
+    }
+
+    fun createHousehold(context: Context) {
         errorMessage = null
         isLoading = true
 
@@ -196,35 +244,49 @@ class HouseholdViewModel(
             )
         )
 
-        val fullHouseholdObject = mapOf(
-            "name" to householdName,
-            "recurring_chores" to recurring_chores,
-            "recurring_payments" to recurring_payments,
-            "calendar" to calendarName,
-            "residents" to residents,
-            "chores" to emptyList<Map<String, Any>>()  // Initialize empty chores array
-        )
-
-        Log.d("HouseholdViewModel", "Creating household with name: $householdName")
-
         viewModelScope.launch {
             try {
-                // 1. Call the suspend function and directly assign the returned ID
+                Log.d("HouseholdViewModel", "Step 1: Creating Google Calendar")
+
+                // 1. Create google calendar
+                val googleCalendarId = createGoogleCalendar(context, calendarName)
+                    ?: throw Exception("Could not create the Google Calendar.")
+
+                Log.d("HouseholdViewModel", "Step 2: Calendar created with ID: $googleCalendarId")
+
+                val fullHouseholdObject = mapOf(
+                    "name" to householdName,
+                    "recurring_chores" to recurring_chores,
+                    "recurring_payments" to recurring_payments,
+                    "calendar_id" to googleCalendarId,
+                    "residents" to residents,
+                    "chores" to emptyList<Map<String, Any>>(),
+                    "pending_members" to emptyList<String>()  // Initialize empty pending members
+                )
+
+                Log.d("HouseholdViewModel", "Step 3: Creating household document in Firestore")
+
+                // 2. Create household document
                 val newHouseholdId = repository.createHouseholdSuspend(fullHouseholdObject)
+                Log.d("HouseholdViewModel", "Step 4: Household created with ID: $newHouseholdId")
 
-                Log.d("HouseholdViewModel", "Created household $newHouseholdId")
-                householdID = newHouseholdId // Assign the ID to the ViewModel's state
+                householdID = newHouseholdId
 
-                // 2. Update user document with the new household_id
+                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id")
+
+                // 3. Update user document with the new household_id (WAIT for this to complete!)
                 repository.updateUserHouseholdIdSuspend(uid, newHouseholdId)
+
+                Log.d("HouseholdViewModel", "Step 6: User document updated successfully")
+                Log.d("HouseholdViewModel", "✓ Household creation complete!")
 
                 householdCreated = true
 
             } catch (e: Exception) {
-                Log.e("HouseholdViewModel", "Error creating household", e)
+                Log.e("HouseholdViewModel", "✗ Error creating household", e)
                 errorMessage = "Failed to create household: ${e.message}"
             } finally {
-                isLoading = false // Ensure loading is always turned off
+                isLoading = false
             }
         }
     }
@@ -293,7 +355,7 @@ class HouseholdViewModel(
         }
     }
 
-    fun confirmJoinHousehold() {
+    fun confirmJoinHousehold(context: Context) {
         errorMessage = null
         isLoading = true
 
@@ -317,33 +379,49 @@ class HouseholdViewModel(
             )
         }
 
+        Log.d("HouseholdViewModel", "Step 1: Preparing to join household $householdID")
         Log.d("HouseholdViewModel", "Resident to add: $newResident")
-        Log.d("HouseholdViewModel", "Household ID: $householdID")
 
         viewModelScope.launch {
             try {
-                // Call the refactored suspend function
+                Log.d("HouseholdViewModel", "Step 2: Getting user's email for calendar sharing")
+
+                // Get new user's email
+                val newUserEmail = GoogleSignIn.getLastSignedInAccount(context)?.email
+                    ?: throw Exception("Could not get new user's email.")
+
+                Log.d("HouseholdViewModel", "Step 3: Adding resident to household document")
+
+                // Add resident to household
                 repository.addResidentToHouseholdSuspend(
                     householdId = householdID,
                     residentData = newResident,
                     paymentsData = paymentsMap as List<Map<String, Any>>,
                 )
 
-                // Update user document with household_id
+                Log.d("HouseholdViewModel", "Step 4: Adding user to pending members list")
+
+                // Add to pending members for calendar sharing
+                repository.addPendingMemberToHousehold(householdID, newUserEmail)
+
+                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id")
+
+                // Update user document with household_id (WAIT for this!)
                 repository.updateUserHouseholdIdSuspend(uid, householdID)
 
-                Log.d("HouseholdViewModel", "Successfully joined household and updated user profile")
+                Log.d("HouseholdViewModel", "Step 6: User document updated successfully")
+                Log.d("HouseholdViewModel", "✓ Successfully joined household!")
+
                 householdCreated = true
 
             } catch (e: Exception) {
-                Log.e("HouseholdViewModel", "Failed to join household", e)
+                Log.e("HouseholdViewModel", "✗ Failed to join household", e)
                 errorMessage = "Failed to join household: ${e.message}"
             } finally {
                 isLoading = false
             }
         }
     }
-
 
     /**
      * Load household data using the repository (for when user is already in a household)
