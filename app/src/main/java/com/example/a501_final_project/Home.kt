@@ -57,7 +57,6 @@ fun HomeScreen(
             paymentViewModel.getPaymentsFor(currentUserId ?: "") +
                     paymentViewModel.getPaymentsFrom(currentUserId ?: "")
             ).filter { !it.paid }
-    val events by eventsViewModel.events.collectAsState()
 
     Column(
         modifier = modifier.fillMaxSize().padding(16.dp)
@@ -69,7 +68,6 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 UpcomingEventsWidget(
-                    events = events.sortedBy { it.startDateTime?.value },
                     onCardClick = { eventsWidgetCardOnClick(navController, eventsViewModel) },
                     onEventClick = { eventsWidgetEventOnClick(navController, eventsViewModel) },
                     eventsViewModel = eventsViewModel,

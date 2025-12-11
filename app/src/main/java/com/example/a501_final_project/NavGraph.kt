@@ -1,10 +1,14 @@
 package com.example.a501_final_project
 
+import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.example.a501_final_project.chores.ChoresScreen
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
@@ -36,7 +40,13 @@ fun AppNavGraph(
     ) {
         // Home
         composable(Screen.Home.route) {
-            HomeScreen(navController, mainViewModel, eventsViewModel, paymentViewModel, choresViewModel, modifier = modifier)
+            HomeScreen(
+                navController, mainViewModel,
+                eventsViewModel,
+                paymentViewModel,
+                choresViewModel,
+                modifier = modifier
+            )
         }
         // Chores
         composable(Screen.Chores.route) {
@@ -92,7 +102,6 @@ fun AppNavGraph(
         }
 
         // User sign up page
-        // TODO: adjust this navigation later on, currently just to be able to navigate to sign up page
         composable(Screen.UserSignUp.route) {
             SignUpScreen(
                 loginViewModel = loginViewModel,
@@ -104,10 +113,51 @@ fun AppNavGraph(
                 })
         }
 
-        // to make householdsetup page navigable
-        composable(Screen.HouseholdSetup.route) {
+        // Household Setup routes - consolidated into one with optional action parameter
+        composable(
+            route = "HouseholdSetup/{action}",
+            arguments = listOf(navArgument("action") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            val action = backStackEntry.arguments?.getString("action")
+
+            // Set the existingHousehold flag based on the action parameter
+            LaunchedEffect(action) {
+                householdViewModel.existingHousehold = when (action) {
+                    "create" -> false
+                    "join" -> true
+                    else -> null
+                }
+            }
+
             HouseholdLanding(
-                viewModel = householdViewModel, navController = navController
+                viewModel = householdViewModel,
+                navController = navController,
+                mainViewModel = mainViewModel,
+                onHouseholdCreated = {
+                    // Reload all data when household is created
+                    Log.d("AppNavGraph", "Household created, reloading data")
+                    mainViewModel.loadUserData()
+                    mainViewModel.loadHouseholdData()
+                }
+            )
+        }
+
+        // Fallback route for "HouseholdSetup" without action parameter
+        composable("HouseholdSetup") {
+            HouseholdLanding(
+                viewModel = householdViewModel,
+                navController = navController,
+                mainViewModel = mainViewModel,
+                onHouseholdCreated = {
+                    // Reload all data when household is created
+                    Log.d("AppNavGraph", "Household created, reloading data")
+                    mainViewModel.loadUserData()
+                    mainViewModel.loadHouseholdData()
+                }
             )
         }
     }
