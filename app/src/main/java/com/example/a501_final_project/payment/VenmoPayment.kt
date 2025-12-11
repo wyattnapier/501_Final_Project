@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -49,10 +50,9 @@ fun VenmoPaymentScreen(
     val paymentsList by paymentViewModel.paymentsList.collectAsState()
 
     val currentPaymentsForUser = (
-            paymentViewModel.getPaymentsFor(currentUserId ?: "", paymentsList) + // Pass the observed list
-                    paymentViewModel.getPaymentsFrom(currentUserId ?: "", paymentsList) // Pass the observed list
+            paymentViewModel.getPaymentsFor(currentUserId ?: "", paymentsList) +
+                    paymentViewModel.getPaymentsFrom(currentUserId ?: "", paymentsList)
             ).filter { !it.paid }
-
     val pastPaymentsForUser = pastPayments.filter {
         it.payFromId == currentUserId || it.payToId == currentUserId
     }
@@ -69,11 +69,19 @@ fun VenmoPaymentScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                IconButton(
-                    onClick = { showAddPaymentDialog = true },
+                Card(
+                    onClick = { if (currentUserId != null && mainViewModel.residents.value.size > 1) showAddPaymentDialog = true },
+                    shape = CircleShape,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
                     enabled = currentUserId != null && mainViewModel.residents.value.size > 1
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Add Payment")
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add Payment",
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(8.dp) // Add padding so the icon doesn't touch the edges
+                    )
                 }
             }
             Text(

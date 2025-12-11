@@ -2,6 +2,7 @@ package com.example.a501_final_project.events
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Refresh
@@ -52,31 +53,45 @@ fun EventsScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = { showAddEventDialog = true }, // Open the dialog
-                enabled = loginState.isLoggedIn
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = "Add event",
-                    tint = MaterialTheme.colorScheme.primary,
-                )
+            Box(modifier = Modifier.padding(all = 4.dp), contentAlignment = Alignment.CenterStart) {
+                Card(
+                    onClick = { showAddEventDialog = true }, // Open the dialog
+                    shape = CircleShape,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    enabled = loginState.isLoggedIn,
+                ) {
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = "Add event",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
             }
-
             CalendarViewSwitcher(
                 selectedView = viewType,
                 onViewSelected = { eventsViewModel.setCalendarView(it) }
             )
-
-            IconButton(
-                onClick = {
-                    if (loginState.isLoggedIn) {
-                        eventsViewModel.fetchCalendarEvents(context)
-                    }
-                },
-                enabled = !isLoading && loginState.isLoggedIn
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.primary)
+            Box(modifier = Modifier.padding(4.dp), contentAlignment = Alignment.CenterStart) {
+                Card(
+                    onClick = {
+                        if (loginState.isLoggedIn) {
+                            eventsViewModel.fetchCalendarEvents(context)
+                        }
+                    },
+                    shape = CircleShape,
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                    enabled = !isLoading && loginState.isLoggedIn,
+                ) {
+                    Icon(
+                        Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(4.dp)
+                    )
+                }
             }
         }
 
