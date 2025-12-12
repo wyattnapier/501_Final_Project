@@ -1,5 +1,7 @@
 package com.example.a501_final_project.login_register
 
+import android.content.Context
+import androidx.test.platform.app.InstrumentationRegistry
 import com.example.a501_final_project.FirestoreRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,10 +27,14 @@ class HouseholdViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
+    private lateinit var context: Context
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher) // Set main dispatcher for testing
         whenever(mockRepository.getCurrentUserId()).thenReturn("test-user-id")
+
+        context = InstrumentationRegistry.getInstrumentation().targetContext
 
         // Create ViewModel with mocked repository
         viewModel = HouseholdViewModel(mockRepository)
@@ -52,7 +58,7 @@ class HouseholdViewModelTest {
         viewModel.updateCalendarName("Test Calendar")
 
         // Act
-        viewModel.createHousehold()
+        viewModel.createHousehold(context)
 
         // Wait for coroutines launched in viewModelScope to complete
         advanceUntilIdle()
