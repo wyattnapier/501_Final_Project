@@ -9,7 +9,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.R
+import com.example.a501_final_project.chores.ChoresViewModel
+import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.payment.PaymentViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -25,6 +29,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import com.google.api.services.calendar.CalendarScopes
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
 // maps out which step of sign up we are in
 enum class SignUpSteps {
@@ -41,6 +47,9 @@ class LoginViewModel() : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
+
+    private val _signOutComplete = MutableSharedFlow<Unit>()
+    val signOutComplete = _signOutComplete.asSharedFlow()
 
     // check if user is logged in or not on init
     init {
@@ -84,7 +93,8 @@ class LoginViewModel() : ViewModel() {
             .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
             .requestServerAuthCode(context.getString(R.string.default_web_client_id))
-            .requestScopes( // must match with scopes in MainViewModel (except calendarlist)
+            .requestScopes(
+                // must match with scopes in MainViewModel (except calendarlist)
                 Scope(CalendarScopes.CALENDAR), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
             )
             .build()
@@ -143,14 +153,37 @@ class LoginViewModel() : ViewModel() {
                     .requestEmail()
                     .build()
                 GoogleSignIn.getClient(context, gso).signOut().await()
-
-                // AuthStateListener will handle resetting the UI state.
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
             }
         }
     }
 
+    fun fullSignOut(
+        context: Context,
+        mainViewModel: MainViewModel,
+        eventsViewModel: EventsViewModel,
+        choresViewModel: ChoresViewModel,
+        paymentViewModel: PaymentViewModel,
+        householdViewModel: HouseholdViewModel
+    ) {
+        viewModelScope.launch {
+            try {
+                // user profile sign out
+                signOut(context)
+                // Now, reset all other ViewModels
+                mainViewModel.reset()
+                eventsViewModel.reset()
+                choresViewModel.reset()
+                paymentViewModel.reset()
+                householdViewModel.reset()
+                // Emit an event to tell the UI to navigate
+                _signOutComplete.emit(Unit)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
+            }
+        }
+    }
 
     /**
      * function to store user data to firestore

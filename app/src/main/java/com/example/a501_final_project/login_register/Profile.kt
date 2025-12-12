@@ -29,13 +29,20 @@ import coil.compose.AsyncImage
 import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.R
 import com.example.a501_final_project.Screen
+import com.example.a501_final_project.chores.ChoresViewModel
+import com.example.a501_final_project.events.EventsViewModel
 import com.example.a501_final_project.navigateToScreen
+import com.example.a501_final_project.payment.PaymentViewModel
 
 @Composable
 fun ProfileScreen(
     modifier: Modifier,
-    loginViewModel: LoginViewModel,
     mainViewModel: MainViewModel,
+    eventsViewModel: EventsViewModel,
+    choresViewModel: ChoresViewModel,
+    paymentViewModel: PaymentViewModel,
+    householdViewModel: HouseholdViewModel,
+    loginViewModel: LoginViewModel,
     navController: NavController
 ) {
     val uiState by loginViewModel.uiState.collectAsState()
@@ -93,8 +100,16 @@ fun ProfileScreen(
             // TODO: add button to go to household settings here
             // sign out
             Button(
-                onClick = { loginViewModel.signOut(context) },
-                modifier = Modifier.padding(top = verticalSpacingBetweenInformation)
+                onClick = {
+                    loginViewModel.fullSignOut(
+                        context,
+                        mainViewModel,
+                        eventsViewModel,
+                        choresViewModel,
+                        paymentViewModel,
+                        householdViewModel
+                    )
+                }
             ) {
                 Text("Sign Out")
             }
