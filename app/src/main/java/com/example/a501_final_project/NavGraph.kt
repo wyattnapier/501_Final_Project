@@ -145,9 +145,6 @@ fun AppNavGraph(
                 viewModel = householdViewModel,
                 navController = navController,
                 loginViewModel = loginViewModel,
-                onHouseholdCreated = {
-                    Log.d("AppNavGraph", "Household created")
-                }
             )
         }
         // Fallback route for "HouseholdSetup" without action parameter
@@ -156,9 +153,6 @@ fun AppNavGraph(
                 viewModel = householdViewModel,
                 navController = navController,
                 loginViewModel = loginViewModel,
-                onHouseholdCreated = {
-                    Log.d("AppNavGraph", "Household created")
-                }
             )
         }
     }
