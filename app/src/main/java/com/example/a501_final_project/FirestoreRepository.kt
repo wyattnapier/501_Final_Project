@@ -68,6 +68,50 @@ class FirestoreRepository : IRepository {
     }
 
     /**
+     * Checks if a user document exists in the 'users' collection.
+     */
+    suspend fun checkUserExists(userId: String): Boolean {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            document.exists()
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error checking if user exists", e)
+            false
+        }
+    }
+
+    /**
+     * check if a user belongs to a household
+     */
+    suspend fun isUserInHousehold(userId: String): Boolean {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            document.exists() && document.getString("household_id") != null
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error checking if user is in household", e)
+            false
+        }
+    }
+
+    /**
+     * Creates a new user document in the 'users' collection.
+     */
+    suspend fun saveNewUser(userId: String, name: String, venmoUsername: String) {
+        try {
+            val user = mapOf(
+                "name" to name,
+                "venmoUsername" to venmoUsername,
+                "household_id" to null // New users don't have a household yet
+            )
+            db.collection("users").document(userId).set(user).await()
+            Log.d("FirestoreRepository", "New user saved with ID: $userId")
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error saving new user", e)
+            throw e // Re-throw for the ViewModel to handle
+        }
+    }
+
+    /**
      * Get the household ID for a user (SUSPEND VERSION)
      */
     override suspend fun getHouseholdIdForUserSuspend(userId: String): String {

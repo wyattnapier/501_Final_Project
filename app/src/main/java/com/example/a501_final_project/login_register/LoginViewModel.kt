@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.a501_final_project.FirestoreRepository
 import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.R
 import com.example.a501_final_project.chores.ChoresViewModel
@@ -39,12 +40,28 @@ enum class SignUpSteps {
     REVIEW
 }
 
-class LoginViewModel() : ViewModel() {
+// maps out overall login state
+// TODO: replace the SignUpSteps enum with this one
+enum class UserState {
+    CHECKING,           // Initial state, checking auth
+    NOT_LOGGED_IN,      // No Google account
+    LOGGED_IN_NO_USER,  // Google account but no Firestore user
+    LOGGED_IN_NO_HOUSEHOLD, // Has user but no household
+    READY              // Fully authenticated and in household
+}
+
+class LoginViewModel(
+    private val repository: FirestoreRepository = FirestoreRepository()
+) : ViewModel() {
     var displayName by mutableStateOf("")
     var venmoUsername by mutableStateOf("")
 
     private val auth: FirebaseAuth = Firebase.auth
 
+    private val _userState = MutableStateFlow(UserState.CHECKING)
+    val userState = _userState.asStateFlow()
+
+    // Keep existing _uiState but simplify it
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
 
@@ -53,36 +70,31 @@ class LoginViewModel() : ViewModel() {
 
     // check if user is logged in or not on init
     init {
-        // Observe Firebase auth state changes
         auth.addAuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser
             if (firebaseUser != null) {
                 viewModelScope.launch {
-                    val userExists = checkExistingUser()
+                    val userExists = repository.checkUserExists(firebaseUser.uid)
+                    val hasHousehold = if (userExists) repository.isUserInHousehold(firebaseUser.uid) else false
+
+                    _userState.value = when {
+                        !userExists -> UserState.LOGGED_IN_NO_USER
+                        !hasHousehold -> UserState.LOGGED_IN_NO_HOUSEHOLD
+                        else -> UserState.READY
+                    }
+
                     _uiState.value = _uiState.value.copy(
                         userEmail = firebaseUser.email,
                         userName = firebaseUser.displayName,
                         profilePictureUrl = firebaseUser.photoUrl?.toString(),
                         isLoginInProgress = false,
                         isLoggedIn = true,
-                        userAccount = firebaseUser.email?.let { Account(it, "com.google") },
-                        userAlreadyExists = userExists,  // This is now set at the same time,
-                        isChecking = false // at this point done checking if user is logged in
+                        userAccount = firebaseUser.email?.let { Account(it, "com.google") }
                     )
                 }
-                Log.d("LoginViewModel", "Firebase user signed in: ${firebaseUser.email}")
             } else {
-                // User is signed out
-                _uiState.value = _uiState.value.copy( // use a copy for better error handling
-                    isLoggedIn = false,
-                    isLoginInProgress = false,
-                    userEmail = null,
-                    userName = null,
-                    profilePictureUrl = null,
-                    userAccount = null,
-                    isChecking = false
-                )
-                Log.d("LoginViewModel", "Firebase user signed out.")
+                _userState.value = UserState.NOT_LOGGED_IN
+                _uiState.value = LoginUiState() // Reset to defaults
             }
         }
     }
@@ -185,51 +197,22 @@ class LoginViewModel() : ViewModel() {
         }
     }
 
-    /**
-     * function to store user data to firestore
-     */
     fun saveUserToDb() {
-
-        // get instance of firebase (geeks for geeks did in main but i am doing here...?)
-        val db = FirebaseFirestore.getInstance()
-        val currentUser = auth.currentUser // this will alredybe in there cuz it gets sent on google auth, which has happened byt his point
-
+        val currentUser = auth.currentUser
         if (currentUser == null) {
             Log.w("LoginViewModel", "No authenticated user found, can't save to Firestore")
             return
         }
 
-        val user = Member(name = displayName, venmoUsername = venmoUsername)
-        val uid = currentUser.uid // this hte current user's UID given by firebase auth
-
-        db.collection("users") // the name of the collection in firestore
-            .document(uid)
-            .set(user)
-            .addOnSuccessListener {
-                Log.d("LoginViewModel", "User saved to Firestore with ID: ${uid}")
+        viewModelScope.launch {
+            try {
+                // Now correctly calls the repository's suspend function.
+                repository.saveNewUser(currentUser.uid, displayName, venmoUsername)
+                Log.d("LoginViewModel", "User save process initiated for ID: ${currentUser.uid}")
+            } catch (e: Exception) {
+                Log.e("LoginViewModel", "Error saving user to Firestore", e)
+                _uiState.value = _uiState.value.copy(error = "Failed to save user profile.")
             }
-            .addOnFailureListener { e ->
-                Log.w("LoginViewModel", "Error saving user to Firestore", e)
-            }
-    }
-
-    /**
-     * function to check if user is in db already
-     */
-    suspend fun checkExistingUser() : Boolean {
-        val currentUser = auth.currentUser ?: return false
-        val db = FirebaseFirestore.getInstance()
-
-        return try {
-            val document = db.collection("users")
-                .document(currentUser.uid)
-                .get()
-                .await()
-
-            document.exists()
-        } catch (e: Exception) {
-            Log.e("LoginViewModel", "Error checking if user exists", e)
-            false
         }
     }
 
