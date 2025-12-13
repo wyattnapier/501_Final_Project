@@ -59,6 +59,12 @@ fun HouseholdLanding(
     loginViewModel: LoginViewModel,
     onHouseholdCreated: () -> Unit = {}
 ) {
+    // load current user as soon as householdLanding is composed so that it can be used when household created
+    // TODO: find a better place to trigger this
+    LaunchedEffect(Unit) {
+        viewModel.loadCurrentUserId()
+    }
+
     if (viewModel.existingHousehold == true) {
         if (!viewModel.gotHousehold && !viewModel.householdCreated) {
             FindHousehold(viewModel, Modifier, onBack = { navController.popBackStack() })

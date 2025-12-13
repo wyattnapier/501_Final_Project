@@ -286,6 +286,7 @@ class FirestoreRepository : IRepository {
     }
 
     override suspend fun updateUserHouseholdIdSuspend(userId: String, householdId: String) {
+        Log.d("FirestoreRepository", "Trying to update user [$userId] household ID to [$householdId]")
         try {
             val userRef = db.collection("users").document(userId)
             userRef.update("household_id", householdId).await()

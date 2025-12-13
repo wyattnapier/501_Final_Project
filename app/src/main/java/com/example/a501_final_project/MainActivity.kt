@@ -162,7 +162,7 @@ fun MainScreen() {
                 // Only load data here
                 mainViewModel.loadUserData()
                 mainViewModel.loadHouseholdData()
-                householdViewModel.loadCurrentUserId()
+                householdViewModel.loadCurrentUserId() // TODO: triggers too late here, need at end of setup to create household
             }
         }
     }

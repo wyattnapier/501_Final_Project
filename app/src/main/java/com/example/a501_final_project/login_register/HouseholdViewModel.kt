@@ -272,7 +272,7 @@ class HouseholdViewModel(
 
                 householdID = newHouseholdId
 
-                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id")
+                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id: $householdID")
 
                 // 3. Update user document with the new household_id (WAIT for this to complete!)
                 repository.updateUserHouseholdIdSuspend(uid, newHouseholdId)
