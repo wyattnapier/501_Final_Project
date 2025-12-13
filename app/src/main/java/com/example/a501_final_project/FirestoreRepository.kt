@@ -230,6 +230,18 @@ class FirestoreRepository : IRepository {
         }
     }
 
+    suspend fun addNewPaymentToHousehold(householdId: String, newPaymentData: Map<String, Any>) {
+        try {
+            val householdRef = db.collection("households").document(householdId)
+            // Atomically add the new payment map to the 'payments' array
+            householdRef.update("payments", FieldValue.arrayUnion(newPaymentData)).await()
+            Log.d("FirestoreRepository", "Successfully added new payment to household $householdId")
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error adding new payment to household", e)
+            throw e // Re-throw for the ViewModel to handle
+        }
+    }
+
     override suspend fun updateUserHouseholdIdSuspend(userId: String, householdId: String) {
         try {
             val userRef = db.collection("users").document(userId)

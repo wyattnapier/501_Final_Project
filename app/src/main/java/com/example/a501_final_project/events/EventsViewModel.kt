@@ -531,4 +531,13 @@ class EventsViewModel(
     fun clearToastMessage() {
         _toastMessage.value = null
     }
+
+    // clear all state on sign out
+    fun reset() {
+        _events.value = emptyList()
+        _householdCalendarId.value = null
+        _isCalendarIdLoaded.value = false
+        _calendarError.value = null
+        Log.d("EventsViewModel", "State has been reset.")
+    }
 }

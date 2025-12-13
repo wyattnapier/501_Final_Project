@@ -3,6 +3,7 @@ package com.example.a501_final_project
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.a501_final_project.models.LocalResident
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +30,9 @@ class MainViewModel(
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _residents = MutableStateFlow<List<LocalResident>>(emptyList())
+    val residents: StateFlow<List<LocalResident>> = _residents
 
     fun loadUserData() {
         Log.d("MainViewModel", "loadUserData() called")
@@ -77,6 +81,33 @@ class MainViewModel(
                 // Update state on success
                 _householdId.value = householdId
                 _householdData.value = data
+
+                val residentsFromDb = data["residents"] as? List<Map<String, Any>>
+                if (residentsFromDb != null) {
+                    val residentDetailsList = mutableListOf<LocalResident>()
+                    residentsFromDb.forEach { residentMap ->
+                        val residentId = residentMap["id"] as? String
+                        if (residentId != null) {
+                            try {
+                                val userData = firestoreRepository.getUserSuspend(residentId)
+                                residentDetailsList.add(
+                                    LocalResident(
+                                        id = residentId,
+                                        name = userData["name"] as? String ?: "Unknown",
+                                        venmoUsername = userData["venmoUsername"] as? String ?: "Unknown"
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                Log.e("MainViewModel", "Failed to fetch details for resident $residentId", e)
+                                // Add a placeholder if a user lookup fails
+                                residentDetailsList.add(LocalResident(id = residentId, name = "Unknown User", venmoUsername = "")) // blank should throw an error
+                            }
+                        }
+                    }
+                    _residents.value = residentDetailsList
+                    Log.d("MainViewModel", "Successfully loaded details for ${_residents.value.size} residents.")
+                }
+
                 _isHouseholdDataLoaded.value = true
                 Log.d("MainViewModel", "✓ Household loaded successfully: $householdId - ${data["name"]}")
 
@@ -105,5 +136,14 @@ class MainViewModel(
      */
     fun clearError() {
         _errorMessage.value = null
+    }
+
+    // reset all state on logout
+    fun reset() {
+        _userId.value = null
+        _householdId.value = null
+        _householdData.value = null
+        _isHouseholdDataLoaded.value = false
+        Log.d("MainViewModel", "State has been reset.")
     }
 }

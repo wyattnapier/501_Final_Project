@@ -567,7 +567,7 @@ class ChoresViewModel(
     }
 
     /**
-     * Filters the main chore list to return only chores with a due date after today.
+     * Filters the main chore list to return only chores with a due date after today or overdue and not completed
      *
      * @return A list of chores due in the future.
      */
@@ -601,4 +601,14 @@ class ChoresViewModel(
         }
     }
 
+    // reset all state variables on logout
+    fun reset() {
+        _roommates.value = emptyList()
+        _choresList.value = emptyList()
+        _showPrevChores.value = false
+        _choreImageUris.value = emptyMap()
+        _tempImageUri.value = null
+        _isChoresDataLoaded.value = false
+        _isLoading.value = false
+    }
 }

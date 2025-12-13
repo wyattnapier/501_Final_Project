@@ -477,4 +477,20 @@ class HouseholdViewModel(
             }
         }
     }
+
+    // reset all state on logout
+    fun reset() {
+        setupStep = 0
+        householdName = ""
+        choreInputs.clear()
+        paymentInputs.clear()
+        calendarName = ""
+        householdCreated = false
+        householdID = ""
+        gotHousehold = false
+        paymentsFromDB.clear()
+        residentsFromDB.clear()
+        Log.d("HouseholdViewModel", "State has been reset.")
+    }
+
 }
