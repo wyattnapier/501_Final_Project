@@ -81,15 +81,6 @@ fun HouseholdLanding(
     } else if (viewModel.existingHousehold == false) {
         NewHousehold(viewModel, navController, onHouseholdCreated)
 
-//        // once household is created reload to do chores
-//        if (viewModel.householdCreated) {
-//            LaunchedEffect(Unit) {
-//                navController.navigate("Home") {
-//                    popUpTo("household_setup") { inclusive = true }
-//                }
-//            }
-//        }
-
     }
 }
 
@@ -113,7 +104,6 @@ fun NewHousehold(
     LaunchedEffect(viewModel.householdCreated) {
         if (viewModel.householdCreated) {
             onHouseholdCreated()
-            //            choresViewModel.loadHouseholdData()
         }
     }
 

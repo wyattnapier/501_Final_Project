@@ -255,7 +255,7 @@ class ChoresViewModel(
                         val completed = itemAsMap["completed"] as? Boolean ?: false
                         Log.d("ChoresViewModel", "Chore $index: completed = $completed")
 
-                        Log.d("ChoresViewModel", "Chore $index: ✓ Successfully parsed!")
+                        Log.d("ChoresViewModel", "Chore $index: Successfully parsed!")
 
 
                         Chore(
@@ -275,11 +275,12 @@ class ChoresViewModel(
                     _choresList.value = parsedChores
                     Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
                 }
+                // assign chores upon opening, ensures assignments complete before flags are set
+                assignChores()
 
                 _isChoresDataLoaded.value = true
                 _isLoading.value = false
-                // assign chores upon opening
-                assignChores()
+
                 Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
 
             } catch (e: Exception) {
@@ -305,7 +306,7 @@ class ChoresViewModel(
      * function to assign chores to members of the household
      * eventually we should do this based on time?
      */
-    fun assignChores() {
+    suspend fun assignChores() {
         val currentRoommates = roommates.value
         val recurringChores = recurringChoresList ?: return
         if (currentRoommates.isEmpty()) {
@@ -326,7 +327,7 @@ class ChoresViewModel(
         }
 
 
-        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
         val today = Calendar.getInstance() // Use fully qualified name
         val unassignedChores = chores.filter { chore ->
             chore.assignedToId.isBlank() && chore.dueDate.isNotBlank()
@@ -350,52 +351,49 @@ class ChoresViewModel(
             load[roommate] = chores.count { it.assignedToId == roommate && !it.completed }
         }
 
-        // get the roommate names so theres not ui issues when gettign names ot display
+        // get the roommate names so theres not ui issues when getting names to display
         val roommateNames = mutableMapOf<String, String>()
 
 
         // assign now
-        viewModelScope.launch {
-            // Fetch all names in parallel
-            for (roommateId in currentRoommates) {
-                try {
-                    val userData = firestoreRepository.getUserSuspend(roommateId)
-                    roommateNames[roommateId] = userData["name"] as? String ?: roommateId
-                } catch (e: Exception) {
-                    Log.w("ChoresViewModel", "Failed to get name for $roommateId", e)
-                    roommateNames[roommateId] = roommateId
-                }
-            }
-
-            // NOW assign chores with names
-            for (chore in unassignedChores) {
-                val leastLoaded = load.minByOrNull { it.value }?.key ?: continue
-                load[leastLoaded] = load[leastLoaded]!! + 1
-
-                val choreIdx = chores.indexOfFirst { it.choreID == chore.choreID }
-                if (choreIdx != -1) {
-                    chores[choreIdx] = chores[choreIdx].copy(
-                        assignedToId = leastLoaded,
-                        assignedToName = roommateNames[leastLoaded] ?: leastLoaded  // ← Add name!
-                    )
-                }
-            }
-
-            // Update UI
-            _choresList.value = chores
-
-            // Send to DB
-
+        // Fetch all names in parallel
+        for (roommateId in currentRoommates) {
             try {
-                firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
-                Log.d(
-                    "ChoresViewModel",
-                    "Successfully assigned ${unassignedChores.size} chores"
-                )
+                val userData = firestoreRepository.getUserSuspend(roommateId)
+                roommateNames[roommateId] = userData["name"] as? String ?: roommateId
             } catch (e: Exception) {
-                Log.e("ChoresViewModel", "Failed to update assignments in DB", e)
+                Log.w("ChoresViewModel", "Failed to get name for $roommateId", e)
+                roommateNames[roommateId] = roommateId
             }
+        }
 
+        // NOW assign chores with names
+        for (chore in unassignedChores) {
+            val leastLoaded = load.minByOrNull { it.value }?.key ?: continue
+            load[leastLoaded] = load[leastLoaded]!! + 1
+
+            val choreIdx = chores.indexOfFirst { it.choreID == chore.choreID }
+            if (choreIdx != -1) {
+                chores[choreIdx] = chores[choreIdx].copy(
+                    assignedToId = leastLoaded,
+                    assignedToName = roommateNames[leastLoaded] ?: leastLoaded  // ← Add name!
+                )
+            }
+        }
+
+        // Update UI
+        _choresList.value = chores
+
+        // Send to DB
+
+        try {
+            firestoreRepository.updateChoreAssignmentsSuspend(_choresList.value)
+            Log.d(
+                "ChoresViewModel",
+                "Successfully assigned ${unassignedChores.size} chores"
+            )
+        } catch (e: Exception) {
+            Log.e("ChoresViewModel", "Failed to update assignments in DB", e)
         }
     }
 
@@ -418,13 +416,13 @@ class ChoresViewModel(
         val chore = currentList[choreIndex]
         currentList[choreIndex] = chore.copy(
             completed = true,
-            dateCompleted = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH).format(Date())
+            dateCompleted = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault()).format(Date())
         )
 
         // create a new instance of that chore type
         val recurring = recurringChoresList?.find { it.recurringChoreId == chore.instanceOf }
         if (recurring != null) {
-            val df = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+            val df = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
             val calendar = Calendar.getInstance()
             calendar.time = Date() // for next due date to build from today not previous due date
 
@@ -536,7 +534,7 @@ class ChoresViewModel(
     fun isChoreOverdue(chore: Chore?): Boolean {
         val isOverdue = chore?.dueDate?.let { dueString ->
             try {
-                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
                 dateFormat.isLenient = false
 
                 val dueDate = dateFormat.parse(dueString) ?: return@let false
@@ -575,7 +573,7 @@ class ChoresViewModel(
      */
     fun getUpcomingChores(chores: List<Chore>): List<Chore> {
         // 1. Define the date format that matches how you store it in Firestore.
-        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
 
         // 2. Get today's date and reset its time to the beginning of the day (00:00:00).
         // This ensures that chores due *any time* today are not included in the "after today" list.

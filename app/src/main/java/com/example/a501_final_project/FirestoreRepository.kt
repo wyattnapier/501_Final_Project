@@ -317,7 +317,6 @@ class FirestoreRepository : IRepository {
      */
 
     suspend fun updateChoreAssignmentsSuspend(updatedChores: List<Chore>) {
-        // this is very specific to H001
         val db = FirebaseFirestore.getInstance()
         val householdId = updatedChores.first().householdID
 

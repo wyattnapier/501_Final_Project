@@ -364,7 +364,6 @@ fun PrevChores(
             }
         }
         LazyColumn() {
-//            for (chore in previousChores) {
             for (chore in prevChores) {
                 item {
                     PrevChoreItem(chore, context, choresViewModel, modifier)
