@@ -233,6 +233,9 @@ class LoginViewModel(
                     .requestEmail()
                     .build()
                 GoogleSignIn.getClient(context, gso).signOut().await()
+
+                // triggers navigation and rerender
+                _userState.value = UserState.NOT_LOGGED_IN // slower UI but safer if signout fails
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
             }
@@ -257,8 +260,6 @@ class LoginViewModel(
                 choresViewModel.reset()
                 paymentViewModel.reset()
                 householdViewModel.reset()
-                // triggers navigation and rerender
-                _userState.value = UserState.NOT_LOGGED_IN // slower UI but safer if signout fails
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
             }

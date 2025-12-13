@@ -462,4 +462,8 @@ class HouseholdViewModel(
         Log.d("HouseholdViewModel", "State has been reset.")
     }
 
+    // clear error message
+    fun clearErrorMessage() {
+        errorMessage = null
+    }
 }

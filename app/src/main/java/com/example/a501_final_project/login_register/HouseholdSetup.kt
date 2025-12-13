@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -65,12 +66,17 @@ fun HouseholdLanding(
 
     if (viewModel.existingHousehold == true) {
         if (!viewModel.gotHousehold && !viewModel.householdCreated) {
-            FindHousehold(viewModel, Modifier, onBack = { navController.popBackStack() })
+            FindHousehold(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
+            )
         } else {
-            JoinHousehold(viewModel, Modifier, onBack = {
-                viewModel.gotHousehold = false
-                navController.popBackStack()
-            })
+            JoinHousehold(
+                viewModel = viewModel,
+                onBack = {
+                    viewModel.gotHousehold = false
+                }
+            )
         }
         if (viewModel.householdCreated) {
             // Reload data when household is created/joined
@@ -867,7 +873,10 @@ fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navContr
 }
 
 @Composable
-fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () -> Unit){
+fun FindHousehold(
+    viewModel: HouseholdViewModel,
+    onBack: () -> Unit,
+){
     var householdID by remember { mutableStateOf("") }
     val context = LocalContext.current
 
@@ -877,75 +886,83 @@ fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
         }
     }
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp, vertical = 24.dp)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp)
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp)
         ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_revert),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
             Text(
-                "Join Household",
+                "Join a Household",
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp)
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)
             )
-        }
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
-                OutlinedTextField(
-                    value = householdID,
-                    onValueChange = { householdID = it },
-                    label = { Text("Household ID") },
-                    placeholder = { Text("Enter ID") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = householdID,
+                        onValueChange = { householdID = it },
+                        label = { Text("Household ID") },
+                        placeholder = { Text("Enter ID") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.weight(1f)) // push button to bottom
+
+            Button(
+                onClick = {
+                    viewModel.clearErrorMessage() // reset previous error
+                    viewModel.getHouseholdForJoining(householdID)
+                },
+                enabled = !viewModel.isLoading && householdID.isNotBlank(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("Search for Household", style = MaterialTheme.typography.bodyLarge)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = onBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            ) {
+                Text("Go Back", style = MaterialTheme.typography.bodyLarge)
+            }
+            Spacer(modifier = Modifier.height(20.dp))
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = { viewModel.getHouseholdForJoining(householdID) },
-            enabled = !viewModel.isLoading && householdID.isNotBlank(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(12.dp)
-        ){
-            Text("Search for Household", style = MaterialTheme.typography.bodyLarge)
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-    }
 }
 
 @Composable
-fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () -> Unit) {
+fun JoinHousehold(viewModel: HouseholdViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val error = viewModel.errorMessage
+    val areAllPaymentsValid = viewModel.paymentsFromDB.all { payment ->
+        (payment.split.toDouble() + payment.occupiedSplit.toDouble()) <= 100.0
+    }
 
     LaunchedEffect(error) {
         error?.let {
@@ -960,26 +977,12 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp)
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_revert),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            Text(
-                text = viewModel.householdName,
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
+        Text(
+            text = viewModel.householdName,
+            style = MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(16.dp)
+        )
 
         LazyColumn(
             modifier = Modifier
@@ -1011,17 +1014,33 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.weight(1f)) // push button to end of page
 
         Button(
             onClick = { viewModel.confirmJoinHousehold(context = context) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            enabled = !viewModel.isLoading,
+            enabled = !viewModel.isLoading && areAllPaymentsValid,
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Confirm & Join Household", style = MaterialTheme.typography.bodyLarge)
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Text("Go Back", style = MaterialTheme.typography.bodyLarge)
         }
 
         Spacer(modifier = Modifier.height(20.dp))
@@ -1047,10 +1066,11 @@ fun PaymentItem(
         )
 
         OutlinedTextField(
-            value = payment.split.toString(),
+            value = if (payment.split == 0) "" else payment.split.toString(),
             onValueChange = { input ->
-                val value = input.toIntOrNull() ?: 0
-                onPaymentChanged(payment.copy(split = value))
+                if (input.isEmpty() || input.all { it.isDigit() }) {
+                    onPaymentChanged(payment.copy(split = input.toIntOrNull() ?: 0))
+                }
             },
             label = { Text("Your Split (%)") },
             placeholder = { Text("Enter percentage") },
