@@ -26,6 +26,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import androidx.core.net.toUri
 import com.example.a501_final_project.BuildConfig
+import com.example.a501_final_project.IRepository
 
 
 /**
@@ -55,7 +56,7 @@ data class RecurringChore(
 )
 
 class ChoresViewModel(
-    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
+    private val firestoreRepository: IRepository = FirestoreRepository()
 ) : ViewModel() {
     private val _roommates = MutableStateFlow<List<String>>(emptyList())
     val roommates: StateFlow<List<String>> = _roommates.asStateFlow()

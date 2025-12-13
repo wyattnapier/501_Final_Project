@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class MainViewModel(
-    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
+    private val firestoreRepository: IRepository = FirestoreRepository()
 ): ViewModel() {
     private val _userId = MutableStateFlow<String?>(null)
     val userId: StateFlow<String?> = _userId.asStateFlow()
