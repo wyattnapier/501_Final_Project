@@ -20,6 +20,11 @@ import com.google.api.services.calendar.CalendarScopes
 import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 import kotlinx.coroutines.withContext
 
 data class ChoreInput(
@@ -244,6 +249,30 @@ class HouseholdViewModel(
             )
         )
 
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        val calendar = Calendar.getInstance()
+
+
+        val initialChores = recurring_chores.mapIndexed { index, rc ->
+
+            val daysFromNow = (rc["cycle"] as? Number)?.toInt() ?: 7
+            calendar.time = Date()
+            calendar.add(Calendar.DAY_OF_YEAR, daysFromNow)
+            val dueDate = dateFormat.format(calendar.time)
+
+            mapOf(
+                "chore_id" to UUID.randomUUID().toString(),
+                "name" to rc["name"],
+                "description" to rc["description"],
+                "completed" to false,
+                "assignedToId" to "",
+                "assignedToName" to "",
+                "dueDate" to dueDate, // OR generate now
+                "recurring_chore_id" to index,
+                "recurring" to true
+            )
+        }
+
         viewModelScope.launch {
             try {
                 Log.d("HouseholdViewModel", "Step 1: Creating Google Calendar")
@@ -260,7 +289,8 @@ class HouseholdViewModel(
                     "recurring_payments" to recurring_payments,
                     "calendar_id" to googleCalendarId,
                     "residents" to residents,
-                    "chores" to emptyList<Map<String, Any>>(),
+//                    "chores" to emptyList<Map<String, Any>>(),
+                    "chores" to initialChores,
                     "pending_members" to emptyList<String>()  // Initialize empty pending members
                 )
 

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.R
+import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
 @Composable
@@ -79,6 +80,7 @@ fun HouseholdLanding(
         }
     } else if (viewModel.existingHousehold == false) {
         NewHousehold(viewModel, navController, onHouseholdCreated)
+
     }
 }
 
