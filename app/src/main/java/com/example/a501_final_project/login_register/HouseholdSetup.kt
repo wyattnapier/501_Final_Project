@@ -18,8 +18,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -56,31 +58,37 @@ import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 fun HouseholdLanding(
     viewModel: HouseholdViewModel,
     navController: NavController,
-    mainViewModel: MainViewModel,
-    onHouseholdCreated: () -> Unit = {}
+    loginViewModel: LoginViewModel,
 ) {
+    // load current user as soon as householdLanding is composed so that it can be used when household created
+    LaunchedEffect(Unit) {
+        viewModel.loadCurrentUserId()
+    }
+
     if (viewModel.existingHousehold == true) {
         if (!viewModel.gotHousehold && !viewModel.householdCreated) {
-            FindHousehold(viewModel, Modifier, onBack = { navController.popBackStack() })
+            FindHousehold(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
+            )
         } else {
-            JoinHousehold(viewModel, Modifier, onBack = {
-                viewModel.gotHousehold = false
-                navController.popBackStack()
-            })
+            JoinHousehold(
+                viewModel = viewModel,
+                onBack = {
+                    viewModel.gotHousehold = false
+                }
+            )
         }
         if (viewModel.householdCreated) {
-            // Reload data when household is created/joined
+            // Reload data when household is joined
             LaunchedEffect(Unit) {
                 Log.d("HouseholdLanding", "Household created/joined, reloading data")
-                mainViewModel.loadUserData()
-                mainViewModel.loadHouseholdData()
-                onHouseholdCreated()
+                loginViewModel.refreshUserState()
             }
-            navController.navigate("Home")
+            HouseholdJoinedSuccessMessage()
         }
     } else if (viewModel.existingHousehold == false) {
-        NewHousehold(viewModel, navController, onHouseholdCreated)
-
+        NewHousehold(viewModel, loginViewModel, navController)
     }
 }
 
@@ -88,8 +96,8 @@ fun HouseholdLanding(
 @Composable
 fun NewHousehold(
     viewModel: HouseholdViewModel,
+    loginViewModel: LoginViewModel,
     navController: NavController,
-    onHouseholdCreated: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -97,13 +105,6 @@ fun NewHousehold(
     LaunchedEffect(viewModel.errorMessage) {
         viewModel.errorMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
-        }
-    }
-
-    // Trigger callback when household is created
-    LaunchedEffect(viewModel.householdCreated) {
-        if (viewModel.householdCreated) {
-            onHouseholdCreated()
         }
     }
 
@@ -145,7 +146,10 @@ fun NewHousehold(
                             }
                         } else {
                             Button(
-                                onClick = { viewModel.createHousehold(context = context) },
+                                onClick = {
+                                    viewModel.createHousehold(context = context)
+                                    loginViewModel.refreshUserState()
+                                },
                                 enabled = !viewModel.isLoading,
                                 modifier = Modifier.weight(1f)
                             ) {
@@ -158,7 +162,7 @@ fun NewHousehold(
         },
         content = { innerPadding ->
             if (viewModel.householdCreated) {
-                HouseholdCreated(viewModel, Modifier.padding(innerPadding), navController)
+                HouseholdCreated(viewModel = viewModel, loginViewModel = loginViewModel, Modifier.padding(innerPadding))
             } else {
                 AnimatedContent(targetState = viewModel.setupStep) { step ->
                     when (step) {
@@ -771,7 +775,11 @@ fun ReviewHouseholdDetails(viewModel: HouseholdViewModel, modifier: Modifier){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navController : NavController){
+fun HouseholdCreated (
+    viewModel: HouseholdViewModel,
+    loginViewModel: LoginViewModel,
+    modifier: Modifier,
+){
     val clipboardManager = LocalClipboardManager.current
     val householdId = viewModel.householdID
 
@@ -782,7 +790,7 @@ fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navContr
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Button(
-                    onClick = { navController.navigate("Home") },
+                    onClick = { loginViewModel.refreshUserState() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(50.dp),
@@ -862,7 +870,10 @@ fun HouseholdCreated(viewModel: HouseholdViewModel, modifier: Modifier, navContr
 }
 
 @Composable
-fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () -> Unit){
+fun FindHousehold(
+    viewModel: HouseholdViewModel,
+    onBack: () -> Unit,
+){
     var householdID by remember { mutableStateOf("") }
     val context = LocalContext.current
 
@@ -877,28 +888,15 @@ fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp, vertical = 24.dp)
+            .padding(16.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp)
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_revert),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            Text(
-                "Join Household",
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
+        Text(
+            "Join a Household",
+            style = MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 16.dp, bottom = 24.dp)
+        )
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -920,25 +918,43 @@ fun FindHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.weight(1f)) // push button to bottom
 
         Button(
-            onClick = { viewModel.getHouseholdForJoining(householdID) },
+            onClick = {
+                viewModel.clearErrorMessage() // reset previous error
+                viewModel.getHouseholdForJoining(householdID)
+            },
             enabled = !viewModel.isLoading && householdID.isNotBlank(),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(12.dp)
-        ){
+        ) {
             Text("Search for Household", style = MaterialTheme.typography.bodyLarge)
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Text("Go Back", style = MaterialTheme.typography.bodyLarge)
+        }
         Spacer(modifier = Modifier.height(20.dp))
     }
 }
 
 @Composable
-fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () -> Unit) {
+fun JoinHousehold(viewModel: HouseholdViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val error = viewModel.errorMessage
 
@@ -955,26 +971,13 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp)
-        ) {
-            IconButton(onClick = onBack) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_revert),
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            Text(
-                text = viewModel.householdName,
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 8.dp)
-            )
-        }
+        Text(
+            text = viewModel.householdName,
+            style = MaterialTheme.typography.displaySmall,
+            color = MaterialTheme.colorScheme.primary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(16.dp)
+        )
 
         LazyColumn(
             modifier = Modifier
@@ -1006,20 +1009,56 @@ fun JoinHousehold(viewModel: HouseholdViewModel, modifier: Modifier, onBack: () 
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.weight(1f)) // push button to end of page
 
         Button(
             onClick = { viewModel.confirmJoinHousehold(context = context) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            enabled = !viewModel.isLoading,
+            enabled = !viewModel.isLoading && viewModel.paymentsFromDB.all { payment ->
+                (payment.split.toDouble() + payment.occupiedSplit.toDouble()) <= 100.0
+            },
             shape = RoundedCornerShape(12.dp)
         ) {
             Text("Confirm & Join Household", style = MaterialTheme.typography.bodyLarge)
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Text("Go Back", style = MaterialTheme.typography.bodyLarge)
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
+    }
+}
+
+// TODO: not pretty and could probably be its own page but only shows for one second
+@Composable
+fun HouseholdJoinedSuccessMessage() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            "Successfully joined household!",
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        CircularProgressIndicator()
     }
 }
 
@@ -1042,10 +1081,11 @@ fun PaymentItem(
         )
 
         OutlinedTextField(
-            value = payment.split.toString(),
+            value = if (payment.split == 0) "" else payment.split.toString(),
             onValueChange = { input ->
-                val value = input.toIntOrNull() ?: 0
-                onPaymentChanged(payment.copy(split = value))
+                if (input.isEmpty() || input.all { it.isDigit() }) {
+                    onPaymentChanged(payment.copy(split = input.toIntOrNull() ?: 0))
+                }
             },
             label = { Text("Your Split (%)") },
             placeholder = { Text("Enter percentage") },

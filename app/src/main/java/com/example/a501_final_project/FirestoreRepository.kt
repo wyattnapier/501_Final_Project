@@ -69,6 +69,50 @@ class FirestoreRepository : IRepository {
     }
 
     /**
+     * Checks if a user document exists in the 'users' collection.
+     */
+    override suspend fun checkUserExists(userId: String): Boolean {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            document.exists()
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error checking if user exists", e)
+            false
+        }
+    }
+
+    /**
+     * check if a user belongs to a household
+     */
+    override suspend fun isUserInHousehold(userId: String): Boolean {
+        return try {
+            val document = db.collection("users").document(userId).get().await()
+            document.exists() && document.getString("household_id") != null
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error checking if user is in household", e)
+            false
+        }
+    }
+
+    /**
+     * Creates a new user document in the 'users' collection.
+     */
+    override suspend fun saveNewUser(userId: String, name: String, venmoUsername: String) {
+        try {
+            val user = mapOf(
+                "name" to name,
+                "venmoUsername" to venmoUsername,
+                "household_id" to null // New users don't have a household yet
+            )
+            db.collection("users").document(userId).set(user).await()
+            Log.d("FirestoreRepository", "New user saved with ID: $userId")
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error saving new user", e)
+            throw e // Re-throw for the ViewModel to handle
+        }
+    }
+
+    /**
      * Get the household ID for a user (SUSPEND VERSION)
      */
     override suspend fun getHouseholdIdForUserSuspend(userId: String): String {
@@ -102,7 +146,7 @@ class FirestoreRepository : IRepository {
     /**
      * Gets the Google Calendar ID from the current user's household data. (SUSPEND VERSION)
      */
-    suspend fun getHouseholdCalendarIdAndPendingMembersSuspend(): Map<String, Any?> {
+    override suspend fun getHouseholdCalendarIdAndPendingMembersSuspend(): Map<String, Any?> {
         // Re-use the existing function that gets the whole household document
         val (householdId, householdData) = getHouseholdWithoutIdSuspend()
         // Return the 'calendar_id' field, or throw an exception if it's missing
@@ -126,7 +170,7 @@ class FirestoreRepository : IRepository {
         }
     }
 
-    suspend fun removePendingMember(householdId: String, emailToRemove: String) {
+    override suspend fun removePendingMember(householdId: String, emailToRemove: String) {
         if (emailToRemove.isEmpty()) {
             Log.w("FirestoreRepository", "No email to remove: [$emailToRemove]")
             return
@@ -230,7 +274,7 @@ class FirestoreRepository : IRepository {
         }
     }
 
-    suspend fun addNewPaymentToHousehold(householdId: String, newPaymentData: Map<String, Any>) {
+    override suspend fun addNewPaymentToHousehold(householdId: String, newPaymentData: Map<String, Any>) {
         try {
             val householdRef = db.collection("households").document(householdId)
             // Atomically add the new payment map to the 'payments' array
@@ -243,6 +287,7 @@ class FirestoreRepository : IRepository {
     }
 
     override suspend fun updateUserHouseholdIdSuspend(userId: String, householdId: String) {
+        Log.d("FirestoreRepository", "Trying to update user [$userId] household ID to [$householdId]")
         try {
             val userRef = db.collection("users").document(userId)
             userRef.update("household_id", householdId).await()

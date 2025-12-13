@@ -302,7 +302,7 @@ class HouseholdViewModel(
 
                 householdID = newHouseholdId
 
-                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id")
+                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id: $householdID")
 
                 // 3. Update user document with the new household_id (WAIT for this to complete!)
                 repository.updateUserHouseholdIdSuspend(uid, newHouseholdId)
@@ -311,7 +311,6 @@ class HouseholdViewModel(
                 Log.d("HouseholdViewModel", "✓ Household creation complete!")
 
                 householdCreated = true
-
             } catch (e: Exception) {
                 Log.e("HouseholdViewModel", "✗ Error creating household", e)
                 errorMessage = "Failed to create household: ${e.message}"
@@ -493,4 +492,8 @@ class HouseholdViewModel(
         Log.d("HouseholdViewModel", "State has been reset.")
     }
 
+    // clear error message
+    fun clearErrorMessage() {
+        errorMessage = null
+    }
 }

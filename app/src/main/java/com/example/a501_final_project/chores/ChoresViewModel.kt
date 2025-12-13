@@ -481,7 +481,6 @@ class ChoresViewModel(
                     return@launch
                 }
 
-                // TODO: get the actual householdID instead of this placeholder
                 val path = "${householdID}/${choreId}.jpg"
 
                 //write the byte to supabase database
@@ -511,7 +510,6 @@ class ChoresViewModel(
     // return uri for the chore image if it exists
     suspend fun getChoreImageUri(choreId: String, householdID: String): Uri? {
         val supabaseClient = SupabaseClientProvider.client
-        // TODO: Get the actual household ID in here
         val path = "${householdID}/${choreId}.jpg"
 
         return try {

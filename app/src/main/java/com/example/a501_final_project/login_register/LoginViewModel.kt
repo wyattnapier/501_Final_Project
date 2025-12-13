@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.a501_final_project.FirestoreRepository
+import com.example.a501_final_project.IRepository
 import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.R
 import com.example.a501_final_project.chores.ChoresViewModel
@@ -39,52 +41,126 @@ enum class SignUpSteps {
     REVIEW
 }
 
-class LoginViewModel() : ViewModel() {
+// maps out overall login state
+enum class UserState {
+    CHECKING,           // Initial state, checking auth
+    NOT_LOGGED_IN,      // No Google account
+    NEEDS_SETUP,        // needs user setup in db and/or household setup in db
+    READY              // Fully authenticated and in household
+}
+
+class LoginViewModel(
+    private val repository: IRepository = FirestoreRepository()
+) : ViewModel() {
     var displayName by mutableStateOf("")
     var venmoUsername by mutableStateOf("")
 
     private val auth: FirebaseAuth = Firebase.auth
 
+    private val _userState = MutableStateFlow(UserState.CHECKING)
+    val userState = _userState.asStateFlow()
+
+    // Keep existing _uiState but simplify it
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val _signOutComplete = MutableSharedFlow<Unit>()
-    val signOutComplete = _signOutComplete.asSharedFlow()
-
     // check if user is logged in or not on init
     init {
-        // Observe Firebase auth state changes
         auth.addAuthStateListener { firebaseAuth ->
-            val firebaseUser = firebaseAuth.currentUser
-            if (firebaseUser != null) {
-                viewModelScope.launch {
-                    val userExists = checkExistingUser()
-                    _uiState.value = _uiState.value.copy(
-                        userEmail = firebaseUser.email,
-                        userName = firebaseUser.displayName,
-                        profilePictureUrl = firebaseUser.photoUrl?.toString(),
-                        isLoginInProgress = false,
-                        isLoggedIn = true,
-                        userAccount = firebaseUser.email?.let { Account(it, "com.google") },
-                        userAlreadyExists = userExists,  // This is now set at the same time,
-                        isChecking = false // at this point done checking if user is logged in
-                    )
-                }
-                Log.d("LoginViewModel", "Firebase user signed in: ${firebaseUser.email}")
-            } else {
-                // User is signed out
-                _uiState.value = _uiState.value.copy( // use a copy for better error handling
-                    isLoggedIn = false,
-                    isLoginInProgress = false,
-                    userEmail = null,
-                    userName = null,
-                    profilePictureUrl = null,
-                    userAccount = null,
-                    isChecking = false
-                )
-                Log.d("LoginViewModel", "Firebase user signed out.")
+            Log.d("LoginViewModel", "AuthStateListener triggered")
+            viewModelScope.launch {
+                handleAuthStateChange(firebaseAuth.currentUser != null)
             }
         }
+    }
+
+    /**
+     * Centralized function to handle auth state changes
+     */
+    private suspend fun handleAuthStateChange(isSignedIn: Boolean) {
+        if (!isSignedIn) {
+            Log.d("LoginViewModel", "No Firebase user, setting to NOT_LOGGED_IN")
+            _userState.value = UserState.NOT_LOGGED_IN
+            _uiState.value = LoginUiState(
+                isLoginInProgress = false
+            )
+            return
+        }
+
+        val firebaseUser = auth.currentUser ?: return
+        Log.d("LoginViewModel", "Processing Firebase user: ${firebaseUser.email}")
+
+        try {
+            // Refresh token to ensure we're in sync with server
+            firebaseUser.getIdToken(true).await()
+            Log.d("LoginViewModel", "✓ Token refreshed")
+
+            // Check user and household status
+            val userExists = repository.checkUserExists(firebaseUser.uid)
+            Log.d("LoginViewModel", "✓ User exists: $userExists")
+
+            val hasHousehold = if (userExists) {
+                repository.isUserInHousehold(firebaseUser.uid)
+            } else {
+                false
+            }
+            Log.d("LoginViewModel", "✓ Has household: $hasHousehold")
+
+            // Determine user state
+            _userState.value = when {
+                !userExists -> {
+                    Log.d("LoginViewModel", "→ State: NEEDS_SETUP (no user)")
+                    UserState.NEEDS_SETUP
+                }
+                !hasHousehold -> {
+                    Log.d("LoginViewModel", "→ State: NEEDS_SETUP (no household)")
+                    UserState.NEEDS_SETUP
+                }
+                else -> {
+                    Log.d("LoginViewModel", "→ State: READY")
+                    UserState.READY
+                }
+            }
+
+            // Update UI state
+            _uiState.value = _uiState.value.copy(
+                userEmail = firebaseUser.email,
+                userName = firebaseUser.displayName,
+                profilePictureUrl = firebaseUser.photoUrl?.toString(),
+                isLoginInProgress = false,
+                userAccount = firebaseUser.email?.let { Account(it, "com.google") },
+                error = null
+            )
+
+            Log.d("LoginViewModel", "✓ Auth processing complete")
+
+        } catch (e: Exception) {
+            Log.e("LoginViewModel", "✗ Error processing auth state", e)
+            auth.signOut()
+            _userState.value = UserState.NOT_LOGGED_IN
+            _uiState.value = LoginUiState(
+                error = "Authentication error: ${e.message}",
+                isLoginInProgress = false
+            )
+        }
+    }
+
+    // function to figure out which screen to display based on enum in MainActivity.kt
+    fun refreshUserState() {
+        Log.d("LoginViewModel", "refreshUserState called")
+        viewModelScope.launch {
+            val firebaseUser = auth.currentUser
+            if (firebaseUser != null) {
+                val userExists = repository.checkUserExists(firebaseUser.uid)
+                val hasHousehold = if (userExists) repository.isUserInHousehold(firebaseUser.uid) else false
+
+                _userState.value = when {
+                    !userExists || !hasHousehold -> UserState.NEEDS_SETUP
+                    else -> UserState.READY
+                }
+            }
+        }
+        Log.d("LoginViewModel", "refreshUserState completed: ${_userState.value}")
     }
 
     // get token that firebase can use to sign in while also getting gcal permissions and auth code
@@ -93,10 +169,7 @@ class LoginViewModel() : ViewModel() {
             .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
             .requestServerAuthCode(context.getString(R.string.default_web_client_id))
-            .requestScopes(
-                // must match with scopes in MainViewModel (except calendarlist)
-                Scope(CalendarScopes.CALENDAR), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
-            )
+            .requestScopes(Scope(CalendarScopes.CALENDAR))
             .build()
         return GoogleSignIn.getClient(context, gso)
     }
@@ -130,8 +203,7 @@ class LoginViewModel() : ViewModel() {
         try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
-
-            // AuthStateListener will handle updating the UI state.
+            handleAuthStateChange(true)
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
                 error = "Firebase authentication failed: ${e.message}",
@@ -147,12 +219,24 @@ class LoginViewModel() : ViewModel() {
                 // Sign out from Firebase
                 auth.signOut()
 
+                // reset state variables
+                _uiState.value = _uiState.value.copy(
+                    userEmail = null,
+                    userName = null,
+                    profilePictureUrl = null,
+                    isLoginInProgress = false,
+                    error = null,
+                )
+
                 // Sign out from Google to allow account switching
                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                     .requestIdToken(context.getString(R.string.default_web_client_id))
                     .requestEmail()
                     .build()
                 GoogleSignIn.getClient(context, gso).signOut().await()
+
+                // triggers navigation and rerender
+                _userState.value = UserState.NOT_LOGGED_IN // slower UI but safer if signout fails
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
             }
@@ -177,59 +261,27 @@ class LoginViewModel() : ViewModel() {
                 choresViewModel.reset()
                 paymentViewModel.reset()
                 householdViewModel.reset()
-                // Emit an event to tell the UI to navigate
-                _signOutComplete.emit(Unit)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
             }
         }
     }
 
-    /**
-     * function to store user data to firestore
-     */
     fun saveUserToDb() {
-
-        // get instance of firebase (geeks for geeks did in main but i am doing here...?)
-        val db = FirebaseFirestore.getInstance()
-        val currentUser = auth.currentUser // this will alredybe in there cuz it gets sent on google auth, which has happened byt his point
-
+        val currentUser = auth.currentUser
         if (currentUser == null) {
             Log.w("LoginViewModel", "No authenticated user found, can't save to Firestore")
             return
         }
 
-        val user = Member(name = displayName, venmoUsername = venmoUsername)
-        val uid = currentUser.uid // this hte current user's UID given by firebase auth
-
-        db.collection("users") // the name of the collection in firestore
-            .document(uid)
-            .set(user)
-            .addOnSuccessListener {
-                Log.d("LoginViewModel", "User saved to Firestore with ID: ${uid}")
+        viewModelScope.launch {
+            try {
+                repository.saveNewUser(currentUser.uid, displayName, venmoUsername)
+                Log.d("LoginViewModel", "User save process initiated for ID: ${currentUser.uid}")
+            } catch (e: Exception) {
+                Log.e("LoginViewModel", "Error saving user to Firestore", e)
+                _uiState.value = _uiState.value.copy(error = "Failed to save user profile.")
             }
-            .addOnFailureListener { e ->
-                Log.w("LoginViewModel", "Error saving user to Firestore", e)
-            }
-    }
-
-    /**
-     * function to check if user is in db already
-     */
-    suspend fun checkExistingUser() : Boolean {
-        val currentUser = auth.currentUser ?: return false
-        val db = FirebaseFirestore.getInstance()
-
-        return try {
-            val document = db.collection("users")
-                .document(currentUser.uid)
-                .get()
-                .await()
-
-            document.exists()
-        } catch (e: Exception) {
-            Log.e("LoginViewModel", "Error checking if user exists", e)
-            false
         }
     }
 
@@ -246,13 +298,4 @@ data class LoginUiState(
     val profilePictureUrl: String? = null,
     val isLoginInProgress: Boolean = false,
     val error: String? = null,
-    val isLoggedIn: Boolean = false, // flag for firebase state
-    val userAlreadyExists: Boolean? = null,
-    val isChecking : Boolean = true // flag for if login status is actively being checked, since we dont want login or signup to appear right off the bat, this has to be true
-)
-
-// data class for a user
-data class Member(
-    val name : String,
-    val venmoUsername : String,
 )
