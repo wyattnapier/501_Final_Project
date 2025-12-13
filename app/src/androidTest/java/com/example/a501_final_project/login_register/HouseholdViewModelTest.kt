@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+import android.content.Context
 import com.example.a501_final_project.FirestoreRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,6 +43,7 @@ class HouseholdViewModelTest {
 
     @Test
     fun test_household_creation_with_mocked_repository() = runTest {
+        val context = mock<Context>()
         // Arrange
         val mockHouseholdId = "test-household-123"
         // Use suspend version of whenever for suspend functions
@@ -52,7 +54,7 @@ class HouseholdViewModelTest {
         viewModel.updateCalendarName("Test Calendar")
 
         // Act
-        viewModel.createHousehold()
+        viewModel.createHousehold(context)
 
         // Wait for coroutines launched in viewModelScope to complete
         advanceUntilIdle()
