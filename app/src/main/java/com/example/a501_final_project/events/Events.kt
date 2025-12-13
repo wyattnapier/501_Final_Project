@@ -34,6 +34,7 @@ fun EventsScreen(
     eventsViewModel: EventsViewModel,
 ) {
     val userStateVal by loginViewModel.userState.collectAsState()
+    val isLoggedInAndReady = userStateVal == UserState.READY
     val isLoading by eventsViewModel.isLoadingCalendar.collectAsState()
     val error by eventsViewModel.calendarError.collectAsState()
     val viewType by eventsViewModel.calendarViewType.collectAsState()
@@ -62,7 +63,7 @@ fun EventsScreen(
                     shape = CircleShape,
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    enabled = userStateVal == UserState.READY && targetCalendarId.isNullOrBlank().not(),
+                    enabled = isLoggedInAndReady && targetCalendarId.isNullOrBlank().not(),
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -79,7 +80,7 @@ fun EventsScreen(
             Box(modifier = Modifier.padding(4.dp), contentAlignment = Alignment.CenterStart) {
                 Card(
                     onClick = {
-                        if (userStateVal == UserState.READY) {
+                        if (isLoggedInAndReady) {
                             Log.d("EventsScreen", "Refreshing calendar events with targetCalendarId: $targetCalendarId")
                             eventsViewModel.fetchCalendarEvents(context, targetCalendarId ?: "")
                         }
@@ -87,7 +88,7 @@ fun EventsScreen(
                     shape = CircleShape,
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    enabled = !isLoading && userStateVal == UserState.READY && targetCalendarId.isNullOrBlank().not()
+                    enabled = !isLoading && isLoggedInAndReady && targetCalendarId.isNullOrBlank().not()
                 ) {
                     Icon(
                         Icons.Default.Refresh,
@@ -101,7 +102,7 @@ fun EventsScreen(
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when {
-                userStateVal == UserState.READY -> Text("Please sign in to see events.")
+                !isLoggedInAndReady -> Text("Please sign in to see events.")
                 isLoading && allEvents.isEmpty() -> CircularProgressIndicator()
                 error != null -> Text(
                     "Error: $error",

@@ -64,9 +64,6 @@ class LoginViewModel(
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val _signOutComplete = MutableSharedFlow<Unit>()
-    val signOutComplete = _signOutComplete.asSharedFlow()
-
     // check if user is logged in or not on init
     init {
         auth.addAuthStateListener { firebaseAuth ->
@@ -85,7 +82,6 @@ class LoginViewModel(
             Log.d("LoginViewModel", "No Firebase user, setting to NOT_LOGGED_IN")
             _userState.value = UserState.NOT_LOGGED_IN
             _uiState.value = LoginUiState(
-                isChecking = false,
                 isLoginInProgress = false
             )
             return
@@ -131,9 +127,7 @@ class LoginViewModel(
                 userEmail = firebaseUser.email,
                 userName = firebaseUser.displayName,
                 profilePictureUrl = firebaseUser.photoUrl?.toString(),
-                isLoginInProgress = false, // ✓ Stop loading
-                isChecking = false,
-                isLoggedIn = true,
+                isLoginInProgress = false,
                 userAccount = firebaseUser.email?.let { Account(it, "com.google") },
                 error = null
             )
@@ -146,7 +140,6 @@ class LoginViewModel(
             _userState.value = UserState.NOT_LOGGED_IN
             _uiState.value = LoginUiState(
                 error = "Authentication error: ${e.message}",
-                isChecking = false,
                 isLoginInProgress = false
             )
         }
@@ -233,9 +226,6 @@ class LoginViewModel(
                     profilePictureUrl = null,
                     isLoginInProgress = false,
                     error = null,
-                    isLoggedIn = false,
-                    userAlreadyExists = null,
-                    isChecking = true
                 )
 
                 // Sign out from Google to allow account switching
@@ -270,8 +260,6 @@ class LoginViewModel(
                 householdViewModel.reset()
                 // triggers navigation and rerender
                 _userState.value = UserState.NOT_LOGGED_IN // slower UI but safer if signout fails
-                // Emit an event to tell the UI to navigate
-                _signOutComplete.emit(Unit)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
             }
@@ -302,7 +290,6 @@ class LoginViewModel(
 }
 
 // A data class to hold all UI state in one object.
-// todo: remove isLoggedIn and isChecking
 data class LoginUiState(
     val userEmail: String? = null,
     val userAccount: Account? = null,
@@ -310,13 +297,4 @@ data class LoginUiState(
     val profilePictureUrl: String? = null,
     val isLoginInProgress: Boolean = false,
     val error: String? = null,
-    val isLoggedIn: Boolean = false, // flag for firebase state
-    val userAlreadyExists: Boolean? = null,
-    val isChecking : Boolean = true // flag for if login status is actively being checked, since we dont want login or signup to appear right off the bat, this has to be true
-)
-
-// data class for a user
-data class Member(
-    val name : String,
-    val venmoUsername : String,
 )

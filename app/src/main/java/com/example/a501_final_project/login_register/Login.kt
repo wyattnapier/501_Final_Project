@@ -32,6 +32,7 @@ fun LoginScreen(
     navController: NavController,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val userState by viewModel.userState.collectAsState()
     val context = LocalContext.current
 
     val signInLauncher = rememberLauncherForActivityResult(
@@ -42,7 +43,7 @@ fun LoginScreen(
     }
 
     // Log when recomposing
-    Log.d("LoginScreen", "Recomposing - isLoginInProgress: ${uiState.isLoginInProgress}, isChecking: ${uiState.isChecking}")
+    Log.d("LoginScreen", "Recomposing - isLoginInProgress: ${uiState.isLoginInProgress} - userState: $userState")
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -51,12 +52,12 @@ fun LoginScreen(
     ) {
         when {
             // Show loading indicator when login is in progress OR checking auth status
-            uiState.isLoginInProgress || uiState.isChecking -> {
+            uiState.isLoginInProgress || userState == UserState.CHECKING || userState == UserState.READY -> { // last check included to make UI smoother
                 Log.d("LoginScreen", "Showing loading indicator")
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = if (uiState.isLoginInProgress) "Signing in..." else "Checking authentication...",
+                    text = if (!uiState.isLoginInProgress) "Checking authentication..." else "Signing in...",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

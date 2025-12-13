@@ -66,6 +66,7 @@ fun SignUpScreen(
             // handle each different step[
             SignUpSteps.GOOGLE_LOGIN -> {
                 val context = LocalContext.current
+                val userState by loginViewModel.userState.collectAsState()
                 val uiState by loginViewModel.uiState.collectAsState()
 
                 val launcher = rememberLauncherForActivityResult(
@@ -91,8 +92,7 @@ fun SignUpScreen(
                     when {
                         uiState.isLoginInProgress -> CircularProgressIndicator()
 
-                        // todo: make sure it handles when a user with an account tries to sign up
-                        uiState.isLoggedIn -> {
+                        userState == UserState.NEEDS_SETUP -> {
                             LaunchedEffect(Unit) {
                                 currentStep = SignUpSteps.USER_INFO
                             }
