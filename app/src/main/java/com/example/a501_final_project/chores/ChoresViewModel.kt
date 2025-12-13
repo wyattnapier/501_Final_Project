@@ -195,11 +195,11 @@ class ChoresViewModel(
                         val dueDate = when (dueDateValue) {
                             is String -> dueDateValue
                             is com.google.firebase.Timestamp -> {
-                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.US)
                                 sdf.format(dueDateValue.toDate())
                             }
                             else -> { // this is case that it's a new chore?
-                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.US)
                                 sdf.format(Date())
                             }
                         } //?: return@mapIndexedNotNull null
@@ -215,7 +215,7 @@ class ChoresViewModel(
                         val dateCompleted = when (dateCompletedValue) {
                             is String -> dateCompletedValue
                             is com.google.firebase.Timestamp -> {
-                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                                val sdf = SimpleDateFormat("MMMM d, yyyy", Locale.US)
                                 sdf.format(dateCompletedValue.toDate())
                             }
                             null -> null
@@ -327,7 +327,7 @@ class ChoresViewModel(
         }
 
 
-        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
         val today = Calendar.getInstance() // Use fully qualified name
         val unassignedChores = chores.filter { chore ->
             chore.assignedToId.isBlank() && chore.dueDate.isNotBlank()
@@ -416,13 +416,13 @@ class ChoresViewModel(
         val chore = currentList[choreIndex]
         currentList[choreIndex] = chore.copy(
             completed = true,
-            dateCompleted = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault()).format(Date())
+            dateCompleted = SimpleDateFormat("MMMM d, yyyy", Locale.US).format(Date())
         )
 
         // create a new instance of that chore type
         val recurring = recurringChoresList?.find { it.recurringChoreId == chore.instanceOf }
         if (recurring != null) {
-            val df = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+            val df = SimpleDateFormat("MMMM d, yyyy", Locale.US)
             val calendar = Calendar.getInstance()
             calendar.time = Date() // for next due date to build from today not previous due date
 
@@ -534,7 +534,7 @@ class ChoresViewModel(
     fun isChoreOverdue(chore: Chore?): Boolean {
         val isOverdue = chore?.dueDate?.let { dueString ->
             try {
-                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+                val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
                 dateFormat.isLenient = false
 
                 val dueDate = dateFormat.parse(dueString) ?: return@let false
@@ -573,7 +573,7 @@ class ChoresViewModel(
      */
     fun getUpcomingChores(chores: List<Chore>): List<Chore> {
         // 1. Define the date format that matches how you store it in Firestore.
-        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.US)
 
         // 2. Get today's date and reset its time to the beginning of the day (00:00:00).
         // This ensures that chores due *any time* today are not included in the "after today" list.
