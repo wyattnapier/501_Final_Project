@@ -14,12 +14,17 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
+import org.mockito.junit.MockitoJUnit
 import org.mockito.junit.MockitoJUnitRunner
+import org.mockito.junit.MockitoRule
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 
-@RunWith(MockitoJUnitRunner::class)
+//@RunWith(MockitoJUnitRunner::class)
 class ChoresScreenTest {
+
+    @get:Rule
+    val mockitoRule: MockitoRule = MockitoJUnit.rule()
 
     @get:Rule
     val composeTestRule = createComposeRule()
@@ -59,7 +64,7 @@ class ChoresScreenTest {
 
     @Before
     fun setUp() {
-        MockitoAnnotations.openMocks(this)
+//        MockitoAnnotations.openMocks(this)
         context = InstrumentationRegistry.getInstrumentation().targetContext
 
         // Setup default repository behavior for MainViewModel

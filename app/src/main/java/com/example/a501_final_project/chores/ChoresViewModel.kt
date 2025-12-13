@@ -100,7 +100,7 @@ class ChoresViewModel(
         }
 
         _isLoading.value = true
-        Log.d("ChoresViewModel", "Starting to load household data...")
+//        Log.d("ChoresViewModel", "Starting to load household data...")
 
         // Launch a coroutine in the ViewModel scope to prevent failed results from async
         viewModelScope.launch {
@@ -198,7 +198,7 @@ class ChoresViewModel(
                             assignedToId  // Fall back to ID if name fetch fails
                         }
 
-                        Log.d("ChoresViewModel", "Chore $index: ${currentRecurringChore?.name} assigned to $assignedToName")
+//                        Log.d("ChoresViewModel", "Chore $index: ${currentRecurringChore?.name} assigned to $assignedToName")
 
                         Chore(
                             choreID = choreId,
@@ -214,12 +214,12 @@ class ChoresViewModel(
                     }
 
                     _choresList.value = parsedChores
-                    Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
+//                    Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
                 }
 
                 _isChoresDataLoaded.value = true
                 _isLoading.value = false
-                Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
+//                Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
 
             } catch (e: Exception) {
                 Log.e("ChoresViewModel", "Failed to load household data", e)
@@ -381,7 +381,7 @@ class ChoresViewModel(
                 false
             }
         } ?: false
-        Log.d("ChoresViewModel", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
+//        Log.d("ChoresViewModel", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
         return isOverdue
     }
 

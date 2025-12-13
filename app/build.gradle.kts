@@ -48,6 +48,10 @@ android {
                 "proguard-rules.pro"
             )
         }
+
+        debug {
+            enableAndroidTestCoverage = true
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -63,7 +67,7 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
-            isReturnDefaultValues = true
+//            isReturnDefaultValues = true
         }
     }
     packaging {
