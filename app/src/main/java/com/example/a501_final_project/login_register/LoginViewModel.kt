@@ -41,7 +41,6 @@ enum class SignUpSteps {
 }
 
 // maps out overall login state
-// TODO: replace the SignUpSteps enum with this one
 enum class UserState {
     CHECKING,           // Initial state, checking auth
     NOT_LOGGED_IN,      // No Google account
@@ -57,7 +56,7 @@ class LoginViewModel(
 
     private val auth: FirebaseAuth = Firebase.auth
 
-    private val _userState = MutableStateFlow(UserState.NOT_LOGGED_IN) // TODO: shoudl be set to checking
+    private val _userState = MutableStateFlow(UserState.CHECKING)
     val userState = _userState.asStateFlow()
 
     // Keep existing _uiState but simplify it

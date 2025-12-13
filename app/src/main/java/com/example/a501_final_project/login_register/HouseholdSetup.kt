@@ -55,12 +55,10 @@ import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 fun HouseholdLanding(
     viewModel: HouseholdViewModel,
     navController: NavController,
-    mainViewModel: MainViewModel,
     loginViewModel: LoginViewModel,
     onHouseholdCreated: () -> Unit = {}
 ) {
     // load current user as soon as householdLanding is composed so that it can be used when household created
-    // TODO: find a better place to trigger this
     LaunchedEffect(Unit) {
         viewModel.loadCurrentUserId()
     }

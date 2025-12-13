@@ -57,7 +57,7 @@ fun ProfileScreen(
         verticalArrangement = Arrangement.Center
     ) {
         if (userStateVal == UserState.READY) {
-            val verticalSpacingBetweenInformation = 8.dp // TODO: is there a better way to do this?
+            val verticalSpacingBetweenInformation = 8.dp
             // Profile picture
             AsyncImage(
                 model = uiState.profilePictureUrl,

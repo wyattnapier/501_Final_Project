@@ -162,7 +162,7 @@ fun MainScreen() {
                 // Only load data here
                 mainViewModel.loadUserData()
                 mainViewModel.loadHouseholdData()
-                householdViewModel.loadCurrentUserId() // TODO: triggers too late here for setup, need at end of setup to create household
+                householdViewModel.loadCurrentUserId()
                 // navigate to home
                 navController.navigate(Screen.Home.route) {
                     popUpTo(navController.graph.id) { inclusive = true }

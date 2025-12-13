@@ -117,11 +117,10 @@ fun AppNavGraph(
                     }
                 })
         }
-
+        // loading page with logo
         composable(Screen.Loading.route) {
             AptLoading()
         }
-
         // Household Setup routes - consolidated into one with optional action parameter
         composable(
             route = "HouseholdSetup/{action}",
@@ -145,20 +144,17 @@ fun AppNavGraph(
             HouseholdLanding(
                 viewModel = householdViewModel,
                 navController = navController,
-                mainViewModel = mainViewModel,
                 loginViewModel = loginViewModel,
                 onHouseholdCreated = {
                     Log.d("AppNavGraph", "Household created")
                 }
             )
         }
-
         // Fallback route for "HouseholdSetup" without action parameter
         composable("HouseholdSetup") {
             HouseholdLanding(
                 viewModel = householdViewModel,
                 navController = navController,
-                mainViewModel = mainViewModel,
                 loginViewModel = loginViewModel,
                 onHouseholdCreated = {
                     Log.d("AppNavGraph", "Household created")
