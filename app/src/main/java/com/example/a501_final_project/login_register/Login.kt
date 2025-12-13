@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,83 +31,75 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
     navController: NavController,
 ) {
-    // Observe the UI state from the ViewModel.
-    // The UI will automatically recompose whenever the state changes.
     val uiState by viewModel.uiState.collectAsState()
+    val userState by viewModel.userState.collectAsState()
     val context = LocalContext.current
 
-    // if the user is logged in
-    // --- SIGNED-IN VIEW ---
-    LaunchedEffect(uiState.isLoggedIn) {
-        if (uiState.isLoggedIn) {
-            navController.navigate("Home") {
-                popUpTo("Login") { inclusive = true }
-            }
-        }
-    }
-
-    // if firebase is actively checking if a user is logged in, do not show the login or sign up
-    if (uiState.isChecking) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = modifier.fillMaxSize()
-        ) {
-            AptLoading()
-            return
-        }
-    }
-
-    // if firebase done checking and finds that the user is logged in, then just return since laucnhedeffect is handled
-    if (uiState.isLoggedIn) {
-        return
-    }
-
-    // at this point firebase is done checking and the user is not logged in, so continue with the regular sign in process
     val signInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        // Pass the result directly to the ViewModel to handle the logic.
+        Log.d("LoginScreen", "Sign-in result received")
         viewModel.handleSignInResult(result)
     }
+
+    // Log when recomposing
+    Log.d("LoginScreen", "Recomposing - isLoginInProgress: ${uiState.isLoginInProgress} - userState: $userState")
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier.fillMaxSize()
     ) {
-
-        if (uiState.isLoginInProgress) {
-            CircularProgressIndicator()
-        } else {
-            // --- SIGNED-OUT VIEW ---
-            Button(
-                onClick = {
-                    val client = viewModel.getGoogleSignInClient(context)
-                    signInLauncher.launch(client.signInIntent)
-                }
-            ) {
-                Text(text = "Login")
+        when {
+            // Show loading indicator when login is in progress OR checking auth status
+            uiState.isLoginInProgress || userState == UserState.CHECKING || userState == UserState.READY -> { // last check included to make UI smoother
+                Log.d("LoginScreen", "Showing loading indicator")
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = if (!uiState.isLoginInProgress) "Checking authentication..." else "Signing in...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            // OR SIGN UP (just placeholding/temp)?
-            Text(text="OR",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(16.dp)
-            )
-            Button(onClick={
-                navController.navigate("UserSignUp")
-            }) {
-                Text(text="Sign up")
+            // Show login buttons when not loading
+            else -> {
+                Log.d("LoginScreen", "Showing login buttons")
+                Button(
+                    onClick = {
+                        Log.d("LoginScreen", "Login button clicked")
+                        val client = viewModel.getGoogleSignInClient(context)
+                        signInLauncher.launch(client.signInIntent)
+                    }
+                ) {
+                    Text(text = "Login")
+                }
+
+                Text(
+                    text = "OR",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(16.dp)
+                )
+
+                Button(
+                    onClick = {
+                        Log.d("LoginScreen", "Sign up button clicked")
+                        navController.navigate("UserSignUp")
+                    }
+                ) {
+                    Text(text = "Sign up")
+                }
             }
         }
 
-        // Optionally display errors
+        // Show error toast if there's an error
         LaunchedEffect(uiState.error) {
             uiState.error?.let { errorMessage ->
+                Log.e("LoginScreen", "Showing error: $errorMessage")
                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                viewModel.clearError() // Optionally, clear the error after showing it
+                viewModel.clearError()
             }
         }
     }

@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
+import kotlin.contracts.contract
 
 @Composable
 fun SignUpScreen(
@@ -57,6 +58,7 @@ fun SignUpScreen(
     // hoisted state so it is still there on back
     var name by rememberSaveable { mutableStateOf("") }
     var venmoUsername by rememberSaveable { mutableStateOf("") }
+    val context = LocalContext.current
 
     // scaffold so we can have snackbar message
     Scaffold(
@@ -66,12 +68,19 @@ fun SignUpScreen(
             // handle each different step[
             SignUpSteps.GOOGLE_LOGIN -> {
                 val context = LocalContext.current
+                val userState by loginViewModel.userState.collectAsState()
                 val uiState by loginViewModel.uiState.collectAsState()
 
                 val launcher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) { result ->
-                    loginViewModel.handleSignInResult(result)
+                    // Check if the result was NOT successful
+                    if (result.resultCode != android.app.Activity.RESULT_OK) {
+                        Log.d("SignUpScreen", "Google Sign-In was canceled by the user.")
+                        onNavigateToLogin() // Navigate back to the login screen.
+                    } else {
+                        loginViewModel.handleSignInResult(result) // The result was successful
+                    }
                 }
 
                 // launch Google Sign-In automatically
@@ -91,18 +100,7 @@ fun SignUpScreen(
                     when {
                         uiState.isLoginInProgress -> CircularProgressIndicator()
 
-                        uiState.isLoggedIn && uiState.userAlreadyExists == true -> {
-                            LaunchedEffect(Unit) {
-                                snackbarHostState.showSnackbar(
-                                    message = "Account already exists. Please login",
-                                    withDismissAction = true
-                                )
-                                loginViewModel.signOut(context)
-                                onNavigateToLogin()
-                            }
-                        }
-
-                        uiState.isLoggedIn && uiState.userAlreadyExists == false -> {
+                        userState == UserState.NEEDS_SETUP -> {
                             LaunchedEffect(Unit) {
                                 currentStep = SignUpSteps.USER_INFO
                             }
@@ -124,6 +122,10 @@ fun SignUpScreen(
                         loginViewModel.displayName = name
                         loginViewModel.venmoUsername = venmoUsername
                         currentStep = SignUpSteps.REVIEW
+                    },
+                    onBack = {
+                        currentStep = SignUpSteps.GOOGLE_LOGIN
+                        loginViewModel.signOut(context = context)
                     }
                 )
             }
@@ -147,7 +149,8 @@ fun GetUserInfo(
     onNameChange: (String) -> Unit,
     venmoUsername: String,
     onVenmoUsernameChange: (String) -> Unit,
-    onNext : () -> Unit
+    onNext : () -> Unit,
+    onBack : () -> Unit
 ) {
     var hasAttemptedSubmit by remember { mutableStateOf(false) }
     val isNameError = hasAttemptedSubmit && !isInputStringValidLength(name)
@@ -245,6 +248,20 @@ fun GetUserInfo(
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(text = "Next", style = MaterialTheme.typography.bodyLarge)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = onBack,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        ) {
+            Text("Go Back", style = MaterialTheme.typography.bodyLarge)
         }
         Spacer(modifier = Modifier.height(20.dp))
     }

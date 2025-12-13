@@ -45,6 +45,7 @@ fun ProfileScreen(
     loginViewModel: LoginViewModel,
     navController: NavController
 ) {
+    val userStateVal by loginViewModel.userState.collectAsState()
     val uiState by loginViewModel.uiState.collectAsState()
     val householdID by mainViewModel.householdId.collectAsState()
     val context = LocalContext.current
@@ -55,8 +56,8 @@ fun ProfileScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (uiState.isLoggedIn) {
-            val verticalSpacingBetweenInformation = 8.dp // TODO: is there a better way to do this?
+        if (userStateVal == UserState.READY) {
+            val verticalSpacingBetweenInformation = 8.dp
             // Profile picture
             AsyncImage(
                 model = uiState.profilePictureUrl,

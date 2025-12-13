@@ -13,6 +13,7 @@ import com.example.a501_final_project.chores.ChoresScreen
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
 import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.AptLoading
 import com.example.a501_final_project.login_register.HouseholdLanding
 import com.example.a501_final_project.login_register.HouseholdViewModel
 import com.example.a501_final_project.login_register.LoginScreen
@@ -32,11 +33,11 @@ fun AppNavGraph(
     loginViewModel: LoginViewModel,
     choresViewModel: ChoresViewModel,
     eventsViewModel: EventsViewModel,
-    householdViewModel : HouseholdViewModel
+    householdViewModel: HouseholdViewModel,
 ) {
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route
+        startDestination = Screen.Loading.route
     ) {
         // Home
         composable(Screen.Home.route) {
@@ -116,7 +117,10 @@ fun AppNavGraph(
                     }
                 })
         }
-
+        // loading page with logo
+        composable(Screen.Loading.route) {
+            AptLoading()
+        }
         // Household Setup routes - consolidated into one with optional action parameter
         composable(
             route = "HouseholdSetup/{action}",
@@ -140,28 +144,15 @@ fun AppNavGraph(
             HouseholdLanding(
                 viewModel = householdViewModel,
                 navController = navController,
-                mainViewModel = mainViewModel,
-                onHouseholdCreated = {
-                    // Reload all data when household is created
-                    Log.d("AppNavGraph", "Household created, reloading data")
-                    mainViewModel.loadUserData()
-                    mainViewModel.loadHouseholdData()
-                }
+                loginViewModel = loginViewModel,
             )
         }
-
         // Fallback route for "HouseholdSetup" without action parameter
         composable("HouseholdSetup") {
             HouseholdLanding(
                 viewModel = householdViewModel,
                 navController = navController,
-                mainViewModel = mainViewModel,
-                onHouseholdCreated = {
-                    // Reload all data when household is created
-                    Log.d("AppNavGraph", "Household created, reloading data")
-                    mainViewModel.loadUserData()
-                    mainViewModel.loadHouseholdData()
-                }
+                loginViewModel = loginViewModel,
             )
         }
     }

@@ -33,8 +33,7 @@ import com.example.a501_final_project.payment.UpcomingPaymentsWidget
 
 /**
  * composable for the home screen
- * creates the 4 boxes as previews of the main screens
- * TODO: fill in the the screens with real content (build composables for each widget)
+ * creates the 3 boxes as previews of the main screens
  */
 @Composable
 fun HomeScreen(

@@ -43,7 +43,8 @@ class UserSignUpTest {
                     onNameChange = {},
                     venmoUsername = "",
                     onVenmoUsernameChange = {},
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -64,7 +65,8 @@ class UserSignUpTest {
                     onNameChange = { name = it },
                     venmoUsername = venmo,
                     onVenmoUsernameChange = { venmo = it },
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -91,7 +93,8 @@ class UserSignUpTest {
                     onNameChange = { name = it },
                     venmoUsername = venmo,
                     onVenmoUsernameChange = { venmo = it },
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -118,7 +121,8 @@ class UserSignUpTest {
                     onNameChange = { name = it },
                     venmoUsername = venmo,
                     onVenmoUsernameChange = { venmo = it },
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -145,7 +149,8 @@ class UserSignUpTest {
                     onNameChange = { name = it },
                     venmoUsername = venmo,
                     onVenmoUsernameChange = { venmo = it },
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -174,7 +179,8 @@ class UserSignUpTest {
                     onNameChange = { name = it },
                     venmoUsername = venmo,
                     onVenmoUsernameChange = { venmo = it },
-                    onNext = { onNextCalled = true }
+                    onNext = { onNextCalled = true },
+                    onBack = {}
                 )
             }
         }
@@ -195,7 +201,8 @@ class UserSignUpTest {
                     onNameChange = {},
                     venmoUsername = "",
                     onVenmoUsernameChange = {},
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -216,7 +223,8 @@ class UserSignUpTest {
                     onNameChange = {},
                     venmoUsername = "",
                     onVenmoUsernameChange = {},
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -237,7 +245,8 @@ class UserSignUpTest {
                     onNameChange = {},
                     venmoUsername = "test",
                     onVenmoUsernameChange = {},
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -259,7 +268,8 @@ class UserSignUpTest {
                     onNameChange = { changedValue = it }, // Capture the change
                     venmoUsername = "",
                     onVenmoUsernameChange = {},
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -283,7 +293,8 @@ class UserSignUpTest {
                     onNameChange = {},
                     venmoUsername = "",
                     onVenmoUsernameChange = {},
-                    onNext = {}
+                    onNext = {},
+                    onBack = {}
                 )
             }
         }
@@ -416,7 +427,8 @@ class UserSignUpTest {
                             onNext = {
                                 // When "Next" is clicked, change the step to REVIEW
                                 currentStep = SignUpSteps.REVIEW
-                            }
+                            },
+                            onBack = {}
                         )
                     }
                     SignUpSteps.REVIEW -> {
