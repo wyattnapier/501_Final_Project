@@ -75,4 +75,34 @@ interface IRepository {
      * Asynchronously adds a pending member to household
      */
     suspend fun addPendingMemberToHousehold(householdId: String, newUserEmail: String)
+
+    /**
+     * Asynchronously removes a pending member from a household
+     */
+    suspend fun removePendingMember(householdId: String, emailToRemove: String)
+
+    /**
+     * Asynchronously checks if a user document exists in Firestore.
+     */
+    suspend fun checkUserExists(userId: String): Boolean
+
+    /**
+     * Asynchronously checks if a user has a valid household_id in their document.
+     */
+    suspend fun isUserInHousehold(userId: String): Boolean
+
+    /**
+     * Asynchronously creates a new user document in Firestore.
+     */
+    suspend fun saveNewUser(userId: String, name: String, venmoUsername: String)
+
+    /**
+     * Asynchronously gets the calendar ID and pending members from the user's household.
+     */
+    suspend fun getHouseholdCalendarIdAndPendingMembersSuspend(): Map<String, Any?>
+
+    /**
+     * Asynchronously adds a new payment to a household's payments array.
+     */
+    suspend fun addNewPaymentToHousehold(householdId: String, newPaymentData: Map<String, Any>)
 }

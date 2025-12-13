@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
+import com.example.a501_final_project.IRepository
 import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.R
 import com.example.a501_final_project.chores.ChoresViewModel
@@ -49,7 +50,7 @@ enum class UserState {
 }
 
 class LoginViewModel(
-    private val repository: FirestoreRepository = FirestoreRepository()
+    private val repository: IRepository = FirestoreRepository()
 ) : ViewModel() {
     var displayName by mutableStateOf("")
     var venmoUsername by mutableStateOf("")
