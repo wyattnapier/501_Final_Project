@@ -281,7 +281,6 @@ class HouseholdViewModel(
                 Log.d("HouseholdViewModel", "✓ Household creation complete!")
 
                 householdCreated = true
-
             } catch (e: Exception) {
                 Log.e("HouseholdViewModel", "✗ Error creating household", e)
                 errorMessage = "Failed to create household: ${e.message}"

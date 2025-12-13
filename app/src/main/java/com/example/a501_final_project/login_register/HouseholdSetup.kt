@@ -56,6 +56,7 @@ fun HouseholdLanding(
     viewModel: HouseholdViewModel,
     navController: NavController,
     mainViewModel: MainViewModel,
+    loginViewModel: LoginViewModel,
     onHouseholdCreated: () -> Unit = {}
 ) {
     if (viewModel.existingHousehold == true) {
@@ -71,14 +72,13 @@ fun HouseholdLanding(
             // Reload data when household is created/joined
             LaunchedEffect(Unit) {
                 Log.d("HouseholdLanding", "Household created/joined, reloading data")
-                mainViewModel.loadUserData()
-                mainViewModel.loadHouseholdData()
+                loginViewModel.refreshUserState()
                 onHouseholdCreated()
             }
             navController.navigate("Home")
         }
     } else if (viewModel.existingHousehold == false) {
-        NewHousehold(viewModel, navController, onHouseholdCreated)
+        NewHousehold(viewModel, loginViewModel, navController, onHouseholdCreated)
     }
 }
 
@@ -86,6 +86,7 @@ fun HouseholdLanding(
 @Composable
 fun NewHousehold(
     viewModel: HouseholdViewModel,
+    loginViewModel: LoginViewModel,
     navController: NavController,
     onHouseholdCreated: () -> Unit = {}
 ) {
@@ -101,6 +102,8 @@ fun NewHousehold(
     // Trigger callback when household is created
     LaunchedEffect(viewModel.householdCreated) {
         if (viewModel.householdCreated) {
+            Log.d("NewHousehold", "Household created, reloading data")
+            loginViewModel.refreshUserState()
             onHouseholdCreated()
         }
     }

@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.example.a501_final_project.login_register.LoginViewModel
+import com.example.a501_final_project.login_register.UserState
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -32,7 +33,7 @@ fun EventsScreen(
     loginViewModel: LoginViewModel,
     eventsViewModel: EventsViewModel,
 ) {
-    val loginState by loginViewModel.uiState.collectAsState()
+    val userStateVal by loginViewModel.userState.collectAsState()
     val isLoading by eventsViewModel.isLoadingCalendar.collectAsState()
     val error by eventsViewModel.calendarError.collectAsState()
     val viewType by eventsViewModel.calendarViewType.collectAsState()
@@ -61,7 +62,7 @@ fun EventsScreen(
                     shape = CircleShape,
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    enabled = loginState.isLoggedIn && targetCalendarId.isNullOrBlank().not(),
+                    enabled = userStateVal == UserState.READY && targetCalendarId.isNullOrBlank().not(),
                 ) {
                     Icon(
                         Icons.Default.Add,
@@ -78,7 +79,7 @@ fun EventsScreen(
             Box(modifier = Modifier.padding(4.dp), contentAlignment = Alignment.CenterStart) {
                 Card(
                     onClick = {
-                        if (loginState.isLoggedIn) {
+                        if (userStateVal == UserState.READY) {
                             Log.d("EventsScreen", "Refreshing calendar events with targetCalendarId: $targetCalendarId")
                             eventsViewModel.fetchCalendarEvents(context, targetCalendarId ?: "")
                         }
@@ -86,7 +87,7 @@ fun EventsScreen(
                     shape = CircleShape,
                     elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                    enabled = !isLoading && loginState.isLoggedIn && targetCalendarId.isNullOrBlank().not()
+                    enabled = !isLoading && userStateVal == UserState.READY && targetCalendarId.isNullOrBlank().not()
                 ) {
                     Icon(
                         Icons.Default.Refresh,
@@ -100,7 +101,7 @@ fun EventsScreen(
 
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             when {
-                !loginState.isLoggedIn -> Text("Please sign in to see events.")
+                userStateVal == UserState.READY -> Text("Please sign in to see events.")
                 isLoading && allEvents.isEmpty() -> CircularProgressIndicator()
                 error != null -> Text(
                     "Error: $error",

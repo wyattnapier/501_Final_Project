@@ -1,5 +1,6 @@
 package com.example.a501_final_project.login_register
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,33 +36,6 @@ fun LoginScreen(
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // if the user is logged in
-    // --- SIGNED-IN VIEW ---
-    LaunchedEffect(uiState.isLoggedIn) {
-        if (uiState.isLoggedIn) {
-            navController.navigate("Home") {
-                popUpTo("Login") { inclusive = true }
-            }
-        }
-    }
-
-    // if firebase is actively checking if a user is logged in, do not show the login or sign up
-    if (uiState.isChecking) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = modifier.fillMaxSize()
-        ) {
-            AptLoading()
-            return
-        }
-    }
-
-    // if firebase done checking and finds that the user is logged in, then just return since laucnhedeffect is handled
-    if (uiState.isLoggedIn) {
-        return
-    }
-
     // at this point firebase is done checking and the user is not logged in, so continue with the regular sign in process
     val signInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -75,11 +49,10 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         modifier = modifier.fillMaxSize()
     ) {
-
+        // todo: check if isLoggedIn will always be false when this is called
         if (uiState.isLoginInProgress) {
             CircularProgressIndicator()
         } else {
-            // --- SIGNED-OUT VIEW ---
             Button(
                 onClick = {
                     val client = viewModel.getGoogleSignInClient(context)
@@ -88,8 +61,6 @@ fun LoginScreen(
             ) {
                 Text(text = "Login")
             }
-
-            // OR SIGN UP (just placeholding/temp)?
             Text(text="OR",
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary,
@@ -101,8 +72,6 @@ fun LoginScreen(
                 Text(text="Sign up")
             }
         }
-
-        // Optionally display errors
         LaunchedEffect(uiState.error) {
             uiState.error?.let { errorMessage ->
                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()

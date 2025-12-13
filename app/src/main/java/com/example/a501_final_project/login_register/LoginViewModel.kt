@@ -45,8 +45,7 @@ enum class SignUpSteps {
 enum class UserState {
     CHECKING,           // Initial state, checking auth
     NOT_LOGGED_IN,      // No Google account
-    LOGGED_IN_NO_USER,  // Google account but no Firestore user
-    LOGGED_IN_NO_HOUSEHOLD, // Has user but no household
+    NEEDS_SETUP,        // needs user setup in db and/or household setup in db
     READY              // Fully authenticated and in household
 }
 
@@ -70,16 +69,29 @@ class LoginViewModel(
 
     // check if user is logged in or not on init
     init {
+        // this addAuthStateListener is SSOT for user's auth status
         auth.addAuthStateListener { firebaseAuth ->
             val firebaseUser = firebaseAuth.currentUser
-            if (firebaseUser != null) {
-                viewModelScope.launch {
+
+            if (firebaseUser == null) {
+                _userState.value = UserState.NOT_LOGGED_IN
+                _uiState.value = LoginUiState(isChecking = false)
+                return@addAuthStateListener
+            }
+            // firebase user not null (according to cache)
+            Log.d("LoginViewModel", "User is logged in: ${firebaseUser.email}")
+            viewModelScope.launch {
+                try {
+                    // refresh token to synchronize with remote firebase authentication
+                    firebaseUser.getIdToken(true).await()
+
                     val userExists = repository.checkUserExists(firebaseUser.uid)
-                    val hasHousehold = if (userExists) repository.isUserInHousehold(firebaseUser.uid) else false
+                    val hasHousehold =
+                        if (userExists) repository.isUserInHousehold(firebaseUser.uid) else false
 
                     _userState.value = when {
-                        !userExists -> UserState.LOGGED_IN_NO_USER
-                        !hasHousehold -> UserState.LOGGED_IN_NO_HOUSEHOLD
+                        !userExists -> UserState.NEEDS_SETUP  // Covers both no-user AND no-household
+                        !hasHousehold -> UserState.NEEDS_SETUP
                         else -> UserState.READY
                     }
 
@@ -88,15 +100,38 @@ class LoginViewModel(
                         userName = firebaseUser.displayName,
                         profilePictureUrl = firebaseUser.photoUrl?.toString(),
                         isLoginInProgress = false,
+                        isChecking = false,
                         isLoggedIn = true,
                         userAccount = firebaseUser.email?.let { Account(it, "com.google") }
                     )
+                } catch (e: Exception) {
+                    auth.signOut()
+                    _userState.value = UserState.NOT_LOGGED_IN
+                    _uiState.value = LoginUiState(
+                        error = "Session expired. Please log in again.",
+                        isChecking = false
+                    )
                 }
-            } else {
-                _userState.value = UserState.NOT_LOGGED_IN
-                _uiState.value = LoginUiState() // Reset to defaults
             }
         }
+    }
+
+    // function to figure out which screen to display based on enum in MainActivity.kt
+    fun refreshUserState() {
+        Log.d("LoginViewModel", "refreshUserState called")
+        viewModelScope.launch {
+            val firebaseUser = auth.currentUser
+            if (firebaseUser != null) {
+                val userExists = repository.checkUserExists(firebaseUser.uid)
+                val hasHousehold = if (userExists) repository.isUserInHousehold(firebaseUser.uid) else false
+
+                _userState.value = when {
+                    !userExists || !hasHousehold -> UserState.NEEDS_SETUP
+                    else -> UserState.READY
+                }
+            }
+        }
+        Log.d("LoginViewModel", "refreshUserState completed: ${_userState.value}")
     }
 
     // get token that firebase can use to sign in while also getting gcal permissions and auth code
@@ -105,10 +140,7 @@ class LoginViewModel(
             .requestIdToken(context.getString(R.string.default_web_client_id))
             .requestEmail()
             .requestServerAuthCode(context.getString(R.string.default_web_client_id))
-            .requestScopes(
-                // must match with scopes in MainViewModel (except calendarlist)
-                Scope(CalendarScopes.CALENDAR), // See, edit, share, and permanently delete all the calendars you can access using Google Calendar
-            )
+            .requestScopes(Scope(CalendarScopes.CALENDAR))
             .build()
         return GoogleSignIn.getClient(context, gso)
     }
@@ -165,6 +197,8 @@ class LoginViewModel(
                     .requestEmail()
                     .build()
                 GoogleSignIn.getClient(context, gso).signOut().await()
+
+                _userState.value = UserState.NOT_LOGGED_IN // slower UI but safer if signout fails
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
             }
@@ -206,7 +240,6 @@ class LoginViewModel(
 
         viewModelScope.launch {
             try {
-                // Now correctly calls the repository's suspend function.
                 repository.saveNewUser(currentUser.uid, displayName, venmoUsername)
                 Log.d("LoginViewModel", "User save process initiated for ID: ${currentUser.uid}")
             } catch (e: Exception) {
@@ -222,6 +255,7 @@ class LoginViewModel(
 }
 
 // A data class to hold all UI state in one object.
+// todo: remove isLoggedIn and isChecking
 data class LoginUiState(
     val userEmail: String? = null,
     val userAccount: Account? = null,

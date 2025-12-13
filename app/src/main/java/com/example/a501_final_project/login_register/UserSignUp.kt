@@ -91,18 +91,8 @@ fun SignUpScreen(
                     when {
                         uiState.isLoginInProgress -> CircularProgressIndicator()
 
-                        uiState.isLoggedIn && uiState.userAlreadyExists == true -> {
-                            LaunchedEffect(Unit) {
-                                snackbarHostState.showSnackbar(
-                                    message = "Account already exists. Please login",
-                                    withDismissAction = true
-                                )
-                                loginViewModel.signOut(context)
-                                onNavigateToLogin()
-                            }
-                        }
-
-                        uiState.isLoggedIn && uiState.userAlreadyExists == false -> {
+                        // todo: make sure it handles when a user with an account tries to sign up
+                        uiState.isLoggedIn -> {
                             LaunchedEffect(Unit) {
                                 currentStep = SignUpSteps.USER_INFO
                             }

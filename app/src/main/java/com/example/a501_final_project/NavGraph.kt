@@ -13,6 +13,7 @@ import com.example.a501_final_project.chores.ChoresScreen
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsScreen
 import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.AptLoading
 import com.example.a501_final_project.login_register.HouseholdLanding
 import com.example.a501_final_project.login_register.HouseholdViewModel
 import com.example.a501_final_project.login_register.LoginScreen
@@ -32,7 +33,7 @@ fun AppNavGraph(
     loginViewModel: LoginViewModel,
     choresViewModel: ChoresViewModel,
     eventsViewModel: EventsViewModel,
-    householdViewModel : HouseholdViewModel
+    householdViewModel: HouseholdViewModel,
 ) {
     NavHost(
         navController = navController,
@@ -117,6 +118,10 @@ fun AppNavGraph(
                 })
         }
 
+        composable(Screen.Loading.route) {
+            AptLoading()
+        }
+
         // Household Setup routes - consolidated into one with optional action parameter
         composable(
             route = "HouseholdSetup/{action}",
@@ -141,11 +146,9 @@ fun AppNavGraph(
                 viewModel = householdViewModel,
                 navController = navController,
                 mainViewModel = mainViewModel,
+                loginViewModel = loginViewModel,
                 onHouseholdCreated = {
-                    // Reload all data when household is created
-                    Log.d("AppNavGraph", "Household created, reloading data")
-                    mainViewModel.loadUserData()
-                    mainViewModel.loadHouseholdData()
+                    Log.d("AppNavGraph", "Household created")
                 }
             )
         }
@@ -156,11 +159,9 @@ fun AppNavGraph(
                 viewModel = householdViewModel,
                 navController = navController,
                 mainViewModel = mainViewModel,
+                loginViewModel = loginViewModel,
                 onHouseholdCreated = {
-                    // Reload all data when household is created
-                    Log.d("AppNavGraph", "Household created, reloading data")
-                    mainViewModel.loadUserData()
-                    mainViewModel.loadHouseholdData()
+                    Log.d("AppNavGraph", "Household created")
                 }
             )
         }
