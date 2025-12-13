@@ -72,7 +72,13 @@ fun SignUpScreen(
                 val launcher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.StartActivityForResult()
                 ) { result ->
-                    loginViewModel.handleSignInResult(result)
+                    // Check if the result was NOT successful
+                    if (result.resultCode != android.app.Activity.RESULT_OK) {
+                        Log.d("SignUpScreen", "Google Sign-In was canceled by the user.")
+                        onNavigateToLogin() // Navigate back to the login screen.
+                    } else {
+                        loginViewModel.handleSignInResult(result) // The result was successful
+                    }
                 }
 
                 // launch Google Sign-In automatically
