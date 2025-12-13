@@ -57,7 +57,7 @@ class LoginViewModel(
 
     private val auth: FirebaseAuth = Firebase.auth
 
-    private val _userState = MutableStateFlow(UserState.CHECKING)
+    private val _userState = MutableStateFlow(UserState.NOT_LOGGED_IN) // TODO: shoudl be set to checking
     val userState = _userState.asStateFlow()
 
     // Keep existing _uiState but simplify it
@@ -69,50 +69,86 @@ class LoginViewModel(
 
     // check if user is logged in or not on init
     init {
-        // this addAuthStateListener is SSOT for user's auth status
         auth.addAuthStateListener { firebaseAuth ->
-            val firebaseUser = firebaseAuth.currentUser
-
-            if (firebaseUser == null) {
-                _userState.value = UserState.NOT_LOGGED_IN
-                _uiState.value = LoginUiState(isChecking = false)
-                return@addAuthStateListener
-            }
-            // firebase user not null (according to cache)
-            Log.d("LoginViewModel", "User is logged in: ${firebaseUser.email}")
+            Log.d("LoginViewModel", "AuthStateListener triggered")
             viewModelScope.launch {
-                try {
-                    // refresh token to synchronize with remote firebase authentication
-                    firebaseUser.getIdToken(true).await()
+                handleAuthStateChange(firebaseAuth.currentUser != null)
+            }
+        }
+    }
 
-                    val userExists = repository.checkUserExists(firebaseUser.uid)
-                    val hasHousehold =
-                        if (userExists) repository.isUserInHousehold(firebaseUser.uid) else false
+    /**
+     * Centralized function to handle auth state changes
+     */
+    private suspend fun handleAuthStateChange(isSignedIn: Boolean) {
+        if (!isSignedIn) {
+            Log.d("LoginViewModel", "No Firebase user, setting to NOT_LOGGED_IN")
+            _userState.value = UserState.NOT_LOGGED_IN
+            _uiState.value = LoginUiState(
+                isChecking = false,
+                isLoginInProgress = false
+            )
+            return
+        }
 
-                    _userState.value = when {
-                        !userExists -> UserState.NEEDS_SETUP  // Covers both no-user AND no-household
-                        !hasHousehold -> UserState.NEEDS_SETUP
-                        else -> UserState.READY
-                    }
+        val firebaseUser = auth.currentUser ?: return
+        Log.d("LoginViewModel", "Processing Firebase user: ${firebaseUser.email}")
 
-                    _uiState.value = _uiState.value.copy(
-                        userEmail = firebaseUser.email,
-                        userName = firebaseUser.displayName,
-                        profilePictureUrl = firebaseUser.photoUrl?.toString(),
-                        isLoginInProgress = false,
-                        isChecking = false,
-                        isLoggedIn = true,
-                        userAccount = firebaseUser.email?.let { Account(it, "com.google") }
-                    )
-                } catch (e: Exception) {
-                    auth.signOut()
-                    _userState.value = UserState.NOT_LOGGED_IN
-                    _uiState.value = LoginUiState(
-                        error = "Session expired. Please log in again.",
-                        isChecking = false
-                    )
+        try {
+            // Refresh token to ensure we're in sync with server
+            firebaseUser.getIdToken(true).await()
+            Log.d("LoginViewModel", "✓ Token refreshed")
+
+            // Check user and household status
+            val userExists = repository.checkUserExists(firebaseUser.uid)
+            Log.d("LoginViewModel", "✓ User exists: $userExists")
+
+            val hasHousehold = if (userExists) {
+                repository.isUserInHousehold(firebaseUser.uid)
+            } else {
+                false
+            }
+            Log.d("LoginViewModel", "✓ Has household: $hasHousehold")
+
+            // Determine user state
+            _userState.value = when {
+                !userExists -> {
+                    Log.d("LoginViewModel", "→ State: NEEDS_SETUP (no user)")
+                    UserState.NEEDS_SETUP
+                }
+                !hasHousehold -> {
+                    Log.d("LoginViewModel", "→ State: NEEDS_SETUP (no household)")
+                    UserState.NEEDS_SETUP
+                }
+                else -> {
+                    Log.d("LoginViewModel", "→ State: READY")
+                    UserState.READY
                 }
             }
+
+            // Update UI state
+            _uiState.value = _uiState.value.copy(
+                userEmail = firebaseUser.email,
+                userName = firebaseUser.displayName,
+                profilePictureUrl = firebaseUser.photoUrl?.toString(),
+                isLoginInProgress = false, // ✓ Stop loading
+                isChecking = false,
+                isLoggedIn = true,
+                userAccount = firebaseUser.email?.let { Account(it, "com.google") },
+                error = null
+            )
+
+            Log.d("LoginViewModel", "✓ Auth processing complete")
+
+        } catch (e: Exception) {
+            Log.e("LoginViewModel", "✗ Error processing auth state", e)
+            auth.signOut()
+            _userState.value = UserState.NOT_LOGGED_IN
+            _uiState.value = LoginUiState(
+                error = "Authentication error: ${e.message}",
+                isChecking = false,
+                isLoginInProgress = false
+            )
         }
     }
 
@@ -174,8 +210,7 @@ class LoginViewModel(
         try {
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
-
-            // AuthStateListener will handle updating the UI state.
+            handleAuthStateChange(true)
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
                 error = "Firebase authentication failed: ${e.message}",
@@ -191,14 +226,24 @@ class LoginViewModel(
                 // Sign out from Firebase
                 auth.signOut()
 
+                // reset state variables
+                _uiState.value = _uiState.value.copy(
+                    userEmail = null,
+                    userName = null,
+                    profilePictureUrl = null,
+                    isLoginInProgress = false,
+                    error = null,
+                    isLoggedIn = false,
+                    userAlreadyExists = null,
+                    isChecking = true
+                )
+
                 // Sign out from Google to allow account switching
                 val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                     .requestIdToken(context.getString(R.string.default_web_client_id))
                     .requestEmail()
                     .build()
                 GoogleSignIn.getClient(context, gso).signOut().await()
-
-                _userState.value = UserState.NOT_LOGGED_IN // slower UI but safer if signout fails
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "Sign out failed: ${e.message}")
             }
@@ -223,6 +268,8 @@ class LoginViewModel(
                 choresViewModel.reset()
                 paymentViewModel.reset()
                 householdViewModel.reset()
+                // triggers navigation and rerender
+                _userState.value = UserState.NOT_LOGGED_IN // slower UI but safer if signout fails
                 // Emit an event to tell the UI to navigate
                 _signOutComplete.emit(Unit)
             } catch (e: Exception) {

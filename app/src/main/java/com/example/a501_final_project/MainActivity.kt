@@ -162,7 +162,11 @@ fun MainScreen() {
                 // Only load data here
                 mainViewModel.loadUserData()
                 mainViewModel.loadHouseholdData()
-                householdViewModel.loadCurrentUserId() // TODO: triggers too late here, need at end of setup to create household
+                householdViewModel.loadCurrentUserId() // TODO: triggers too late here for setup, need at end of setup to create household
+                // navigate to home
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                }
             }
         }
     }
@@ -188,21 +192,6 @@ fun MainScreen() {
             eventsViewModel.clearToastMessage()
         }
     }
-
-    // watching for full signout event
-    // TODO: check if necessary or if it just causes weird issues
-//    LaunchedEffect(Unit) {
-//        loginViewModel.signOutComplete.collect {
-//            // When a sign-out event is received, navigate to the login screen
-//            // and clear the entire back stack.
-//            navController.navigate(Screen.Login.route) {
-//                popUpTo(navController.graph.id) {
-//                    inclusive = true
-//                }
-//            }
-//            Log.d("MainScreen", "Sign out complete. Navigated to Login screen.")
-//        }
-//    }
 
     Scaffold(
         bottomBar = {

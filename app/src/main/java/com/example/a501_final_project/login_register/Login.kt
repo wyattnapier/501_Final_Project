@@ -31,51 +31,74 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(),
     navController: NavController,
 ) {
-    // Observe the UI state from the ViewModel.
-    // The UI will automatically recompose whenever the state changes.
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
 
-    // at this point firebase is done checking and the user is not logged in, so continue with the regular sign in process
     val signInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        // Pass the result directly to the ViewModel to handle the logic.
+        Log.d("LoginScreen", "Sign-in result received")
         viewModel.handleSignInResult(result)
     }
+
+    // Log when recomposing
+    Log.d("LoginScreen", "Recomposing - isLoginInProgress: ${uiState.isLoginInProgress}, isChecking: ${uiState.isChecking}")
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = modifier.fillMaxSize()
     ) {
-        // todo: check if isLoggedIn will always be false when this is called
-        if (uiState.isLoginInProgress) {
-            CircularProgressIndicator()
-        } else {
-            Button(
-                onClick = {
-                    val client = viewModel.getGoogleSignInClient(context)
-                    signInLauncher.launch(client.signInIntent)
-                }
-            ) {
-                Text(text = "Login")
+        when {
+            // Show loading indicator when login is in progress OR checking auth status
+            uiState.isLoginInProgress || uiState.isChecking -> {
+                Log.d("LoginScreen", "Showing loading indicator")
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = if (uiState.isLoginInProgress) "Signing in..." else "Checking authentication...",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Text(text="OR",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(16.dp)
-            )
-            Button(onClick={
-                navController.navigate("UserSignUp")
-            }) {
-                Text(text="Sign up")
+
+            // Show login buttons when not loading
+            else -> {
+                Log.d("LoginScreen", "Showing login buttons")
+                Button(
+                    onClick = {
+                        Log.d("LoginScreen", "Login button clicked")
+                        val client = viewModel.getGoogleSignInClient(context)
+                        signInLauncher.launch(client.signInIntent)
+                    }
+                ) {
+                    Text(text = "Login")
+                }
+
+                Text(
+                    text = "OR",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(16.dp)
+                )
+
+                Button(
+                    onClick = {
+                        Log.d("LoginScreen", "Sign up button clicked")
+                        navController.navigate("UserSignUp")
+                    }
+                ) {
+                    Text(text = "Sign up")
+                }
             }
         }
+
+        // Show error toast if there's an error
         LaunchedEffect(uiState.error) {
             uiState.error?.let { errorMessage ->
+                Log.e("LoginScreen", "Showing error: $errorMessage")
                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-                viewModel.clearError() // Optionally, clear the error after showing it
+                viewModel.clearError()
             }
         }
     }
