@@ -1,6 +1,7 @@
 package com.example.a501_final_project
 
 import android.util.Log
+import com.example.a501_final_project.payment.Payment
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -282,6 +283,37 @@ class FirestoreRepository : IRepository {
             throw exception
         }
     }
+
+
+    /**
+     * function to update assignments of payment assignments to firebase
+     */
+    suspend fun updatePaymentAssignments(updatedPayments: List<Payment>) {
+        val db = FirebaseFirestore.getInstance()
+        val householdId = getHouseholdIdForUserSuspend(updatedPayments.first().payFromId) // get householdId since not stored in  paymenbt
+
+        val paymentMap = updatedPayments.map{ payment ->
+            mapOf(
+                "id" to payment.id,
+                "payToId" to payment.payToId,
+                "payToVenmoUsername" to payment.payToVenmoUsername,
+                "payFromId" to payment.payFromId,
+                "amount" to payment.amount,
+                "memo" to payment.memo,
+                "dueDate" to payment.dueDate,
+                "datePaid" to payment.datePaid,
+                "paid" to payment.paid,
+                "recurring" to payment.recurring, // is this jsut true...?
+                "recurring_payment_id" to payment.instanceOf
+            )
+
+        }
+
+        db.collection("households")
+            .document(householdId)
+            .update("payments", paymentMap)
+    }
+
 
     override suspend fun markPaymentAsCompletedSuspend(paymentId: String, householdId: String) {
         try {
