@@ -334,7 +334,7 @@ class FirestoreRepository : IRepository {
     /**
      * function to update assignments of payment assignments to firebase
      */
-    suspend fun updatePaymentAssignments(newPayments: List<Payment>) { // appends, not overwrite
+    override suspend fun updatePaymentAssignments(newPayments: List<Payment>) { // appends, not overwrite
         if (newPayments.isEmpty()) return
 
         val db = FirebaseFirestore.getInstance()
