@@ -358,6 +358,7 @@ class PaymentViewModel(
 
         // today
         val df = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        val today = Date()
 
         // roommate id to names so we can build payments with name
         val idToNameMap = currentRoommates.associateWith { userId ->
@@ -374,58 +375,74 @@ class PaymentViewModel(
         // determine due date
         // build each roommates payment depending on percent
         // add to payments list
+        var createdAny = false
+
         for ((index, recurring) in recurringPayments.withIndex()) {
-            // check if any instances, returns boolean
-            val existing = allPayments.any {
-                it.instanceOf == index
-            }
-            if (existing) {
-                continue
-            }
-            // else none, so create
+
+            // find last instance of this payment type
+            val lastInstance = currentPayments
+                .filter { it.instanceOf == index }
+                .maxByOrNull { it.dueDate?.let { d -> df.parse(d)?.time } ?: 0L }
+
+            // starting point
+            val startDate = lastInstance?.dueDate?.let { df.parse(it) } ?: today
+            val calendar = Calendar.getInstance()
+            calendar.time = startDate
+
 
             // 1. Calculate due date
-            val calendar = Calendar.getInstance()
-            val lastPaymentDueDate = _paymentsList.value
-                .filter { it.instanceOf == index }
-                .maxByOrNull { it.dueDate?.let { df.parse(it)?.time } ?: 0L }
-                ?.dueDate
-            val today = Date()
-            val baseDate = lastPaymentDueDate?.let { df.parse(it) } ?: today
-            calendar.time = baseDate
-            calendar.add(Calendar.DAY_OF_YEAR, recurring.cycle)
-            val newDueDate = calendar.time
+            while(calendar.time <= today) {
+                val newDueDate = calendar.time
 
-            val paidBy = currentRoommates.firstOrNull { it == recurring.paidById }
-                ?: continue
-            for (roommate in currentRoommates) {
-                if (roommate != paidBy) {
-                    val amount = recurring.amount * (roommatePercents.value[roommate]!![index] / 100)
+                val paidBy = currentRoommates.firstOrNull { it == recurring.paidById }
+                    ?: continue
+                for (roommate in currentRoommates) {
+                    if (roommate != paidBy) {
+                        val dueDateString = df.format(newDueDate)
+                        val existing = currentPayments.any {
+                            it.payFromId == roommate &&
+                                    it.instanceOf == index &&
+                                    it.dueDate == dueDateString
+                        }
+                        if (existing) {
+                            continue
+                        }
+                        val amount =
+                            recurring.amount * (roommatePercents.value[roommate]!![index] / 100)
 
-                    val newPayment = Payment(
-                        id = UUID.randomUUID().toString(),
-                        payFromId = roommate, // pay from is who makes the payment
-                        payFromName = idToNameMap[roommate],
-                        payToId = paidBy,
-                        payToName = idToNameMap[paidBy],
-                        payToVenmoUsername = idToVenmoMap[paidBy],
-                        amount = amount,
-                        memo = recurring.name,
-                        dueDate = df.format(newDueDate),
-                        datePaid = null,
-                        paid = false,
-                        recurring = true,
-                        instanceOf = index // since recurring ids are just their indices
-                    )
+                        val newPayment = Payment(
+                            id = UUID.randomUUID().toString(),
+                            payFromId = roommate, // pay from is who makes the payment
+                            payFromName = idToNameMap[roommate],
+                            payToId = paidBy,
+                            payToName = idToNameMap[paidBy],
+                            payToVenmoUsername = idToVenmoMap[paidBy],
+                            amount = amount,
+                            memo = recurring.name,
+                            dueDate = df.format(newDueDate),
+                            datePaid = null,
+                            paid = false,
+                            recurring = true,
+                            instanceOf = index // since recurring ids are just their indices
+                        )
 
-                    currentPayments.add(newPayment)
+                        currentPayments.add(newPayment)
+                        createdAny = true
+                    }
                 }
+                calendar.add(Calendar.DAY_OF_YEAR, recurring.cycle)
+
 
             }
+        }
+        if (!createdAny) {
+            return
         }
 
         // update UI/state
         _paymentsList.value = currentPayments
+        _pastPayments.value = currentPayments.filter { it.paid }
+        _allPayments.value = currentPayments
 
         // send to db
         viewModelScope.launch {
