@@ -302,4 +302,13 @@ class PaymentViewModel(
     fun toggleShowPastPayments() {
         _showPastPayments.value = !_showPastPayments.value
     }
+
+    // reset all state on logout
+    fun reset() {
+         _paymentsList.value = emptyList()
+        _pastPayments.value = emptyList()
+        _showPastPayments.value = false
+        _isPaymentsDataLoaded.value = false
+        _isLoading.value = false
+    }
 }

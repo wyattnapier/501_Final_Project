@@ -20,6 +20,11 @@ import com.google.api.services.calendar.CalendarScopes
 import com.google.firebase.firestore.FieldValue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
 import kotlinx.coroutines.withContext
 
 data class ChoreInput(
@@ -244,6 +249,30 @@ class HouseholdViewModel(
             )
         )
 
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+        val calendar = Calendar.getInstance()
+
+
+        val initialChores = recurring_chores.mapIndexed { index, rc ->
+
+            val daysFromNow = (rc["cycle"] as? Number)?.toInt() ?: 7
+            calendar.time = Date()
+            calendar.add(Calendar.DAY_OF_YEAR, daysFromNow)
+            val dueDate = dateFormat.format(calendar.time)
+
+            mapOf(
+                "chore_id" to UUID.randomUUID().toString(),
+                "name" to rc["name"],
+                "description" to rc["description"],
+                "completed" to false,
+                "assignedToId" to "",
+                "assignedToName" to "",
+                "dueDate" to dueDate, // OR generate now
+                "recurring_chore_id" to index,
+                "recurring" to true
+            )
+        }
+
         viewModelScope.launch {
             try {
                 Log.d("HouseholdViewModel", "Step 1: Creating Google Calendar")
@@ -260,7 +289,8 @@ class HouseholdViewModel(
                     "recurring_payments" to recurring_payments,
                     "calendar_id" to googleCalendarId,
                     "residents" to residents,
-                    "chores" to emptyList<Map<String, Any>>(),
+//                    "chores" to emptyList<Map<String, Any>>(),
+                    "chores" to initialChores,
                     "pending_members" to emptyList<String>()  // Initialize empty pending members
                 )
 
@@ -272,7 +302,7 @@ class HouseholdViewModel(
 
                 householdID = newHouseholdId
 
-                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id")
+                Log.d("HouseholdViewModel", "Step 5: Updating user document with household_id: $householdID")
 
                 // 3. Update user document with the new household_id (WAIT for this to complete!)
                 repository.updateUserHouseholdIdSuspend(uid, newHouseholdId)
@@ -281,7 +311,6 @@ class HouseholdViewModel(
                 Log.d("HouseholdViewModel", "✓ Household creation complete!")
 
                 householdCreated = true
-
             } catch (e: Exception) {
                 Log.e("HouseholdViewModel", "✗ Error creating household", e)
                 errorMessage = "Failed to create household: ${e.message}"
@@ -446,5 +475,25 @@ class HouseholdViewModel(
                 isLoading = false
             }
         }
+    }
+
+    // reset all state on logout
+    fun reset() {
+        setupStep = 0
+        householdName = ""
+        choreInputs.clear()
+        paymentInputs.clear()
+        calendarName = ""
+        householdCreated = false
+        householdID = ""
+        gotHousehold = false
+        paymentsFromDB.clear()
+        residentsFromDB.clear()
+        Log.d("HouseholdViewModel", "State has been reset.")
+    }
+
+    // clear error message
+    fun clearErrorMessage() {
+        errorMessage = null
     }
 }

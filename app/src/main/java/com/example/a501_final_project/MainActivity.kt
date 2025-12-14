@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBox
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,10 +50,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.a501_final_project.chores.ChoresViewModel
 import com.example.a501_final_project.events.EventsViewModel
+import com.example.a501_final_project.login_register.AptLoading
 import com.example.a501_final_project.login_register.HouseholdViewModel
 import com.example.a501_final_project.login_register.LoginViewModel
+import com.example.a501_final_project.login_register.UserState
 import com.example.a501_final_project.payment.PaymentViewModel
-import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.example.a501_final_project.ui.theme._501_Final_ProjectTheme
 
 class MainActivity : ComponentActivity() {
@@ -79,6 +80,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     object Settings : Screen("settings", "Settings", Icons.Default.Settings)
     object Error : Screen("Error", "Error", Icons.Default.Settings)
     object UserSignUp : Screen("UserSignUp", "UserSignUp", Icons.Default.AccountBox)
+    object Loading : Screen("Loading", "Loading", Icons.Default.Refresh)
     // screen for household setup is custom route
 }
 
@@ -118,6 +120,7 @@ fun MainScreen() {
     val noBars = setOf(
         Screen.Login.route,
         Screen.UserSignUp.route,
+        Screen.Loading.route,
     )
     val shouldShowBars = currentRoute !in noBars && !(currentRoute?.startsWith("HouseholdSetup") ?: false)
 
@@ -128,69 +131,54 @@ fun MainScreen() {
     val eventsViewModel: EventsViewModel = viewModel()
     val householdViewModel: HouseholdViewModel = viewModel()
 
-    val loginState by loginViewModel.uiState.collectAsState()
+    val userState by loginViewModel.userState.collectAsState()
     val context = LocalContext.current
 
     // DEBUG: Log every recomposition
     Log.d("MainScreen", "=== MainScreen recomposing ===")
     Log.d("MainScreen", "Current route: $currentRoute")
-    Log.d("MainScreen", "Login state: isLoggedIn=${loginState.isLoggedIn}, userEmail=${loginState.userEmail}")
 
-    // Initial load on app start or login change
-    LaunchedEffect(Unit, loginState.isLoggedIn) {
-        Log.d("MainScreen", "LaunchedEffect 1 triggered - Unit or loginState changed")
-        Log.d("MainScreen", "isLoggedIn: ${loginState.isLoggedIn}")
-
-        val account = GoogleSignIn.getLastSignedInAccount(context)
-        Log.d("MainScreen", "Google account: ${account?.email}")
-
-        if (loginState.isLoggedIn && account != null) {
-            Log.d("MainScreen", "User logged in, loading initial data")
-            mainViewModel.loadUserData()
-            mainViewModel.loadHouseholdData()
-            householdViewModel.loadCurrentUserId()
-        } else {
-            Log.d("MainScreen", "User NOT logged in or account is null")
+    // Single effect to handle large state transitions
+    LaunchedEffect(userState) {
+        Log.d("MainScreen", "User state changed: $userState")
+        when (userState) {
+            UserState.CHECKING -> {
+                navController.navigate(Screen.Loading.route) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                }
+            } // essentially returns
+            UserState.NOT_LOGGED_IN -> {
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                }
+            }
+            UserState.NEEDS_SETUP -> {
+                // Navigate to signup, let it handle household setup internally
+                navController.navigate(Screen.UserSignUp.route) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                }
+            }
+            UserState.READY -> {
+                // Only load data here
+                mainViewModel.loadUserData()
+                mainViewModel.loadHouseholdData()
+                householdViewModel.loadCurrentUserId()
+                // navigate to home
+                navController.navigate(Screen.Home.route) {
+                    popUpTo(navController.graph.id) { inclusive = true }
+                }
+            }
         }
     }
 
-    // Watch for household data to be loaded, then load calendar/chores/payments
+    // Simplified data loading
     val isHouseholdLoaded by mainViewModel.isHouseholdDataLoaded.collectAsState()
-    val isCalendarIdLoaded by eventsViewModel.isCalendarIdLoaded.collectAsState()
-    val isChoresLoaded by choresViewModel.isChoresDataLoaded.collectAsState()
-    val isPaymentsLoaded by paymentViewModel.isPaymentsDataLoaded.collectAsState()
-
-    // DEBUG: Log state values
-    Log.d("MainScreen", "State values - isHouseholdLoaded: $isHouseholdLoaded, isCalendarIdLoaded: $isCalendarIdLoaded, isChoresLoaded: $isChoresLoaded, isPaymentsLoaded: $isPaymentsLoaded")
-
-    LaunchedEffect(loginState.isLoggedIn, isHouseholdLoaded) {
-        Log.d("MainScreen", "LaunchedEffect 2 triggered - loginState or isHouseholdLoaded changed")
-        Log.d("MainScreen", "isLoggedIn: ${loginState.isLoggedIn}, isHouseholdLoaded: $isHouseholdLoaded")
-
-        val account = GoogleSignIn.getLastSignedInAccount(context)
-        Log.d("MainScreen", "Google account: ${account?.email}")
-
-        if (loginState.isLoggedIn && account != null && isHouseholdLoaded) {
-            Log.d("MainScreen", "✓ All conditions met for loading widget data")
-            Log.d("MainScreen", "Calendar loaded: $isCalendarIdLoaded, Chores loaded: $isChoresLoaded, Payments loaded: $isPaymentsLoaded")
-
-            Log.d("MainScreen", ">>> CALLING eventsViewModel.loadCalendarData() <<<")
-            eventsViewModel.loadCalendarData(context, forceReload = !isCalendarIdLoaded)
-
-            if (!isChoresLoaded) {
-                Log.d("MainScreen", "Loading chores data")
-                choresViewModel.loadHouseholdData()
-            }
-
-            if (!isPaymentsLoaded) {
-                Log.d("MainScreen", "Loading payments data")
-                paymentViewModel.loadPaymentsData()
-            }
-        } else {
-            Log.d("MainScreen", "✗ Conditions NOT met:")
-            Log.d("MainScreen", "  - isLoggedIn: ${loginState.isLoggedIn}")
-            Log.d("MainScreen", "  - account != null: ${account != null}")
-            Log.d("MainScreen", "  - isHouseholdLoaded: $isHouseholdLoaded")
+    LaunchedEffect(isHouseholdLoaded) {
+        if (isHouseholdLoaded) {
+            Log.d("MainScreen", "Household data loaded, loading other data")
+            eventsViewModel.loadCalendarData(context)
+            choresViewModel.loadHouseholdData()
+            paymentViewModel.loadPaymentsData()
         }
     }
 
@@ -226,7 +214,7 @@ fun MainScreen() {
             paymentViewModel = paymentViewModel,
             choresViewModel = choresViewModel,
             eventsViewModel = eventsViewModel,
-            householdViewModel = householdViewModel
+            householdViewModel = householdViewModel,
         )
     }
 }

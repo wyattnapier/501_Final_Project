@@ -48,6 +48,7 @@ class HouseholdViewModelTest {
 
     @Test
     fun test_household_creation_with_mocked_repository() = runTest {
+        val context = mock<Context>()
         // Arrange
         val mockHouseholdId = "test-household-123"
         // Use suspend version of whenever for suspend functions

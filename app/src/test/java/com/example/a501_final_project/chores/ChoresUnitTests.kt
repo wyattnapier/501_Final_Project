@@ -238,58 +238,6 @@ class ChoresViewModelUnitTest {
         assertEquals("Future", upcomingChores[0].name)
     }
 
-//    @Test
-//    fun `assignChores distributes chores evenly among roommates`() {
-//        // Arrange
-//        val chore1 = Chore("C1", "H1", "Chore 1", null, "Dec 31, 2099", null, "", null, false)
-//        val chore2 = Chore("C2", "H1", "Chore 2", null, "Dec 31, 2099", null, "", null, false)
-//        val chore3 = Chore("C3", "H1", "Chore 3", null, "Dec 31, 2099", null, "", null, false)
-//
-//        viewModel.addChores(chore1)
-//        viewModel.addChores(chore2)
-//        viewModel.addChores(chore3)
-//
-//        // Mock roommates data
-//        val householdData = mapOf(
-//            "residents" to listOf(
-//                mapOf("id" to "ALICE"),
-//                mapOf("id" to "BOB")
-//            ),
-//            "chores" to emptyList<Map<String, Any>>(),
-//            "recurring_chores" to listOf(
-//                mapOf("name" to "Take out trash", "cycle" to 7),
-//                mapOf("name" to "Clean bathroom", "cycle" to 14),
-//                mapOf("name" to "Do dishes", "cycle" to 3)
-//            )
-//        )
-//
-//
-//        runTest {
-//            whenever(mockRepository.getHouseholdWithoutIdSuspend()).thenReturn(
-//                Pair(
-//                    "H1",
-//                    householdData
-//                )
-//            )
-//            whenever(mockRepository.getUserSuspend(any())).thenReturn(mapOf("name" to "Test"))
-//
-//
-//            // Load the roommates
-//            viewModel.loadHouseholdData()
-//            advanceUntilIdle()
-//
-//            // Act
-//            viewModel.assignChores()
-//
-//            // Assert
-//            val choresList = viewModel.choresList.value
-//            // First chore to ALICE, second to BOB, third to ALICE
-//            assertEquals("ALICE", choresList[0].assignedToId)
-//            assertEquals("BOB", choresList[1].assignedToId)
-//            assertEquals("ALICE", choresList[2].assignedToId)
-//        }
-//    }
-
     @Test
     fun `assignChores distributes chores evenly among roommates`() {
         // 1. Define and set the private `roommates` list.

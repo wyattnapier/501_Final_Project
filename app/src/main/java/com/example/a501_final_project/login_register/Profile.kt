@@ -29,15 +29,23 @@ import coil.compose.AsyncImage
 import com.example.a501_final_project.MainViewModel
 import com.example.a501_final_project.R
 import com.example.a501_final_project.Screen
+import com.example.a501_final_project.chores.ChoresViewModel
+import com.example.a501_final_project.events.EventsViewModel
 import com.example.a501_final_project.navigateToScreen
+import com.example.a501_final_project.payment.PaymentViewModel
 
 @Composable
 fun ProfileScreen(
     modifier: Modifier,
-    loginViewModel: LoginViewModel,
     mainViewModel: MainViewModel,
+    eventsViewModel: EventsViewModel,
+    choresViewModel: ChoresViewModel,
+    paymentViewModel: PaymentViewModel,
+    householdViewModel: HouseholdViewModel,
+    loginViewModel: LoginViewModel,
     navController: NavController
 ) {
+    val userStateVal by loginViewModel.userState.collectAsState()
     val uiState by loginViewModel.uiState.collectAsState()
     val householdID by mainViewModel.householdId.collectAsState()
     val context = LocalContext.current
@@ -48,8 +56,8 @@ fun ProfileScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (uiState.isLoggedIn) {
-            val verticalSpacingBetweenInformation = 8.dp // TODO: is there a better way to do this?
+        if (userStateVal == UserState.READY) {
+            val verticalSpacingBetweenInformation = 8.dp
             // Profile picture
             AsyncImage(
                 model = uiState.profilePictureUrl,
@@ -93,8 +101,16 @@ fun ProfileScreen(
             // TODO: add button to go to household settings here
             // sign out
             Button(
-                onClick = { loginViewModel.signOut(context) },
-                modifier = Modifier.padding(top = verticalSpacingBetweenInformation)
+                onClick = {
+                    loginViewModel.fullSignOut(
+                        context,
+                        mainViewModel,
+                        eventsViewModel,
+                        choresViewModel,
+                        paymentViewModel,
+                        householdViewModel
+                    )
+                }
             ) {
                 Text("Sign Out")
             }
