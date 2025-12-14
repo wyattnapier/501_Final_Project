@@ -364,6 +364,11 @@ class PaymentViewModel(
             firestoreRepository.getUserSuspend(userId)["name"] as? String ?: "Unknown"
         }
 
+        // roommate id to venmo map for building payments
+        val idToVenmoMap = currentRoommates.associateWith { userId ->
+            firestoreRepository.getUserSuspend(userId)["venmoUsername"] as? String
+        }
+
         // for each recurring payment
         // create new payment instances
         // determine due date
@@ -403,7 +408,7 @@ class PaymentViewModel(
                         payFromName = idToNameMap[roommate],
                         payToId = paidBy,
                         payToName = idToNameMap[paidBy],
-                        payToVenmoUsername = null,
+                        payToVenmoUsername = idToVenmoMap[paidBy],
                         amount = amount,
                         memo = recurring.name,
                         dueDate = df.format(newDueDate),
