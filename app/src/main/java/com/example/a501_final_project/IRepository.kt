@@ -1,5 +1,7 @@
 package com.example.a501_final_project
 
+import com.example.a501_final_project.chores.Chore
+
 /**
  * Interface defining the contract for our data repository.
  * This allows for dependency inversion, making our ViewModels more testable
@@ -105,4 +107,6 @@ interface IRepository {
      * Asynchronously adds a new payment to a household's payments array.
      */
     suspend fun addNewPaymentToHousehold(householdId: String, newPaymentData: Map<String, Any>)
+
+    suspend fun updateChoreAssignmentsSuspend(updatedChores: List<Chore>)
 }

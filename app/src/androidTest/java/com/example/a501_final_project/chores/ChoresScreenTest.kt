@@ -47,7 +47,8 @@ class ChoresScreenTest {
         dateCompleted = null,
         assignedToId = "ME",
         assignedToName = "Alice",
-        completed = false
+        completed = false,
+        instanceOf = "0"
     )
 
     private val roommateChore = Chore(
@@ -59,7 +60,8 @@ class ChoresScreenTest {
         dateCompleted = null,
         assignedToId = "OTHER",
         assignedToName = "Bob",
-        completed = false
+        completed = false,
+        instanceOf = "1"
     )
 
     @Before

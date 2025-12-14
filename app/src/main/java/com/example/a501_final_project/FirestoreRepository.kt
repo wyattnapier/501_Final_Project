@@ -373,7 +373,7 @@ class FirestoreRepository : IRepository {
      * function for updatign firebase with chore updates
      */
 
-    suspend fun updateChoreAssignmentsSuspend(updatedChores: List<Chore>) {
+    override suspend fun updateChoreAssignmentsSuspend(updatedChores: List<Chore>) {
         val db = FirebaseFirestore.getInstance()
         val householdId = updatedChores.first().householdID
 
