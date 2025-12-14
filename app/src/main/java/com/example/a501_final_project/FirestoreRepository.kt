@@ -334,20 +334,22 @@ class FirestoreRepository : IRepository {
     /**
      * function to update assignments of payment assignments to firebase
      */
-    suspend fun updatePaymentAssignments(updatedPayments: List<Payment>) {
-        val db = FirebaseFirestore.getInstance()
-        val householdId = getHouseholdIdForUserSuspend(updatedPayments.first().payFromId) // get householdId since not stored in  paymenbt
+    suspend fun updatePaymentAssignments(newPayments: List<Payment>) { // appends, not overwrite
+        if (newPayments.isEmpty()) return
 
-        val paymentMap = updatedPayments.map{ payment ->
+        val db = FirebaseFirestore.getInstance()
+        val householdId = getHouseholdIdForUserSuspend(newPayments.first().payFromId) // get householdId since not stored in  paymenbt
+
+        val paymentMap = newPayments.map{ payment ->
             mapOf(
                 "id" to payment.id,
-                "payToId" to payment.payToId,
-                "payToVenmoUsername" to payment.payToVenmoUsername,
-                "payFromId" to payment.payFromId,
+                "pay_to" to payment.payToId,
+//                "payToVenmoUsername" to payment.payToVenmoUsername,
+                "pay_from" to payment.payFromId,
                 "amount" to payment.amount,
                 "memo" to payment.memo,
-                "dueDate" to payment.dueDate,
-                "datePaid" to payment.datePaid,
+                "due_date" to payment.dueDate,
+                "date_paid" to payment.datePaid,
                 "paid" to payment.paid,
                 "recurring" to payment.recurring, // is this jsut true...?
                 "recurring_payment_id" to payment.instanceOf
@@ -357,7 +359,7 @@ class FirestoreRepository : IRepository {
 
         db.collection("households")
             .document(householdId)
-            .update("payments", paymentMap)
+            .update("payments", FieldValue.arrayUnion(*paymentMap.toTypedArray())) // to update rather than overwrite
     }
 
 

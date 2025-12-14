@@ -52,6 +52,9 @@ class PaymentViewModel(
     private val _pastPayments = MutableStateFlow<List<Payment>>(emptyList())
     val pastPayments: StateFlow<List<Payment>> = _pastPayments.asStateFlow()
 
+    private val _allPayments = MutableStateFlow<List<Payment>>(emptyList())
+    val allPayments: StateFlow<List<Payment>> = _allPayments.asStateFlow()
+
     private val _recurringPayments = MutableStateFlow<List<RecurringPayment>>(emptyList())
     val recurringPayments: StateFlow<List<RecurringPayment>> = _recurringPayments.asStateFlow()
 
@@ -178,7 +181,7 @@ class PaymentViewModel(
                     val residentPercents = residentsAnyList.mapNotNull { resident ->
                         val residentMap = resident as? Map<*, *>
                         val resId = residentMap?.get("id") as? String ?: return@mapNotNull null
-                        val percents = (residentMap?.get("payment_percents") as? List<*>)
+                        val percents = (residentMap.get("payment_percents") as? List<*>)
                             ?.mapNotNull { (it as? Number)?.toDouble() }
                             ?: emptyList()
                         resId to percents
@@ -190,7 +193,7 @@ class PaymentViewModel(
 
                 // Load recurring payment information
                 val recurringPaymentsList = data["recurring_payments"] as? List<*>
-                val recurringChoresListTemp: List<RecurringPayment>? = recurringPaymentsList?.mapIndexedNotNull { index, item ->
+                val recurringPaymentsListTemp: List<RecurringPayment>? = recurringPaymentsList?.mapIndexedNotNull { index, item ->
                     val itemAsMap = item as? Map<*, *> ?: return@mapIndexedNotNull null
                     RecurringPayment(
                         amount = itemAsMap["amount"] as? Double ?: return@mapIndexedNotNull null,
@@ -200,7 +203,7 @@ class PaymentViewModel(
                     )
                 }
 
-                _recurringPayments.value = recurringChoresListTemp ?: emptyList()
+                _recurringPayments.value = recurringPaymentsListTemp ?: emptyList()
 
 
 
@@ -289,7 +292,14 @@ class PaymentViewModel(
                             Pair(payToId, null)
                         }
 
+                        val instanceOf =
+                            (itemAsMap["recurring_payment_id"] as? Number)?.toInt()
+
+                        val recurring =
+                            itemAsMap["recurring"] as? Boolean ?: (instanceOf != null)
+
                         Log.d("PaymentViewModel", "Payment $index: $payFromName pays $payToName (venmo: $payToVenmoUsername) $$amount for $memo")
+
 
                         Payment(
                             id = paymentId,
@@ -303,23 +313,25 @@ class PaymentViewModel(
                             dueDate = dueDate,
                             datePaid = datePaid,
                             paid = paid,
-                            recurring = false,
-                            instanceOf = null,
+                            recurring = recurring,
+                            instanceOf = instanceOf,
                         )
                     }
 
                     // Separate into active and past payments
                     val activePayments = parsedPayments.filter { !it.paid }
                     val pastPaymentsList = parsedPayments.filter { it.paid }
+                    val allPayments = parsedPayments
 
                     _paymentsList.value = activePayments
                     _pastPayments.value = pastPaymentsList
+                    _allPayments.value = allPayments
 
                     Log.d("PaymentViewModel", "Successfully loaded ${activePayments.size} active and ${pastPaymentsList.size} past payments")
                 }
 
                 // call here?
-                assignRecurringPayments()
+                assignRecurringPayments(allPayments = _allPayments.value)
 
                 _isPaymentsDataLoaded.value = true
                 _isLoading.value = false
@@ -335,17 +347,22 @@ class PaymentViewModel(
     /**
      * function to assign recurring payment on correct cycle frequency and correct amount
      */
-    fun assignRecurringPayments() {
+    suspend fun assignRecurringPayments(allPayments: List<Payment>) {
         val currentRoommates = roommates.value
-        val recurringPayments = recurringPayments.value ?: return
+        val recurringPayments = recurringPayments.value
         val currentPayments = _paymentsList.value.toMutableList()
         if (currentRoommates.isEmpty()) {
-            Log.w("PaymentViewModel", "Cannot assign chores, the roommates list is empty.")
+            Log.w("PaymentViewModel", "Cannot assign paymenrs, the roommates list is empty.")
             return
         }
 
         // today
         val df = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+
+        // roommate id to names so we can build payments with name
+        val idToNameMap = currentRoommates.associateWith { userId ->
+            firestoreRepository.getUserSuspend(userId)["name"] as? String ?: "Unknown"
+        }
 
         // for each recurring payment
         // create new payment instances
@@ -354,11 +371,11 @@ class PaymentViewModel(
         // add to payments list
         for ((index, recurring) in recurringPayments.withIndex()) {
             // check if any instances, returns boolean
-            val existing = currentPayments.any { payment ->
-                payment.instanceOf == index && !payment.paid
+            val existing = allPayments.any {
+                it.instanceOf == index
             }
             if (existing) {
-                return
+                continue
             }
             // else none, so create
 
@@ -372,21 +389,20 @@ class PaymentViewModel(
             val baseDate = lastPaymentDueDate?.let { df.parse(it) } ?: today
             calendar.time = baseDate
             calendar.add(Calendar.DAY_OF_YEAR, recurring.cycle)
-            val newDueDate = df.format(calendar.time)
+            val newDueDate = calendar.time
 
-            val paidBy = currentRoommates.filter { roommate ->
-                roommate == recurring.paidById
-            }[0]
+            val paidBy = currentRoommates.firstOrNull { it == recurring.paidById }
+                ?: continue
             for (roommate in currentRoommates) {
                 if (roommate != paidBy) {
-                    val amount = recurring.amount * roommatePercents.value[roommate]!![index]
+                    val amount = recurring.amount * (roommatePercents.value[roommate]!![index] / 100)
 
                     val newPayment = Payment(
                         id = UUID.randomUUID().toString(),
-                        payFromId = recurring.paidById,
-                        payFromName = null,     // you can fill this later with user lookup
+                        payFromId = roommate, // pay from is who makes the payment
+                        payFromName = idToNameMap[roommate],
                         payToId = paidBy,
-                        payToName = null,
+                        payToName = idToNameMap[paidBy],
                         payToVenmoUsername = null,
                         amount = amount,
                         memo = recurring.name,
@@ -409,13 +425,14 @@ class PaymentViewModel(
         // send to db
         viewModelScope.launch {
             try {
-                firestoreRepository.updatePaymentAssignments(_paymentsList.value)
+                val newRecurringPayments = currentPayments.filter { it.recurring }
+                firestoreRepository.updatePaymentAssignments(newRecurringPayments)
                 Log.d(
                     "PaymentsViewModel",
-                    "Successfully assigned ${_paymentsList.value.size} chores"
+                    "Successfully assigned ${_paymentsList.value.size} payments"
                 )
             } catch (e: Exception) {
-                Log.e("ChoresViewModel", "Failed to update assignments in DB", e)
+                Log.e("PaymentsViewModel", "Failed to update assignments in DB", e)
             }
         }
 
