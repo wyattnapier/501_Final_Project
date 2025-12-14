@@ -66,7 +66,6 @@ class ChoresScreenTest {
 
     @Before
     fun setUp() {
-//        MockitoAnnotations.openMocks(this)
         context = InstrumentationRegistry.getInstrumentation().targetContext
 
         // Setup default repository behavior for MainViewModel
@@ -179,7 +178,7 @@ class ChoresScreenTest {
             }
         }
 
-        composeTestRule.onNodeWithText("My Chore").assertIsDisplayed()
+        composeTestRule.onNodeWithText("My Chores").assertIsDisplayed()
         composeTestRule.onNodeWithText("Roommate Chores").assertIsDisplayed()
         composeTestRule.onNodeWithText("My Dishes").assertIsDisplayed()
         composeTestRule.onNodeWithText("Bob: Trash").assertIsDisplayed()

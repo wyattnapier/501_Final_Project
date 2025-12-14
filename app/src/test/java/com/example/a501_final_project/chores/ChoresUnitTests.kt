@@ -1,9 +1,11 @@
 package com.example.a501_final_project.chores
 
+import androidx.core.net.toUri
 import com.example.a501_final_project.IRepository
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.just
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.*
@@ -311,4 +313,19 @@ class ChoresViewModelUnitTest {
         assertEquals(initialSize + 1, viewModel.choresList.value.size)
         assertTrue(viewModel.choresList.value.contains(newChore))
     }
+
+    @Test
+    fun `reset clears all state`() = runTest {
+
+        viewModel.reset()
+
+        assertTrue(viewModel.roommates.value.isEmpty())
+        assertTrue(viewModel.choresList.value.isEmpty())
+        assertFalse(viewModel.showPrevChores.value)
+        assertTrue(viewModel.choreImageUris.value.isEmpty())
+        assertNull(viewModel.tempImageUri.value)
+        assertFalse(viewModel.isChoresDataLoaded.value)
+        assertFalse(viewModel.isLoading.value)
+    }
+
 }
