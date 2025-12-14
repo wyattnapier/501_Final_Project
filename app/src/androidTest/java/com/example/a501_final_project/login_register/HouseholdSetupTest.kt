@@ -23,11 +23,11 @@ class HouseholdSetupTest {
 
     @Mock
     private lateinit var mockRepository: IRepository
-
     @Mock
     private lateinit var mockNavController: NavController
 
-    private lateinit var viewModel: HouseholdViewModel
+    private lateinit var householdViewModel: HouseholdViewModel
+    private lateinit var loginViewModel: LoginViewModel
 
     @Before
     fun setUp() {
@@ -37,8 +37,9 @@ class HouseholdSetupTest {
         whenever(mockRepository.getCurrentUserId()).thenReturn("test-user-id")
 
         // Create ViewModel with mocked repository
-        viewModel = HouseholdViewModel(mockRepository)
-        viewModel.loadCurrentUserId()
+        householdViewModel = HouseholdViewModel(mockRepository)
+        householdViewModel.loadCurrentUserId()
+        loginViewModel = LoginViewModel(mockRepository)
     }
 
     // NewHouseholdName Tests
@@ -46,7 +47,7 @@ class HouseholdSetupTest {
     fun newHouseholdName_displaysCorrectTitle() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdName(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdName(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -59,7 +60,7 @@ class HouseholdSetupTest {
     fun newHouseholdName_hasHouseholdNameField() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdName(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdName(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -72,7 +73,7 @@ class HouseholdSetupTest {
     fun newHouseholdName_acceptsTextInput() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdName(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdName(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -80,16 +81,16 @@ class HouseholdSetupTest {
             .onNodeWithText("Household Name")
             .performTextInput("My Test Home")
 
-        assert(viewModel.householdName == "My Test Home")
+        assert(householdViewModel.householdName == "My Test Home")
     }
 
     @Test
     fun newHouseholdName_showsErrorWhenEmptyAndSubmitted() {
-        viewModel.incrementStep() // Trigger validation
+        householdViewModel.incrementStep() // Trigger validation
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdName(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdName(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -103,7 +104,7 @@ class HouseholdSetupTest {
     fun newHouseholdChore_displaysCorrectTitle() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdChore(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdChore(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -116,7 +117,7 @@ class HouseholdSetupTest {
     fun newHouseholdChore_displaysAddButton() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdChore(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdChore(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -129,24 +130,24 @@ class HouseholdSetupTest {
     fun newHouseholdChore_addsChoreWhenButtonClicked() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdChore(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdChore(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
-        val initialCount = viewModel.choreInputs.size
+        val initialCount = householdViewModel.choreInputs.size
 
         composeTestRule
             .onNodeWithText("Add Another Chore")
             .performClick()
 
-        assert(viewModel.choreInputs.size == initialCount + 1)
+        assert(householdViewModel.choreInputs.size == initialCount + 1)
     }
 
     @Test
     fun newHouseholdChore_displaysChoreCard() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdChore(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdChore(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -165,7 +166,7 @@ class HouseholdSetupTest {
                     chore = testChore,
                     onChoreChanged = {},
                     hasAttemptedSubmit = false,
-                    viewModel = viewModel
+                    viewModel = householdViewModel
                 )
             }
         }
@@ -193,7 +194,7 @@ class HouseholdSetupTest {
                     chore = testChore,
                     onChoreChanged = {},
                     hasAttemptedSubmit = true,
-                    viewModel = viewModel
+                    viewModel = householdViewModel
                 )
             }
         }
@@ -213,7 +214,7 @@ class HouseholdSetupTest {
                     chore = testChore,
                     onChoreChanged = {},
                     hasAttemptedSubmit = true,
-                    viewModel = viewModel
+                    viewModel = householdViewModel
                 )
             }
         }
@@ -234,7 +235,7 @@ class HouseholdSetupTest {
                     chore = testChore,
                     onChoreChanged = { updatedChore = it },
                     hasAttemptedSubmit = false,
-                    viewModel = viewModel
+                    viewModel = householdViewModel
                 )
             }
         }
@@ -251,7 +252,7 @@ class HouseholdSetupTest {
     fun newHouseholdPayment_displaysCorrectTitle() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdPayment(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdPayment(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -264,7 +265,7 @@ class HouseholdSetupTest {
     fun newHouseholdPayment_displaysAddButton() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdPayment(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdPayment(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -277,17 +278,17 @@ class HouseholdSetupTest {
     fun newHouseholdPayment_addsPaymentWhenButtonClicked() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdPayment(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdPayment(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
-        val initialCount = viewModel.paymentInputs.size
+        val initialCount = householdViewModel.paymentInputs.size
 
         composeTestRule
             .onNodeWithText("Add Another Payment")
             .performClick()
 
-        assert(viewModel.paymentInputs.size == initialCount + 1)
+        assert(householdViewModel.paymentInputs.size == initialCount + 1)
     }
 
     @Test
@@ -300,7 +301,7 @@ class HouseholdSetupTest {
                     payment = testPayment,
                     onPaymentChanged = {},
                     hasAttemptedSubmit = false,
-                    viewModel = viewModel
+                    viewModel = householdViewModel
                 )
             }
         }
@@ -332,7 +333,7 @@ class HouseholdSetupTest {
                     payment = testPayment,
                     onPaymentChanged = {},
                     hasAttemptedSubmit = false,
-                    viewModel = viewModel
+                    viewModel = householdViewModel
                 )
             }
         }
@@ -352,7 +353,7 @@ class HouseholdSetupTest {
                     payment = testPayment,
                     onPaymentChanged = {},
                     hasAttemptedSubmit = true,
-                    viewModel = viewModel
+                    viewModel = householdViewModel
                 )
             }
         }
@@ -384,7 +385,7 @@ class HouseholdSetupTest {
                     payment = testPayment,
                     onPaymentChanged = {},
                     hasAttemptedSubmit = true,
-                    viewModel = viewModel
+                    viewModel = householdViewModel
                 )
             }
         }
@@ -399,7 +400,7 @@ class HouseholdSetupTest {
     fun newHouseholdCalendar_displaysCorrectTitle() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdCalendar(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdCalendar(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -412,7 +413,7 @@ class HouseholdSetupTest {
     fun newHouseholdCalendar_hasCalendarNameField() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdCalendar(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdCalendar(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -423,17 +424,17 @@ class HouseholdSetupTest {
 
     @Test
     fun newHouseholdCalendar_showsErrorWhenEmpty() {
-        viewModel.updateName("test")
-        viewModel.choreInputs[0] = ChoreInput("test", "test", 1)
-        viewModel.paymentInputs[0] = PaymentInput("test", 1, 1, 1, false)
-        viewModel.incrementStep() // -> 1
-        viewModel.incrementStep() // -> 2
-        viewModel.incrementStep() // -> 3
-        viewModel.incrementStep() // -> 4 (triggers validation for step 3)
+        householdViewModel.updateName("test")
+        householdViewModel.choreInputs[0] = ChoreInput("test", "test", 1)
+        householdViewModel.paymentInputs[0] = PaymentInput("test", 1, 1, 1, false)
+        householdViewModel.incrementStep() // -> 1
+        householdViewModel.incrementStep() // -> 2
+        householdViewModel.incrementStep() // -> 3
+        householdViewModel.incrementStep() // -> 4 (triggers validation for step 3)
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                NewHouseholdCalendar(viewModel, androidx.compose.ui.Modifier)
+                NewHouseholdCalendar(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -447,7 +448,7 @@ class HouseholdSetupTest {
     fun reviewHouseholdDetails_displaysTitle() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                ReviewHouseholdDetails(viewModel, androidx.compose.ui.Modifier)
+                ReviewHouseholdDetails(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -458,11 +459,11 @@ class HouseholdSetupTest {
 
     @Test
     fun reviewHouseholdDetails_showsHouseholdName() {
-        viewModel.updateName("Test Household")
+        householdViewModel.updateName("Test Household")
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                ReviewHouseholdDetails(viewModel, androidx.compose.ui.Modifier)
+                ReviewHouseholdDetails(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -477,11 +478,11 @@ class HouseholdSetupTest {
 
     @Test
     fun reviewHouseholdDetails_showsNoChoresMessage() {
-        viewModel.choreInputs.clear()
+        householdViewModel.choreInputs.clear()
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                ReviewHouseholdDetails(viewModel, androidx.compose.ui.Modifier)
+                ReviewHouseholdDetails(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -492,11 +493,11 @@ class HouseholdSetupTest {
 
     @Test
     fun reviewHouseholdDetails_showsNoPaymentsMessage() {
-        viewModel.paymentInputs.clear()
+        householdViewModel.paymentInputs.clear()
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                ReviewHouseholdDetails(viewModel, androidx.compose.ui.Modifier)
+                ReviewHouseholdDetails(householdViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -508,11 +509,11 @@ class HouseholdSetupTest {
     // HouseholdCreated Tests
     @Test
     fun householdCreated_displaysSuccessMessage() {
-        viewModel.updateID("12345")
+        householdViewModel.updateID("12345")
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                HouseholdCreated(viewModel, androidx.compose.ui.Modifier, mockNavController)
+                HouseholdCreated(householdViewModel, loginViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -523,11 +524,11 @@ class HouseholdSetupTest {
 
     @Test
     fun householdCreated_displaysHouseholdId() {
-        viewModel.updateID("TEST123")
+        householdViewModel.updateID("TEST123")
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                HouseholdCreated(viewModel, androidx.compose.ui.Modifier, mockNavController)
+                HouseholdCreated(householdViewModel, loginViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -542,11 +543,11 @@ class HouseholdSetupTest {
 
     @Test
     fun householdCreated_hasProceedButton() {
-        viewModel.updateID("12345")
+        householdViewModel.updateID("12345")
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                HouseholdCreated(viewModel, androidx.compose.ui.Modifier, mockNavController)
+                HouseholdCreated(householdViewModel, loginViewModel, androidx.compose.ui.Modifier)
             }
         }
 
@@ -560,12 +561,12 @@ class HouseholdSetupTest {
     fun findHousehold_displaysTitle() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                FindHousehold(viewModel, androidx.compose.ui.Modifier, onBack = {})
+                FindHousehold(householdViewModel, onBack = {})
             }
         }
 
         composeTestRule
-            .onNodeWithText("Join Household")
+            .onNodeWithText("Join a Household")
             .assertIsDisplayed()
     }
 
@@ -573,7 +574,7 @@ class HouseholdSetupTest {
     fun findHousehold_hasHouseholdIdField() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                FindHousehold(viewModel, androidx.compose.ui.Modifier, onBack = {})
+                FindHousehold(householdViewModel, onBack = {})
             }
         }
 
@@ -586,7 +587,7 @@ class HouseholdSetupTest {
     fun findHousehold_hasSearchButton() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                FindHousehold(viewModel, androidx.compose.ui.Modifier, onBack = {})
+                FindHousehold(householdViewModel, onBack = {})
             }
         }
 
@@ -599,7 +600,7 @@ class HouseholdSetupTest {
     fun findHousehold_searchButtonDisabledWhenEmpty() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                FindHousehold(viewModel, androidx.compose.ui.Modifier, onBack = {})
+                FindHousehold(householdViewModel, onBack = {})
             }
         }
 
@@ -611,11 +612,11 @@ class HouseholdSetupTest {
     // JoinHousehold Tests
     @Test
     fun joinHousehold_displaysHouseholdName() {
-        viewModel.updateName("Test Home")
+        householdViewModel.updateName("Test Home")
 
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                JoinHousehold(viewModel, androidx.compose.ui.Modifier, onBack = {})
+                JoinHousehold(householdViewModel, onBack = {})
             }
         }
 
@@ -628,7 +629,7 @@ class HouseholdSetupTest {
     fun joinHousehold_hasConfirmButton() {
         composeTestRule.setContent {
             _501_Final_ProjectTheme {
-                JoinHousehold(viewModel, androidx.compose.ui.Modifier, onBack = {})
+                JoinHousehold(householdViewModel, onBack = {})
             }
         }
 
@@ -705,53 +706,53 @@ class HouseholdSetupTest {
     // ViewModel Logic Tests
     @Test
     fun viewModel_incrementStepValidatesInput() {
-        assert(viewModel.setupStep == 0)
+        assert(householdViewModel.setupStep == 0)
 
         // Try to increment without filling name
-        viewModel.incrementStep()
+        householdViewModel.incrementStep()
 
         // Should still be on step 0 because validation failed
-        assert(viewModel.setupStep == 0)
-        assert(viewModel.hasAttemptedSubmit)
+        assert(householdViewModel.setupStep == 0)
+        assert(householdViewModel.hasAttemptedSubmit)
 
         // Fill name and try again
-        viewModel.updateName("Test Home")
-        viewModel.incrementStep()
+        householdViewModel.updateName("Test Home")
+        householdViewModel.incrementStep()
 
         // Should now be on step 1
-        assert(viewModel.setupStep == 1)
+        assert(householdViewModel.setupStep == 1)
     }
 
     @Test
     fun viewModel_decrementStepWorks() {
-        viewModel.updateName("Test")
-        viewModel.choreInputs[0] = ChoreInput("test", "", 1)
-        viewModel.incrementStep()
-        assert(viewModel.setupStep == 1)
+        householdViewModel.updateName("Test")
+        householdViewModel.choreInputs[0] = ChoreInput("test", "", 1)
+        householdViewModel.incrementStep()
+        assert(householdViewModel.setupStep == 1)
 
-        viewModel.decrementStep()
-        assert(viewModel.setupStep == 0)
+        householdViewModel.decrementStep()
+        assert(householdViewModel.setupStep == 0)
     }
 
     @Test
     fun viewModel_addRemoveChoreWorks() {
-        val initialSize = viewModel.choreInputs.size
+        val initialSize = householdViewModel.choreInputs.size
 
-        viewModel.addChore()
-        assert(viewModel.choreInputs.size == initialSize + 1)
+        householdViewModel.addChore()
+        assert(householdViewModel.choreInputs.size == initialSize + 1)
 
-        viewModel.removeChore(0)
-        assert(viewModel.choreInputs.size == initialSize)
+        householdViewModel.removeChore(0)
+        assert(householdViewModel.choreInputs.size == initialSize)
     }
 
     @Test
     fun viewModel_addRemovePaymentWorks() {
-        val initialSize = viewModel.paymentInputs.size
+        val initialSize = householdViewModel.paymentInputs.size
 
-        viewModel.addPayment()
-        assert(viewModel.paymentInputs.size == initialSize + 1)
+        householdViewModel.addPayment()
+        assert(householdViewModel.paymentInputs.size == initialSize + 1)
 
-        viewModel.removePayment(0)
-        assert(viewModel.paymentInputs.size == initialSize)
+        householdViewModel.removePayment(0)
+        assert(householdViewModel.paymentInputs.size == initialSize)
     }
 }
