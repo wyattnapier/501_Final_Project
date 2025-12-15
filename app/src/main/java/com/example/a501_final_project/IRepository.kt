@@ -1,5 +1,7 @@
 package com.example.a501_final_project
 
+import com.example.a501_final_project.payment.Payment
+
 /**
  * Interface defining the contract for our data repository.
  * This allows for dependency inversion, making our ViewModels more testable
@@ -70,6 +72,11 @@ interface IRepository {
      * Asynchronously finds a payment in a household's payments array and marks it as paid.
      */
     suspend fun markPaymentAsCompletedSuspend(paymentId: String, householdId: String)
+
+    /**
+     * Asynchronously updates a chore document in Firestore.
+     */
+    suspend fun updatePaymentAssignments(newPayments: List<Payment>)
 
     /**
      * Asynchronously adds a pending member to household
