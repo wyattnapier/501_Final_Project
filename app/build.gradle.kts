@@ -61,6 +61,7 @@ android {
         buildConfig = true
     }
     testOptions {
+        animationsDisabled = true
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
