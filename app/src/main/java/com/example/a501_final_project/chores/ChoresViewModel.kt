@@ -27,6 +27,7 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import androidx.core.net.toUri
 import com.example.a501_final_project.BuildConfig
+import com.example.a501_final_project.IRepository
 import java.util.UUID
 
 
@@ -58,7 +59,7 @@ data class RecurringChore(
 )
 
 class ChoresViewModel(
-    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
+    private val firestoreRepository: IRepository = FirestoreRepository()
 ) : ViewModel() {
     private val _roommates = MutableStateFlow<List<String>>(emptyList())
     val roommates: StateFlow<List<String>> = _roommates.asStateFlow()
@@ -102,7 +103,7 @@ class ChoresViewModel(
         }
 
         _isLoading.value = true
-        Log.d("ChoresViewModel", "Starting to load household data...")
+//        Log.d("ChoresViewModel", "Starting to load household data...")
 
         // Launch a coroutine in the ViewModel scope to prevent failed results from async
         viewModelScope.launch {
@@ -257,6 +258,7 @@ class ChoresViewModel(
 
                         Log.d("ChoresViewModel", "Chore $index: Successfully parsed!")
 
+//                        Log.d("ChoresViewModel", "Chore $index: ${currentRecurringChore?.name} assigned to $assignedToName")
 
                         Chore(
                             choreID = choreId,
@@ -273,13 +275,14 @@ class ChoresViewModel(
                     }
 
                     _choresList.value = parsedChores
-                    Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
+//                    Log.d("ChoresViewModel", "Successfully loaded ${parsedChores.size} chores")
                 }
                 // assign chores upon opening, ensures assignments complete before flags are set
                 assignChores()
 
                 _isChoresDataLoaded.value = true
                 _isLoading.value = false
+//                Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
 
                 Log.d("ChoresViewModel", "Load complete - ${_choresList.value.size} chores")
 
@@ -560,7 +563,7 @@ class ChoresViewModel(
                 false
             }
         } ?: false
-        Log.d("ChoresViewModel", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
+//        Log.d("ChoresViewModel", "isChoreOverdue: $isOverdue with due date: ${chore?.dueDate}")
         return isOverdue
     }
 

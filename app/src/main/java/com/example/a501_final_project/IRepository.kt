@@ -1,5 +1,6 @@
 package com.example.a501_final_project
 
+import com.example.a501_final_project.chores.Chore
 import com.example.a501_final_project.payment.Payment
 
 /**
@@ -112,4 +113,6 @@ interface IRepository {
      * Asynchronously adds a new payment to a household's payments array.
      */
     suspend fun addNewPaymentToHousehold(householdId: String, newPaymentData: Map<String, Any>)
+
+    suspend fun updateChoreAssignmentsSuspend(updatedChores: List<Chore>)
 }

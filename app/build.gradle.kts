@@ -48,6 +48,10 @@ android {
                 "proguard-rules.pro"
             )
         }
+
+        debug {
+            enableAndroidTestCoverage = true
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -122,12 +126,14 @@ dependencies {
     // Mockito for mocking
     // For local tests (src/test)
     testImplementation("org.mockito:mockito-core:5.12.0")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("io.mockk:mockk:1.13.11") // or latest
+
 
     // For instrumented tests (src/androidTest)
     androidTestImplementation("org.mockito:mockito-core:5.12.0")
     androidTestImplementation("org.mockito:mockito-android:5.12.0")
-    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 
     // Coroutines testing
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
