@@ -1,6 +1,7 @@
 package com.example.a501_final_project
 
 import android.util.Log
+import com.example.a501_final_project.payment.Payment
 import com.example.a501_final_project.chores.Chore
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -328,6 +329,39 @@ class FirestoreRepository : IRepository {
             throw exception
         }
     }
+
+
+    /**
+     * function to update assignments of payment assignments to firebase
+     */
+    override suspend fun updatePaymentAssignments(newPayments: List<Payment>) { // appends, not overwrite
+        if (newPayments.isEmpty()) return
+
+        val db = FirebaseFirestore.getInstance()
+        val householdId = getHouseholdIdForUserSuspend(newPayments.first().payFromId) // get householdId since not stored in  paymenbt
+
+        val paymentMap = newPayments.map{ payment ->
+            mapOf(
+                "id" to payment.id,
+                "pay_to" to payment.payToId,
+//                "payToVenmoUsername" to payment.payToVenmoUsername,
+                "pay_from" to payment.payFromId,
+                "amount" to payment.amount,
+                "memo" to payment.memo,
+                "due_date" to payment.dueDate,
+                "date_paid" to payment.datePaid,
+                "paid" to payment.paid,
+                "recurring" to payment.recurring, // is this jsut true...?
+                "recurring_payment_id" to payment.instanceOf
+            )
+
+        }
+
+        db.collection("households")
+            .document(householdId)
+            .update("payments", FieldValue.arrayUnion(*paymentMap.toTypedArray())) // to update rather than overwrite
+    }
+
 
     override suspend fun markPaymentAsCompletedSuspend(paymentId: String, householdId: String) {
         try {

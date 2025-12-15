@@ -161,12 +161,13 @@
             </AndroidTestResultsTableState>
           </value>
         </entry>
-        <entry key="1463287936">
+        <entry key="2134696454">
           <value>
             <AndroidTestResultsTableState>
               <option name="preferredColumnWidths">
                 <map>
                   <entry key="Duration" value="90" />
+                  <entry key="Medium_Phone" value="120" />
                   <entry key="Tests" value="360" />
                 </map>
               </option>
