@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.a501_final_project.FirestoreRepository
+import com.example.a501_final_project.IRepository
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -43,7 +44,7 @@ data class RecurringPayment(
 )
 
 class PaymentViewModel(
-    private val firestoreRepository: FirestoreRepository = FirestoreRepository()
+    private val firestoreRepository: IRepository = FirestoreRepository()
 ) : ViewModel() {
 
     private val _paymentsList = MutableStateFlow<List<Payment>>(emptyList())
