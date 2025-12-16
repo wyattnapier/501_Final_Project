@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -982,7 +983,8 @@ fun JoinHousehold(viewModel: HouseholdViewModel, onBack: () -> Unit) {
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .fillMaxHeight(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             itemsIndexed(viewModel.paymentsFromDB) { index, payment ->
@@ -1008,8 +1010,6 @@ fun JoinHousehold(viewModel: HouseholdViewModel, onBack: () -> Unit) {
                 }
             }
         }
-
-        Spacer(modifier = Modifier.weight(1f)) // push button to end of page
 
         Button(
             onClick = { viewModel.confirmJoinHousehold(context = context) },
