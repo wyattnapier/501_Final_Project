@@ -124,6 +124,7 @@ fun MyChoreWidget(userID: String, householdID: String, chores: List<Chore>, chor
 
     Column(
         modifier = modifier
+            .fillMaxWidth()
             .clip(MaterialTheme.shapes.medium)
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(10.dp)

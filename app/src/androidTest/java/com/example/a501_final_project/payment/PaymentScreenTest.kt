@@ -104,7 +104,8 @@ class PaymentScreenTest {
             dueDate = null,
             datePaid = null,
             paid = false,
-            recurring = false
+            recurring = false,
+            instanceOf = null
         )
 
         paymentViewModel.reset()
@@ -135,7 +136,8 @@ class PaymentScreenTest {
             dueDate = null,
             datePaid = null,
             paid = true,
-            recurring = false
+            recurring = false,
+            instanceOf = null
         )
 
         paymentViewModel.reset()

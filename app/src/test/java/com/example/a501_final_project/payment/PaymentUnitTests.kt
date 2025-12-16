@@ -62,7 +62,8 @@ class PaymentUnitTests {
         dueDate = null,
         datePaid = null,
         paid = paid,
-        recurring = false
+        recurring = false,
+        instanceOf = null
     )
 
 
