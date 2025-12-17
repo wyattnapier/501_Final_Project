@@ -13,19 +13,15 @@ A mobile application to serve as a hub for all roommate related needs such as tr
 - Tiffany Liu (Scrum Master)
 - Wyatt Napier (Product Owner)
 
-## UPDATE: December 2, 2025
-### Feature List
-- [DONE] User auth with Google Sign-in API
-- [DONE] User login and register flows including ousehold creation and joining pages
-- [DONE] Basic home page with widgets that show snapshots of other core pages. Users can select which widgets they want to display
-- [DONE] Chores page that allows users to upload photos from their camera as evidence of chore completion
-- [DONE] Events page that allows users to view events as an agenda, 3 day view, or month view. It also lets users add new events to their shared calendar
-- [DONE] Payment page which routes users to venmo to complete transactions related to their household
-- [WIP] Logic for assigning chores and payments on a recurring basis
-- [WIP] Extending unit testing and testing for various on devices
-- [WIP] Adding notifications to app
-- [WIP] Expanding household and user settings
-- [STRETCH] Anonymous note board
+### Feature List 
+- User auth with Google Sign-in API
+- User login and register flows including ousehold creation and joining pages
+- Basic home page with widgets that show snapshots of other core pages. Users can select which widgets they want to display
+- Chores page that allows users to upload photos from their camera as evidence of chore completion
+- Events page that allows users to view events as an agenda, 3 day view, or month view. It also lets users add new events to their shared calendar
+- Payment page which routes users to venmo to complete transactions related to their household
+- Logic for assigning chores and payments on a recurring basis
+- Unit testing, UI testing, and testing for various on devices
 
 ### Testing Strategy
 - handling errors with try-catch blocks and when necessary displaying error with a Toast
@@ -66,15 +62,10 @@ View Layer
 - Struggled with build errors due to dependencies incompatibilities
 - Unable to come up with alternative solutions to more complex errors such as Google Sign-in Error 7: Network Error
 - Required correction when overriding functions that would then trigger updates across the entire project
+- Used it to help come up with both UI and unit tests, but it struggled a lot with dependencies for viewModels and understanding how to mock repository activity.
 
-## UPDATE: November 11, 2025 
-### Current Features: 
-- Bottom Nav Bar that allows users to visit each separate page
-- Home screen with temporary widgets that navigate to each page
-- Chores page with widgets showing own chore, roommate chores, and option to pull up all past chores
-- Payment page with connection to Venmo API and preliminary logic to calculate payments
-- ViewModel with mock data and preliminary logic for pages, will continue to build out as we add functionality to the app
-- NavGraph that properly navigates through all pages in the main activity of the app
-- Persistent DataStore to keep track of user preferences 
-### Updates to project: 
-- From considerations of real-world usage, we are no longer building out the locate page as part of our MVP.
+### Future Improvements
+Some additional features that we could add in the future if we continue to work on the project: 
+- Adding notifications to remind users about upcoming deadlines 
+- Expanding household and user settings
+- Anonymous note board
